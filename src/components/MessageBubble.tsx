@@ -146,8 +146,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                     const match = /language-(\w+)/.exec(className || '');
                     const language = match ? match[1] : '';
                     const value = String(children).replace(/\n$/, '');
+                    const isMultiline = value.includes('\n');
 
-                    if (!inline && match) {
+                    if (!inline && (match || isMultiline)) {
                       return <CodeBlock language={language} value={value} />;
                     }
 
