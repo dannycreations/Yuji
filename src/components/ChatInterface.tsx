@@ -57,8 +57,8 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
-  const generateResponse = async (sessionId: string, messages: Message[]) => {
-    const session = sessions[sessionId];
+  const generateResponse = async (sessionId: string, messagesToProcess: Message[]) => {
+    const session = useStore.getState().sessions[sessionId];
     if (!session) return;
 
     if (fiberRef.current) {
@@ -73,7 +73,7 @@ export const ChatInterface: React.FC = () => {
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
-      parentId: messages[messages.length - 1]?.id,
+      parentId: messagesToProcess[messagesToProcess.length - 1]?.id,
     };
     addMessage(sessionId, assistantMessage);
 
@@ -81,7 +81,7 @@ export const ChatInterface: React.FC = () => {
 
     const streamEffect = Effect.gen(function* () {
       const stream = yield* streamCompletion(
-        messages,
+        messagesToProcess,
         session.systemPrompt || settings.defaultSystemPrompt,
         settings,
         session.modelConfig || { provider: 'openai', model: settings.defaultModel, temperature: 0.7 },
@@ -115,8 +115,13 @@ export const ChatInterface: React.FC = () => {
       currentSessionId = createSession();
     }
 
-    const session = sessions[currentSessionId];
+    // Use current state to ensure we have the newly created session if applicable
+    const state = useStore.getState();
+    const session = state.sessions[currentSessionId];
     if (!session) return;
+
+    // Determine parentId based on current visible path or last message
+    const parentId = activeSession?.activeMessageId;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -124,24 +129,49 @@ export const ChatInterface: React.FC = () => {
       content,
       attachments,
       timestamp: Date.now(),
+      parentId,
     };
     addMessage(currentSessionId, userMessage);
 
-    await generateResponse(currentSessionId, [...session.messages, userMessage]);
+    // Get updated session messages for the LLM call
+    const updatedState = useStore.getState();
+    const updatedSession = updatedState.sessions[currentSessionId];
+
+    // Construct the actual message history for the LLM based on the path
+    const history: Message[] = [];
+    let currId: string | undefined = userMessage.id;
+    while (currId) {
+      const msg: Message | undefined = updatedSession.messages.find((m) => m.id === currId);
+      if (msg) {
+        history.unshift(msg);
+        currId = msg.parentId;
+      } else {
+        currId = undefined;
+      }
+    }
+
+    await generateResponse(currentSessionId, history);
   };
 
   const handleRegenerate = async (messageId: string) => {
     if (!activeSession) return;
 
-    const messageIndex = activeSession.messages.findIndex((m) => m.id === messageId);
-    if (messageIndex === -1) return;
+    const originalMessage = activeSession.messages.find((m) => m.id === messageId);
+    if (!originalMessage || originalMessage.role !== 'assistant') return;
 
-    // Regeneration strategy:
-    // If we regenerate assistant message M, we use the same parent as M and generate a new response.
-    const originalMessage = activeSession.messages[messageIndex];
-    if (originalMessage.role !== 'assistant') return;
+    // Regeneration strategy: Use the path up to the parent of the message being regenerated
+    const history: Message[] = [];
+    let currId: string | undefined = originalMessage.parentId;
+    while (currId) {
+      const msg: Message | undefined = activeSession.messages.find((m) => m.id === currId);
+      if (msg) {
+        history.unshift(msg);
+        currId = msg.parentId;
+      } else {
+        currId = undefined;
+      }
+    }
 
-    const history = activeSession.messages.slice(0, messageIndex);
     await generateResponse(activeSession.id, history);
   };
 
@@ -168,9 +198,21 @@ export const ChatInterface: React.FC = () => {
 
     // To properly "branch" within the same session's flat list,
     // we should ideally filter the message list to only show the path to the current leaf.
-    // For now, we append and generate.
-    const history = activeSession.messages.slice(0, messageIndex);
-    await generateResponse(activeSession.id, [...history, userMessage]);
+    const updatedState = useStore.getState();
+    const updatedSession = updatedState.sessions[activeSession.id];
+
+    const history: Message[] = [];
+    let currId: string | undefined = userMessageId;
+    while (currId) {
+      const msg: Message | undefined = updatedSession.messages.find((m) => m.id === currId);
+      if (msg) {
+        history.unshift(msg);
+        currId = msg.parentId;
+      } else {
+        currId = undefined;
+      }
+    }
+    await generateResponse(activeSession.id, history);
   };
 
   if (!activeSession || activeSession.messages.length === 0) {
