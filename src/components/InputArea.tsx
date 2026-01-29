@@ -9,10 +9,11 @@ import { ModelPicker } from './ModelPicker';
 
 interface InputAreaProps {
   onSend: (text: string, attachments: Attachment[]) => void;
+  onStop: () => void;
   isLoading: boolean;
 }
 
-export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
+export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -31,7 +32,11 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
   };
 
   const handleSubmit = () => {
-    if ((!input.trim() && attachments.length === 0) || isLoading) return;
+    if (isLoading) {
+      onStop();
+      return;
+    }
+    if (!input.trim() && attachments.length === 0) return;
     onSend(input, attachments);
     setInput('');
     setAttachments([]);
@@ -110,6 +115,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
             className="w-full bg-transparent text-white placeholder-zinc-500 px-4 py-3.5 focus:outline-none resize-none overflow-y-auto text-[15px]"
             minRows={1}
             maxRows={10}
+            disabled={isLoading && false} // Keep enabled to allow queuing or typing next thought (though UI is locked for now)
           />
 
           <div className="flex items-center justify-between px-3 pb-3 relative">
@@ -149,19 +155,17 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
 
             <button
               onClick={handleSubmit}
-              disabled={(!input.trim() && attachments.length === 0) || isLoading}
+              disabled={!input.trim() && attachments.length === 0 && !isLoading}
               className={clsx(
                 'p-2 rounded-xl transition-all duration-200',
-                (input.trim() || attachments.length > 0) && !isLoading
-                  ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary_hover scale-100'
-                  : 'bg-white/5 text-zinc-600 cursor-not-allowed scale-95',
+                isLoading
+                  ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                  : input.trim() || attachments.length > 0
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary_hover scale-100'
+                    : 'bg-white/5 text-zinc-600 cursor-not-allowed scale-95',
               )}
             >
-              {isLoading ? (
-                <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
-              ) : (
-                <Icon name="ArrowUp" size={18} />
-              )}
+              {isLoading ? <Icon name="Square" size={16} fill="currentColor" /> : <Icon name="ArrowUp" size={18} />}
             </button>
           </div>
         </div>

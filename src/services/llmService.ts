@@ -12,6 +12,7 @@ export const streamChatCompletion = async (
   settings: Settings,
   config: ModelConfig,
   callbacks: StreamCallbacks,
+  signal?: AbortSignal,
 ) => {
   try {
     const headers: Record<string, string> = {
@@ -59,6 +60,7 @@ export const streamChatCompletion = async (
       method: 'POST',
       headers,
       body,
+      signal,
     });
 
     if (!response.ok) {
@@ -103,6 +105,10 @@ export const streamChatCompletion = async (
 
     callbacks.onComplete();
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      // Ignore abort errors
+      return;
+    }
     callbacks.onError(error instanceof Error ? error : new Error('Unknown error'));
   }
 };
