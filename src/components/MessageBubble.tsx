@@ -241,14 +241,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                 <span className="text-[10px] font-medium uppercase tracking-tight">Regenerate</span>
               </button>
             )}
-
-            <div className="flex-1" />
-            <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
-              <Icon name="ThumbsUp" size={12} />
-            </button>
-            <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
-              <Icon name="ThumbsDown" size={12} />
-            </button>
           </div>
         </div>
       </div>
