@@ -1,0 +1,146 @@
+import clsx from 'clsx';
+import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+
+import { Message } from '../app/types';
+import { useStore } from '../stores/useStore';
+import { CodeBlock } from './CodeBlock';
+import { Icon } from './Icon';
+
+interface MessageBubbleProps {
+  message: Message;
+  sessionId: string;
+}
+
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId }) => {
+  const isUser = message.role === 'user';
+  const { branchChat } = useStore();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBranch = () => {
+    branchChat(sessionId, message.id);
+  };
+
+  return (
+    <div className={clsx('group w-full border-b border-black/10 dark:border-white/5', isUser ? 'bg-transparent' : 'bg-black/10')}>
+      <div className="max-w-3xl mx-auto py-6 flex gap-4 px-4 md:px-0">
+        <div
+          className={clsx(
+            'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 shadow-sm',
+            isUser ? 'bg-surface_light text-zinc-400' : 'bg-primary/10 text-primary',
+          )}
+        >
+          {isUser ? <Icon name="User" size={16} /> : <Icon name="Sparkles" size={16} />}
+        </div>
+
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none">
+            {isUser ? 'You' : 'Yuji'}
+            <span className="text-[11px] text-zinc-600 font-normal">
+              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+
+          {message.attachments && message.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {message.attachments.map((att) => (
+                <div key={att.id} className="relative group/att rounded-lg overflow-hidden border border-white/10 w-40 h-28 bg-surface">
+                  <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="prose prose-invert prose-sm max-w-none leading-relaxed markdown-body">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+              components={{
+                code({ node, inline, className, children, ...props }: any) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const language = match ? match[1] : '';
+                  const value = String(children).replace(/\n$/, '');
+
+                  if (!inline && match) {
+                    return <CodeBlock language={language} value={value} />;
+                  }
+
+                  return (
+                    <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                a: ({ node, ...props }) => (
+                  <a
+                    className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    {...props}
+                  />
+                ),
+                ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
+                ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
+                h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />,
+                h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />,
+                h3: ({ node, ...props }) => <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />,
+                blockquote: ({ node, ...props }) => (
+                  <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
+                ),
+                table: ({ node, ...props }) => (
+                  <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
+                    <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
+                  </div>
+                ),
+                th: ({ node, ...props }) => (
+                  <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
+                ),
+                td: ({ node, ...props }) => (
+                  <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
+                ),
+                p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
+
+          {!isUser && (
+            <div className="flex items-center gap-2.5 mt-3 pt-1.5 border-t border-transparent group-hover:border-white/5 transition-colors opacity-0 group-hover:opacity-100">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <Icon name={copied ? 'Check' : 'Copy'} size={12} />
+                <span className="text-[10px] font-medium uppercase tracking-tight">Copy</span>
+              </button>
+              <button
+                onClick={handleBranch}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <Icon name="GitFork" size={12} />
+                <span className="text-[10px] font-medium uppercase tracking-tight">Branch</span>
+              </button>
+              <div className="flex-1" />
+              <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
+                <Icon name="ThumbsUp" size={12} />
+              </button>
+              <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
+                <Icon name="ThumbsDown" size={12} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
