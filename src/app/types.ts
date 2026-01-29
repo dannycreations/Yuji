@@ -20,7 +20,8 @@ export interface Message {
 export interface ChatSession {
   id: string;
   title: string;
-  messages: Message[];
+  messages: Message[]; // All messages in the tree
+  activeMessageId?: string; // The "leaf" node defining the current path
   createdAt: number;
   updatedAt: number;
   systemPrompt?: string;

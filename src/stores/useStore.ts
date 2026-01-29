@@ -8,7 +8,9 @@ interface Store extends AppState {
   createSession: () => string;
   deleteSession: (id: string) => void;
   setActiveSession: (id: string) => void;
+  switchBranch: (sessionId: string, messageId: string) => void;
   addMessage: (sessionId: string, message: Message) => void;
+  removeMessage: (sessionId: string, messageId: string) => void;
   updateMessage: (sessionId: string, messageId: string, content: string) => void;
   updateSettings: (settings: Partial<Settings>) => void;
   toggleSidebar: () => void;
@@ -64,15 +66,45 @@ export const useStore = create<Store>()(
 
       setActiveSession: (id) => set({ activeSessionId: id }),
 
+      switchBranch: (sessionId, messageId) => {
+        set((state) => {
+          const session = state.sessions[sessionId];
+          if (!session) return state;
+
+          return {
+            sessions: {
+              ...state.sessions,
+              [sessionId]: {
+                ...session,
+                activeMessageId: messageId,
+                updatedAt: Date.now(),
+              },
+            },
+          };
+        });
+      },
+
       addMessage: (sessionId, message) => {
         set((state) => {
           const session = state.sessions[sessionId];
           if (!session) return state;
 
-          const updatedMessages = [...session.messages, message];
+          // Clone messages to avoid direct mutations (safety check)
+          const messages = JSON.parse(JSON.stringify(session.messages)) as Message[];
+
+          // If message has parentId, update parent's childrenIds
+          if (message.parentId) {
+            const parent = messages.find((m) => m.id === message.parentId);
+            if (parent) {
+              parent.childrenIds = [...(parent.childrenIds || []), message.id];
+            }
+          }
+
+          messages.push(message);
+
           // Auto-update title if it's the first user message
           let title = session.title;
-          if (session.messages.length === 0 && message.role === 'user') {
+          if (session.messages.length === 0 && message.role === 'user' && message.content) {
             title = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
           }
 
@@ -81,8 +113,27 @@ export const useStore = create<Store>()(
               ...state.sessions,
               [sessionId]: {
                 ...session,
-                messages: updatedMessages,
+                messages,
+                activeMessageId: message.id,
                 title,
+                updatedAt: Date.now(),
+              },
+            },
+          };
+        });
+      },
+
+      removeMessage: (sessionId, messageId) => {
+        set((state) => {
+          const session = state.sessions[sessionId];
+          if (!session) return state;
+          const updatedMessages = session.messages.filter((m) => m.id !== messageId);
+          return {
+            sessions: {
+              ...state.sessions,
+              [sessionId]: {
+                ...session,
+                messages: updatedMessages,
                 updatedAt: Date.now(),
               },
             },

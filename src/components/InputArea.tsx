@@ -17,7 +17,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
-  const { settings, activeSessionId, sessions, updateSettings, setSessionModel } = useStore();
+  const { settings, activeSessionId, sessions, updateSettings, setSessionModel, setSessionSystemPrompt } = useStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +82,36 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
     <>
       {showModelPicker && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowModelPicker(false)} />}
       <div className="w-full max-w-3xl mx-auto px-4 pb-4 pt-1 z-20">
+        <div className="flex items-center justify-between mb-2">
+          {activeSession && (
+            <div className="flex items-center gap-2 group/system">
+              <Icon name="Shield" size={12} className="text-zinc-600 group-hover/system:text-primary transition-colors" />
+              <input
+                type="text"
+                value={activeSession.systemPrompt || ''}
+                onChange={(e) => setSessionSystemPrompt(activeSession.id, e.target.value)}
+                placeholder="Set chat system prompt..."
+                className="bg-transparent border-none text-[10px] text-zinc-600 focus:text-zinc-300 focus:ring-0 w-64 truncate transition-colors outline-none"
+              />
+            </div>
+          )}
+          <div className="flex-1" />
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          {activeSession && (
+            <div className="flex items-center gap-2 group/system">
+              <Icon name="Shield" size={12} className="text-zinc-600 group-hover/system:text-primary transition-colors" />
+              <input
+                type="text"
+                value={activeSession.systemPrompt || ''}
+                onChange={(e) => setSessionSystemPrompt(activeSession.id, e.target.value)}
+                placeholder="Set chat system prompt..."
+                className="bg-transparent border-none text-[10px] text-zinc-600 focus:text-zinc-300 focus:ring-0 w-64 truncate transition-colors outline-none"
+              />
+            </div>
+          )}
+          <div className="flex-1" />
+        </div>
         <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
 
         <div

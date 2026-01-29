@@ -9,7 +9,7 @@ export const Sidebar: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredSessions = useMemo(() => {
-    const allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
+    const allSessions = Object.values(sessions).sort((a, b) => b.updatedAt - a.updatedAt);
     if (!searchTerm.trim()) return allSessions;
     return allSessions.filter((session) => session.title.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [sessions, searchTerm]);

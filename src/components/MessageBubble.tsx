@@ -1,6 +1,7 @@
 import clsx from 'clsx';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import TextareaAutosize from 'react-textarea-autosize';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -13,12 +14,33 @@ import { Icon } from './Icon';
 interface MessageBubbleProps {
   message: Message;
   sessionId: string;
+  isLast: boolean;
+  onRegenerate: () => void;
+  onEdit: (content: string) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit }) => {
   const isUser = message.role === 'user';
-  const { branchChat } = useStore();
+  const { branchChat, sessions } = useStore();
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+
+  const session = sessions[sessionId];
+
+  // Logic to find siblings for navigation
+  const siblings = useMemo(() => {
+    if (!message.parentId || !session) return [];
+    const parent = session.messages.find((m) => m.id === message.parentId);
+    return parent?.childrenIds || [];
+  }, [message.parentId, session]);
+
+  const currentIndex = siblings.indexOf(message.id);
+  const { switchBranch } = useStore();
+
+  const handleSwitchBranch = (newId: string) => {
+    switchBranch(sessionId, newId);
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -28,6 +50,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
 
   const handleBranch = () => {
     branchChat(sessionId, message.id);
+  };
+
+  const handleSaveEdit = () => {
+    if (editContent.trim() !== message.content) {
+      onEdit(editContent);
+    }
+    setIsEditing(false);
   };
 
   return (
@@ -60,85 +89,167 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
             </div>
           )}
 
-          <div className="prose prose-invert prose-sm max-w-none leading-relaxed markdown-body">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                code({ node, inline, className, children, ...props }: any) {
-                  const match = /language-(\w+)/.exec(className || '');
-                  const language = match ? match[1] : '';
-                  const value = String(children).replace(/\n$/, '');
-
-                  if (!inline && match) {
-                    return <CodeBlock language={language} value={value} />;
-                  }
-
-                  return (
-                    <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-                a: ({ node, ...props }) => (
-                  <a
-                    className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    {...props}
-                  />
-                ),
-                ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
-                ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
-                h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />,
-                h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />,
-                h3: ({ node, ...props }) => <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />,
-                blockquote: ({ node, ...props }) => (
-                  <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
-                ),
-                table: ({ node, ...props }) => (
-                  <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
-                    <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
-                  </div>
-                ),
-                th: ({ node, ...props }) => (
-                  <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
-                ),
-                td: ({ node, ...props }) => (
-                  <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
-                ),
-                p: ({ node, ...props }) => <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />,
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
-
-          {!isUser && (
-            <div className="flex items-center gap-2.5 mt-3 pt-1.5 border-t border-transparent group-hover:border-white/5 transition-colors opacity-0 group-hover:opacity-100">
+          {siblings.length > 1 && (
+            <div className="flex items-center gap-2 mb-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest select-none">
               <button
-                onClick={handleCopy}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                disabled={currentIndex === 0}
+                onClick={() => handleSwitchBranch(siblings[currentIndex - 1])}
+                className="hover:text-primary disabled:opacity-30 transition-colors"
               >
-                <Icon name={copied ? 'Check' : 'Copy'} size={12} />
-                <span className="text-[10px] font-medium uppercase tracking-tight">Copy</span>
+                <Icon name="ChevronLeft" size={12} />
               </button>
+              <span>
+                {currentIndex + 1} / {siblings.length}
+              </span>
               <button
-                onClick={handleBranch}
-                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+                disabled={currentIndex === siblings.length - 1}
+                onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
+                className="hover:text-primary disabled:opacity-30 transition-colors"
               >
-                <Icon name="GitFork" size={12} />
-                <span className="text-[10px] font-medium uppercase tracking-tight">Branch</span>
-              </button>
-              <div className="flex-1" />
-              <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
-                <Icon name="ThumbsUp" size={12} />
-              </button>
-              <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
-                <Icon name="ThumbsDown" size={12} />
+                <Icon name="ChevronRight" size={12} />
               </button>
             </div>
           )}
+
+          {isEditing ? (
+            <div className="w-full bg-black/20 border border-primary/40 rounded-xl overflow-hidden animate-fade-in">
+              <TextareaAutosize
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="w-full bg-transparent p-4 text-zinc-200 text-sm focus:outline-none resize-none"
+                minRows={2}
+              />
+              <div className="flex items-center justify-end gap-2 p-2 bg-black/20 border-t border-white/5">
+                <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white transition-colors">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary_hover transition-colors"
+                >
+                  Save & Branch
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-invert prose-sm max-w-none leading-relaxed markdown-body">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  code({ node, inline, className, children, ...props }: any) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    const language = match ? match[1] : '';
+                    const value = String(children).replace(/\n$/, '');
+
+                    if (!inline && match) {
+                      return <CodeBlock language={language} value={value} />;
+                    }
+
+                    return (
+                      <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  a: ({ node, ...props }) => (
+                    <a
+                      className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      {...props}
+                    />
+                  ),
+                  ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
+                  ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
+                  h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />,
+                  h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />,
+                  h3: ({ node, ...props }) => <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />,
+                  blockquote: ({ node, ...props }) => (
+                    <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
+                  ),
+                  table: ({ node, ...props }) => (
+                    <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
+                      <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
+                    </div>
+                  ),
+                  th: ({ node, ...props }) => (
+                    <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
+                  ),
+                  td: ({ node, ...props }) => (
+                    <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
+                  ),
+                  p: ({ node, ...props }) => {
+                    const content = String(props.children);
+                    if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
+                      return (
+                        <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                          <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
+                            <Icon name="Brain" size={12} />
+                            Reasoning
+                          </summary>
+                          <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
+                            {content.replace(/<\/?reasoning>/g, '')}
+                          </div>
+                        </details>
+                      );
+                    }
+                    return <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />;
+                  },
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2.5 mt-3 pt-1.5 border-t border-transparent group-hover:border-white/5 transition-colors opacity-0 group-hover:opacity-100">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <Icon name={copied ? 'Check' : 'Copy'} size={12} />
+              <span className="text-[10px] font-medium uppercase tracking-tight">Copy</span>
+            </button>
+            <button
+              onClick={handleBranch}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              <Icon name="GitFork" size={12} />
+              <span className="text-[10px] font-medium uppercase tracking-tight">Branch</span>
+            </button>
+
+            {isUser && !isEditing && (
+              <button
+                onClick={() => {
+                  setEditContent(message.content);
+                  setIsEditing(true);
+                }}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <Icon name="Pencil" size={12} />
+                <span className="text-[10px] font-medium uppercase tracking-tight">Edit</span>
+              </button>
+            )}
+
+            {!isUser && (
+              <button
+                onClick={onRegenerate}
+                className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
+              >
+                <Icon name="RefreshCw" size={12} />
+                <span className="text-[10px] font-medium uppercase tracking-tight">Regenerate</span>
+              </button>
+            )}
+
+            <div className="flex-1" />
+            <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
+              <Icon name="ThumbsUp" size={12} />
+            </button>
+            <button className="p-1 text-zinc-600 hover:text-zinc-400 transition-colors">
+              <Icon name="ThumbsDown" size={12} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
