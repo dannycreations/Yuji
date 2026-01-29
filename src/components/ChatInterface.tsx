@@ -6,10 +6,10 @@ import { INITIAL_GREETING, SUGGESTIONS } from '../app/constants';
 import { Attachment, Message } from '../app/types';
 import { LLMError, streamCompletion } from '../services/llmService';
 import { useStore } from '../stores/useStore';
-import { Icon } from './Icon';
 import { InputArea } from './InputArea';
 import { MessageBubble } from './MessageBubble';
-import { VirtualBlock } from './VirtualBlock';
+import { Icon } from './shared/Icon';
+import { VirtualBlock } from './shared/VirtualBlock';
 
 export const ChatInterface: React.FC = () => {
   const { activeSessionId, sessions, addMessage, updateMessage, settings, createSession } = useStore();

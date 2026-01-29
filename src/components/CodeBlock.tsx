@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { Icon } from './Icon';
+import { Icon } from './shared/Icon';
 
 interface CodeBlockProps {
   language: string;

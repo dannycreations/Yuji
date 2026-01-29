@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { MODELS } from '../app/models';
 import { ChatSession } from '../app/types';
 import { useStore } from '../stores/useStore';
-import { Icon } from './Icon';
+import { Icon } from './shared/Icon';
 
 type SettingsTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
 

@@ -4,8 +4,8 @@ import TextareaAutosize from 'react-textarea-autosize';
 
 import { Attachment } from '../app/types';
 import { useStore } from '../stores/useStore';
-import { Icon } from './Icon';
 import { ModelPicker } from './ModelPicker';
+import { Icon } from './shared/Icon';
 
 interface InputAreaProps {
   onSend: (text: string, attachments: Attachment[]) => void;

@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import React, { useState } from 'react';
 
 import { MODELS } from '../app/models';
-import { Icon } from './Icon';
+import { Icon } from './shared/Icon';
 
 interface ModelPickerProps {
   currentModel: string;

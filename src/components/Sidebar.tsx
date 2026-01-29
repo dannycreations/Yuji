@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import { ChatSession } from '../app/types';
 import { useStore } from '../stores/useStore';
-import { Icon } from './Icon';
 import { SessionSettingsDialog } from './SessionSettingsDialog';
+import { Icon } from './shared/Icon';
 
 export const Sidebar: React.FC = () => {
   const { sessions, activeSessionId, setActiveSession, createSession, deleteSession, isSidebarOpen, toggleSidebar, toggleSettings } = useStore();

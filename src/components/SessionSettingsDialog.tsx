@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import React, { useState } from 'react';
 
 import { useStore } from '../stores/useStore';
-import { Icon } from './Icon';
+import { Icon } from './shared/Icon';
 
 interface SessionSettingsDialogProps {
   sessionId: string;

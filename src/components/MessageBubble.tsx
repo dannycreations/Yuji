@@ -9,8 +9,8 @@ import remarkMath from 'remark-math';
 import { Message } from '../app/types';
 import { useStore } from '../stores/useStore';
 import { CodeBlock } from './CodeBlock';
-import { Icon } from './Icon';
-import { VirtualBlock } from './VirtualBlock';
+import { Icon } from './shared/Icon';
+import { VirtualBlock } from './shared/VirtualBlock';
 
 interface MessageBubbleProps {
   message: Message;
