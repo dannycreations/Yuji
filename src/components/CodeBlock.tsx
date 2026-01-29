@@ -61,7 +61,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
 
   if (isMermaid) {
     return (
-      <div className="my-6 border border-white/10 rounded-lg overflow-hidden bg-black/40 industrial-noise industrial-grid shadow-2xl relative">
+      <div className="my-3 border border-white/10 rounded-lg overflow-hidden bg-black/40 industrial-noise industrial-grid shadow-2xl relative">
         <div className="sticky top-0 z-20 flex items-center justify-between px-4 py-2 bg-[#0a0a0a]/90 backdrop-blur-md border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="flex gap-1">
@@ -93,7 +93,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
   }
 
   return (
-    <div className="my-6 border border-white/10 rounded-lg overflow-hidden bg-[#0d0d0d] group/code industrial-noise industrial-grid shadow-2xl relative">
+    <div className="my-3 border border-white/10 rounded-lg overflow-hidden bg-[#0d0d0d] group/code industrial-noise industrial-grid shadow-2xl relative">
       {/* Sticky Header */}
       <div className="sticky top-0 z-20 flex items-center justify-between px-4 py-2 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center gap-3">

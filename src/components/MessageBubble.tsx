@@ -71,7 +71,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           {isUser ? <Icon name="User" size={16} /> : <Icon name="Sparkles" size={16} />}
         </div>
 
-        <div className={clsx('flex-1 min-w-0 overflow-hidden', isUser && 'text-right')}>
+        <div className={clsx('flex-1 min-w-0 overflow-hidden')}>
           <div className={clsx('font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none', isUser && 'justify-end')}>
             {isUser ? 'You' : 'Yuji'}
             <span className="text-[11px] text-zinc-600 font-normal">
@@ -132,7 +132,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                   onClick={handleSaveEdit}
                   className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary_hover transition-colors"
                 >
-                  Save & Branch
+                  Regenerate
                 </button>
               </div>
             </div>
