@@ -60,8 +60,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
   };
 
   return (
-    <div className={clsx('group w-full border-b border-black/10 dark:border-white/5', isUser ? 'bg-transparent' : 'bg-black/10')}>
-      <div className="max-w-3xl mx-auto py-6 flex gap-4 px-4 md:px-0">
+    <div className={clsx('group w-full border-b border-black/10 dark:border-white/5', isUser ? 'bg-transparent' : 'bg-transparent')}>
+      <div className={clsx('max-w-3xl mx-auto py-6 flex gap-4 px-4 md:px-0', isUser && 'flex-row-reverse')}>
         <div
           className={clsx(
             'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 shadow-sm',
@@ -71,8 +71,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           {isUser ? <Icon name="User" size={16} /> : <Icon name="Sparkles" size={16} />}
         </div>
 
-        <div className="flex-1 min-w-0 overflow-hidden">
-          <div className="font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none">
+        <div className={clsx('flex-1 min-w-0 overflow-hidden', isUser && 'text-right')}>
+          <div className={clsx('font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none', isUser && 'justify-end')}>
             {isUser ? 'You' : 'Yuji'}
             <span className="text-[11px] text-zinc-600 font-normal">
               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -80,7 +80,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           </div>
 
           {message.attachments && message.attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className={clsx('flex flex-wrap gap-2 mb-3', isUser && 'justify-end')}>
               {message.attachments.map((att) => (
                 <div key={att.id} className="relative group/att rounded-lg overflow-hidden border border-white/10 w-40 h-28 bg-surface">
                   <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
@@ -90,7 +90,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           )}
 
           {siblings.length > 1 && (
-            <div className="flex items-center gap-2 mb-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest select-none">
+            <div
+              className={clsx(
+                'flex items-center gap-2 mb-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest select-none',
+                isUser && 'justify-end',
+              )}
+            >
               <button
                 disabled={currentIndex === 0}
                 onClick={() => handleSwitchBranch(siblings[currentIndex - 1])}
@@ -203,7 +208,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
             </div>
           )}
 
-          <div className="flex items-center gap-2.5 mt-3 pt-1.5 border-t border-transparent group-hover:border-white/5 transition-colors opacity-0 group-hover:opacity-100">
+          <div
+            className={clsx(
+              'flex items-center gap-2.5 mt-3 pt-1.5 border-t border-transparent group-hover:border-white/5 transition-colors opacity-0 group-hover:opacity-100',
+              isUser && 'justify-end',
+            )}
+          >
             <button
               onClick={handleCopy}
               className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
