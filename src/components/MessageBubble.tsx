@@ -10,6 +10,7 @@ import { Message } from '../app/types';
 import { useStore } from '../stores/useStore';
 import { CodeBlock } from './CodeBlock';
 import { Icon } from './Icon';
+import { VirtualBlock } from './VirtualBlock';
 
 interface MessageBubbleProps {
   message: Message;
@@ -149,7 +150,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                     const isMultiline = value.includes('\n');
 
                     if (!inline && (match || isMultiline)) {
-                      return <CodeBlock language={language} value={value} />;
+                      return (
+                        <VirtualBlock>
+                          <CodeBlock language={language} value={value} />
+                        </VirtualBlock>
+                      );
                     }
 
                     return (
@@ -166,18 +171,42 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                       {...props}
                     />
                   ),
-                  ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
-                  ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
-                  h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />,
-                  h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />,
-                  h3: ({ node, ...props }) => <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />,
+                  ul: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
+                    </VirtualBlock>
+                  ),
+                  ol: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
+                    </VirtualBlock>
+                  ),
+                  h1: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />
+                    </VirtualBlock>
+                  ),
+                  h2: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />
+                    </VirtualBlock>
+                  ),
+                  h3: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />
+                    </VirtualBlock>
+                  ),
                   blockquote: ({ node, ...props }) => (
-                    <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
+                    <VirtualBlock>
+                      <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
+                    </VirtualBlock>
                   ),
                   table: ({ node, ...props }) => (
-                    <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
-                      <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
-                    </div>
+                    <VirtualBlock>
+                      <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
+                        <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
+                      </div>
+                    </VirtualBlock>
                   ),
                   th: ({ node, ...props }) => (
                     <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
@@ -189,18 +218,24 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                     const content = String(props.children);
                     if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
                       return (
-                        <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
-                          <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
-                            <Icon name="Brain" size={12} />
-                            Reasoning
-                          </summary>
-                          <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
-                            {content.replace(/<\/?reasoning>/g, '')}
-                          </div>
-                        </details>
+                        <VirtualBlock>
+                          <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                            <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
+                              <Icon name="Brain" size={12} />
+                              Reasoning
+                            </summary>
+                            <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
+                              {content.replace(/<\/?reasoning>/g, '')}
+                            </div>
+                          </details>
+                        </VirtualBlock>
                       );
                     }
-                    return <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />;
+                    return (
+                      <VirtualBlock>
+                        <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />
+                      </VirtualBlock>
+                    );
                   },
                 }}
               >

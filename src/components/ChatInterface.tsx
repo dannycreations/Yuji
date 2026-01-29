@@ -9,6 +9,7 @@ import { useStore } from '../stores/useStore';
 import { Icon } from './Icon';
 import { InputArea } from './InputArea';
 import { MessageBubble } from './MessageBubble';
+import { VirtualBlock } from './VirtualBlock';
 
 export const ChatInterface: React.FC = () => {
   const { activeSessionId, sessions, addMessage, updateMessage, settings, createSession } = useStore();
@@ -257,14 +258,15 @@ export const ChatInterface: React.FC = () => {
     <div className="flex-1 flex flex-col h-full bg-background relative">
       <div className="flex-1 min-h-0 overflow-y-auto w-full scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
         {visibleMessages.map((message, idx) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            sessionId={activeSession.id}
-            isLast={idx === visibleMessages.length - 1}
-            onRegenerate={() => handleRegenerate(message.id)}
-            onEdit={(newContent) => handleEdit(message.id, newContent)}
-          />
+          <VirtualBlock key={message.id}>
+            <MessageBubble
+              message={message}
+              sessionId={activeSession.id}
+              isLast={idx === visibleMessages.length - 1}
+              onRegenerate={() => handleRegenerate(message.id)}
+              onEdit={(newContent) => handleEdit(message.id, newContent)}
+            />
+          </VirtualBlock>
         ))}
         <div ref={messagesEndRef} className="h-4" />
       </div>
