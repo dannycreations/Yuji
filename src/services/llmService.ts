@@ -34,7 +34,18 @@ export const createApiMessages = (messages: Message[], systemPrompt: string) => 
   return apiMessages;
 };
 
-export const streamCompletion = (messages: Message[], systemPrompt: string, settings: Settings, config: ModelConfig) => {
+export const streamCompletion = (
+  messages: Message[],
+  systemPrompt: string,
+  settings: Settings,
+  config: ModelConfig,
+  sessionPrompt?: string,
+  overrideGlobal?: boolean,
+) => {
+  if (sessionPrompt && !overrideGlobal) {
+    systemPrompt = `${systemPrompt}\n\nAdditional instructions for this chat:\n${sessionPrompt}`;
+  }
+
   const body = {
     model: config.model,
     messages: createApiMessages(messages, systemPrompt),

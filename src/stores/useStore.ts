@@ -15,7 +15,7 @@ interface Store extends AppState {
   updateSettings: (settings: Partial<Settings>) => void;
   toggleSidebar: () => void;
   toggleSettings: () => void;
-  setSessionSystemPrompt: (sessionId: string, prompt: string) => void;
+  setSessionSystemPrompt: (sessionId: string, prompt: string, override?: boolean) => void;
   setSessionModel: (sessionId: string, model: string) => void;
   branchChat: (sessionId: string, messageId: string) => string;
   importSessions: (sessions: Record<string, ChatSession>) => void;
@@ -167,14 +167,18 @@ export const useStore = create<Store>()(
 
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
 
-      setSessionSystemPrompt: (sessionId, prompt) => {
+      setSessionSystemPrompt: (sessionId, prompt, override) => {
         set((state) => {
           const session = state.sessions[sessionId];
           if (!session) return state;
           return {
             sessions: {
               ...state.sessions,
-              [sessionId]: { ...session, systemPrompt: prompt },
+              [sessionId]: {
+                ...session,
+                systemPrompt: prompt,
+                overrideGlobalPrompt: override !== undefined ? override : session.overrideGlobalPrompt,
+              },
             },
           };
         });

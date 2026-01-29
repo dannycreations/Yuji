@@ -25,6 +25,7 @@ export interface ChatSession {
   createdAt: number;
   updatedAt: number;
   systemPrompt?: string;
+  overrideGlobalPrompt?: boolean;
   modelConfig?: ModelConfig;
 }
 

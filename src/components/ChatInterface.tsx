@@ -82,9 +82,11 @@ export const ChatInterface: React.FC = () => {
     const streamEffect = Effect.gen(function* () {
       const stream = yield* streamCompletion(
         messagesToProcess,
-        session.systemPrompt || settings.defaultSystemPrompt,
+        settings.defaultSystemPrompt,
         settings,
         session.modelConfig || { provider: 'openai', model: settings.defaultModel, temperature: 0.7 },
+        session.systemPrompt,
+        session.overrideGlobalPrompt,
       );
 
       yield* Stream.runForEach(stream, (token) =>
