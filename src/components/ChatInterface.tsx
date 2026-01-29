@@ -85,7 +85,7 @@ export const ChatInterface: React.FC = () => {
             <div className="w-14 h-14 bg-surface_light rounded-2xl shadow-xl flex items-center justify-center mb-6 border border-white/5">
               <Icon name="Bot" size={28} className="text-zinc-200" />
             </div>
-            <h1 className="text-2xl font-semibold text-white mb-6 text-center tracking-tight">{INITIAL_GREETING}</h1>
+            <h1 className="text-2xl font-display font-semibold text-white mb-6 text-center tracking-tight">{INITIAL_GREETING}</h1>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
               {SUGGESTIONS.map((suggestion, idx) => (

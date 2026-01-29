@@ -14,6 +14,7 @@ interface Store extends AppState {
   toggleSidebar: () => void;
   toggleSettings: () => void;
   setSessionSystemPrompt: (sessionId: string, prompt: string) => void;
+  setSessionModel: (sessionId: string, model: string) => void;
   branchChat: (sessionId: string, messageId: string) => string;
   importSessions: (sessions: Record<string, ChatSession>) => void;
 }
@@ -123,6 +124,25 @@ export const useStore = create<Store>()(
             sessions: {
               ...state.sessions,
               [sessionId]: { ...session, systemPrompt: prompt },
+            },
+          };
+        });
+      },
+
+      setSessionModel: (sessionId, model) => {
+        set((state) => {
+          const session = state.sessions[sessionId];
+          if (!session) return state;
+          return {
+            sessions: {
+              ...state.sessions,
+              [sessionId]: {
+                ...session,
+                modelConfig: {
+                  ...(session.modelConfig || { provider: 'openai', temperature: 0.7 }),
+                  model,
+                },
+              },
             },
           };
         });

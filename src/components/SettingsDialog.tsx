@@ -1,71 +1,12 @@
 import clsx from 'clsx';
 import React, { useEffect, useRef, useState } from 'react';
 
+import { MODELS } from '../app/models';
 import { ChatSession } from '../app/types';
 import { useStore } from '../stores/useStore';
 import { Icon } from './Icon';
 
 type SettingsTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
-
-const RECOMMENDED_MODELS = [
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    description: "OpenAI's flagship multimodal model. Fast and intelligent.",
-    provider: 'OpenAI',
-    icon: 'Sparkles',
-    tags: ['Smart', 'Multi'],
-  },
-  {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    description: 'High-intelligence model with broad general knowledge.',
-    provider: 'OpenAI',
-    icon: 'Zap',
-    tags: ['Smart'],
-  },
-  {
-    id: 'claude-3-5-sonnet-20240620',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Exceptional coding and reasoning capabilities.',
-    provider: 'Anthropic',
-    icon: 'Brain',
-    tags: ['Coding', 'Smart'],
-  },
-  {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus',
-    description: 'Top-tier reasoning for complex tasks.',
-    provider: 'Anthropic',
-    icon: 'Lightbulb',
-    tags: ['Reasoning'],
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    description: 'Mid-size multimodal model for complex reasoning.',
-    provider: 'Google',
-    icon: 'Orbit',
-    tags: ['Long Context'],
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    description: 'Fast, cost-effective multimodal model.',
-    provider: 'Google',
-    icon: 'Zap',
-    tags: ['Fast'],
-  },
-  {
-    id: 'qwen-2.5-72b',
-    name: 'Qwen 2.5 72B',
-    description: 'Versatile open model with strong reasoning.',
-    provider: 'Alibaba',
-    icon: 'Cpu',
-    tags: ['Open'],
-  },
-  { id: 'llama3-70b-8192', name: 'Llama 3 70B', description: 'Powerful open weights model.', provider: 'Meta', icon: 'Box', tags: ['Open'] },
-];
 
 function timeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -193,7 +134,7 @@ export const SettingsDialog: React.FC = () => {
     e.target.value = ''; // Reset
   };
 
-  const filteredModels = RECOMMENDED_MODELS.filter(
+  const filteredModels = MODELS.filter(
     (m) =>
       m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
       m.id.toLowerCase().includes(modelSearch.toLowerCase()) ||
@@ -210,7 +151,7 @@ export const SettingsDialog: React.FC = () => {
       <div className="w-full max-w-2xl h-[560px] bg-surface border border-surface_light rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
         <div className="flex-shrink-0 bg-surface_light/30 border-b border-surface_light backdrop-blur-md">
           <div className="flex items-center justify-between px-5 py-3.5">
-            <h2 className="text-base font-bold text-white tracking-tight">Settings</h2>
+            <h2 className="text-base font-display font-bold text-white tracking-tight">Settings</h2>
             <button onClick={toggleSettings} className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
               <Icon name="X" size={16} />
             </button>
@@ -357,7 +298,7 @@ export const SettingsDialog: React.FC = () => {
                           <div
                             className={clsx(
                               'p-2 rounded-lg flex-shrink-0',
-                              settings.defaultModel === model.id ? 'bg-primary text-white' : 'bg-black/40 text-zinc-500',
+                              settings.defaultModel === model.id ? 'bg-primary text-white' : clsx('bg-black/40', model.color || 'text-zinc-500'),
                             )}
                           >
                             <Icon name={model.icon as any} size={16} />
@@ -450,7 +391,7 @@ export const SettingsDialog: React.FC = () => {
 
                 <div className="flex flex-col gap-3 flex-shrink-0">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-white">Chat History</h2>
+                    <h2 className="text-xl font-display font-bold text-white">Chat History</h2>
                     <div className="flex gap-2">
                       <button
                         onClick={handleExport}
