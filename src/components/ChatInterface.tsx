@@ -39,16 +39,29 @@ export const ChatInterface: React.FC = () => {
     return path;
   }, [activeSession]);
 
-  const scrollToBottom = () => {
-    // Only auto-scroll if we are near bottom or if it's a new message
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
   };
 
+  // Handle session change: instant scroll to bottom
+  useEffect(() => {
+    if (activeSessionId && visibleMessages.length > 0) {
+      // Small delay to ensure DOM is ready and VirtualBlocks have registered their sizes
+      const timer = setTimeout(() => {
+        scrollToBottom('auto');
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeSessionId]);
+
+  // Handle new messages or loading state: smooth scroll
   useEffect(() => {
     if (isLoading || visibleMessages.length > 0) {
-      scrollToBottom();
+      scrollToBottom('smooth');
     }
-  }, [visibleMessages.length, activeSessionId, isLoading]);
+  }, [visibleMessages.length, isLoading]);
 
   const handleStop = () => {
     if (fiberRef.current) {
