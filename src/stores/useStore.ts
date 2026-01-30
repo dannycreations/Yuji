@@ -205,6 +205,7 @@ export const useStore = create<Store>()(
                 modelConfig: {
                   ...(session.modelConfig || { provider: 'openai', temperature: 0.7 }),
                   model,
+                  provider: 'openai',
                 },
               },
             },

@@ -30,7 +30,7 @@ export interface ChatSession {
 }
 
 export interface ModelConfig {
-  provider: 'openai' | 'custom';
+  provider: 'openai';
   model: string;
   temperature: number;
   maxTokens?: number;

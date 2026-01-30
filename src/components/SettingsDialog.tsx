@@ -215,15 +215,10 @@ export const SettingsDialog: React.FC = () => {
                   <div className="relative">
                     <select
                       className="w-full appearance-none bg-black border border-surface_light rounded-xl px-3 py-2.5 text-xs text-zinc-200 outline-none"
-                      value={settings.baseUrl.includes('api.openai.com') ? 'openai' : 'custom'}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === 'openai') updateSettings({ baseUrl: 'https://api.openai.com/v1' });
-                        else updateSettings({ baseUrl: 'http://localhost:11434/v1' });
-                      }}
+                      value="openai"
+                      disabled
                     >
-                      <option value="openai">OpenAI</option>
-                      <option value="custom">Custom (Ollama / LocalAI / Compatible)</option>
+                      <option value="openai">OpenAI Compatible</option>
                     </select>
                     <Icon name="ChevronDown" size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
                   </div>
@@ -242,10 +237,9 @@ export const SettingsDialog: React.FC = () => {
                       value={settings.baseUrl}
                       onChange={(e) => updateSettings({ baseUrl: e.target.value })}
                       className="w-full bg-black border border-surface_light rounded-xl pl-9 pr-3 py-2.5 text-xs text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                      placeholder="https://api.openai.com/v1"
+                      placeholder="http://localhost:11434/v1"
                     />
                   </div>
-                  <p className="text-[10px] text-zinc-600">e.g., http://localhost:11434/v1 for Ollama</p>
                 </div>
 
                 <div className="space-y-1.5">

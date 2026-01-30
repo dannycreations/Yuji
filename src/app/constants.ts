@@ -3,7 +3,7 @@ export const DEFAULT_SYSTEM_PROMPT =
 
 export const DEFAULT_SETTINGS = {
   apiKey: '',
-  baseUrl: 'https://api.openai.com/v1',
+  baseUrl: 'http://localhost:11434/v1',
   defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT,
   defaultModel: 'gpt-4o',
   theme: 'dark' as const,
