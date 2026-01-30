@@ -12,10 +12,11 @@ interface SessionSettingsDialogProps {
 type Tab = 'general' | 'persona';
 
 export const SessionSettingsDialog: React.FC<SessionSettingsDialogProps> = ({ sessionId, onClose }) => {
-  const { sessions, setSessionSystemPrompt, setSessionModel } = useStore();
+  const { sessions, setSessionSystemPrompt, setSessionModel, renameSession } = useStore();
   const session = sessions[sessionId];
 
   const [activeTab, setActiveTab] = useState<Tab>('general');
+  const [title, setTitle] = useState(session?.title || '');
   const [prompt, setPrompt] = useState(session?.systemPrompt || '');
   const [overrideGlobal, setOverrideGlobal] = useState(session?.overrideGlobalPrompt ?? true);
   const [model, setModel] = useState(session?.modelConfig?.model || '');
@@ -23,6 +24,9 @@ export const SessionSettingsDialog: React.FC<SessionSettingsDialogProps> = ({ se
   if (!session) return null;
 
   const handleSave = () => {
+    if (title && title !== session.title) {
+      renameSession(sessionId, title);
+    }
     setSessionSystemPrompt(sessionId, prompt, overrideGlobal);
     if (model) {
       setSessionModel(sessionId, model);
@@ -68,7 +72,13 @@ export const SessionSettingsDialog: React.FC<SessionSettingsDialogProps> = ({ se
             <div className="space-y-6 animate-fade-in">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Chat Title</label>
-                <div className="px-4 py-3 bg-black/40 border border-surface_light rounded-xl text-sm text-zinc-300 font-medium">{session.title}</div>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-black border border-surface_light rounded-xl px-4 py-2.5 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
+                  placeholder="Enter chat title..."
+                />
               </div>
 
               <div className="space-y-2">

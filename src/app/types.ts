@@ -52,12 +52,23 @@ export interface Settings {
   additionalContext: string;
 }
 
+export interface ConfirmState {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm: () => void;
+  variant?: 'danger' | 'warning' | 'info';
+}
+
 export interface AppState {
   sessions: Record<string, ChatSession>;
   activeSessionId: string | null;
   settings: Settings;
   isSidebarOpen: boolean;
   isSettingsOpen: boolean;
+  confirm: ConfirmState;
 }
 
 export type ChatAction =

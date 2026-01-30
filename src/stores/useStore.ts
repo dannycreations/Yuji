@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { DEFAULT_SETTINGS } from '../app/constants';
-import { AppState, ChatSession, Message, Settings } from '../app/types';
+import { AppState, ChatSession, ConfirmState, Message, Settings } from '../app/types';
 
 interface Store extends AppState {
   createSession: () => string;
@@ -18,6 +18,9 @@ interface Store extends AppState {
   setSessionSystemPrompt: (sessionId: string, prompt: string, override?: boolean) => void;
   setSessionModel: (sessionId: string, model: string) => void;
   branchChat: (sessionId: string, messageId: string) => string;
+  renameSession: (sessionId: string, title: string) => void;
+  showConfirm: (config: Omit<ConfirmState, 'isOpen'>) => void;
+  hideConfirm: () => void;
   importSessions: (sessions: Record<string, ChatSession>) => void;
 }
 
@@ -29,6 +32,12 @@ export const useStore = create<Store>()(
       settings: DEFAULT_SETTINGS,
       isSidebarOpen: true,
       isSettingsOpen: false,
+      confirm: {
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+      },
 
       createSession: () => {
         const id = crypto.randomUUID();
@@ -231,6 +240,41 @@ export const useStore = create<Store>()(
         }));
 
         return newId;
+      },
+
+      renameSession: (sessionId, title) => {
+        set((state) => {
+          const session = state.sessions[sessionId];
+          if (!session) return state;
+          return {
+            sessions: {
+              ...state.sessions,
+              [sessionId]: {
+                ...session,
+                title,
+                updatedAt: Date.now(),
+              },
+            },
+          };
+        });
+      },
+
+      showConfirm: (config) => {
+        set({
+          confirm: {
+            ...config,
+            isOpen: true,
+          },
+        });
+      },
+
+      hideConfirm: () => {
+        set((state) => ({
+          confirm: {
+            ...state.confirm,
+            isOpen: false,
+          },
+        }));
       },
 
       importSessions: (newSessions) => {

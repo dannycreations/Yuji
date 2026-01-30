@@ -81,7 +81,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
   return (
     <>
       {showModelPicker && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowModelPicker(false)} />}
-      <div className="w-full max-w-3xl mx-auto px-4 pb-4 pt-1 z-20">
+      <div className="w-full max-w-3xl mx-auto px-4 pb-4 pt-1 z-[5]">
         <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
 
         <div

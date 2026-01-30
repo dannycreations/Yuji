@@ -6,7 +6,8 @@ import { SessionSettingsDialog } from './SessionSettingsDialog';
 import { Icon } from './shared/Icon';
 
 export const Sidebar: React.FC = () => {
-  const { sessions, activeSessionId, setActiveSession, createSession, deleteSession, isSidebarOpen, toggleSidebar, toggleSettings } = useStore();
+  const { sessions, activeSessionId, setActiveSession, createSession, deleteSession, isSidebarOpen, toggleSidebar, toggleSettings, showConfirm } =
+    useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -148,9 +149,13 @@ export const Sidebar: React.FC = () => {
                             <button
                               className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-400/10 transition-colors"
                               onClick={() => {
-                                if (confirm('Delete this chat?')) {
-                                  deleteSession(session.id);
-                                }
+                                showConfirm({
+                                  title: 'Delete Chat',
+                                  message: 'Are you sure you want to delete this chat? This action cannot be undone.',
+                                  confirmLabel: 'Delete',
+                                  onConfirm: () => deleteSession(session.id),
+                                  variant: 'danger',
+                                });
                                 setMenuOpenId(null);
                               }}
                             >

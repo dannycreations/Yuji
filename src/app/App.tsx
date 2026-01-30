@@ -1,5 +1,6 @@
 import { ChatInterface } from '../components/ChatInterface';
 import { SettingsDialog } from '../components/SettingsDialog';
+import { ConfirmModal } from '../components/shared/ConfirmModal';
 import { Sidebar } from '../components/Sidebar';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
         <ChatInterface />
       </main>
       <SettingsDialog />
+      <ConfirmModal />
     </div>
   );
 }
