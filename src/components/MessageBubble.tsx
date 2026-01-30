@@ -62,7 +62,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
 
   return (
     <div className={clsx('group w-full border-b border-black/10 dark:border-white/5', isUser ? 'bg-transparent' : 'bg-transparent')}>
-      <div className={clsx('max-w-3xl mx-auto py-6 flex gap-4 px-4 md:px-0', isUser && 'flex-row-reverse')}>
+      <div className={clsx('max-w-3xl mx-auto py-6 flex gap-4 px-4 md:px-0', isUser ? 'flex-row-reverse' : 'flex-row')}>
         <div
           className={clsx(
             'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border border-white/10 shadow-sm',
@@ -72,8 +72,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           {isUser ? <Icon name="User" size={16} /> : <Icon name="Sparkles" size={16} />}
         </div>
 
-        <div className={clsx('flex-1 min-w-0 overflow-hidden')}>
-          <div className={clsx('font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none', isUser && 'justify-end')}>
+        <div className={clsx('flex-1 min-w-0 overflow-hidden flex flex-col', isUser && 'items-end')}>
+          <div
+            className={clsx(
+              'font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none',
+              isUser ? 'justify-end flex-row-reverse' : 'flex-row',
+            )}
+          >
             {isUser ? 'You' : 'Yuji'}
             <span className="text-[11px] text-zinc-600 font-normal">
               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -87,33 +92,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                   <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
                 </div>
               ))}
-            </div>
-          )}
-
-          {siblings.length > 1 && (
-            <div
-              className={clsx(
-                'flex items-center gap-2 mb-2 text-[10px] text-zinc-500 font-bold uppercase tracking-widest select-none',
-                isUser && 'justify-end',
-              )}
-            >
-              <button
-                disabled={currentIndex === 0}
-                onClick={() => handleSwitchBranch(siblings[currentIndex - 1])}
-                className="hover:text-primary disabled:opacity-30 transition-colors"
-              >
-                <Icon name="ChevronLeft" size={12} />
-              </button>
-              <span>
-                {currentIndex + 1} / {siblings.length}
-              </span>
-              <button
-                disabled={currentIndex === siblings.length - 1}
-                onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
-                className="hover:text-primary disabled:opacity-30 transition-colors"
-              >
-                <Icon name="ChevronRight" size={12} />
-              </button>
             </div>
           )}
 
@@ -138,7 +116,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
               </div>
             </div>
           ) : (
-            <div className="prose prose-invert prose-sm max-w-none leading-relaxed markdown-body">
+            <div
+              className={clsx(
+                'prose prose-invert prose-sm max-w-none leading-relaxed markdown-body w-fit',
+                isUser && 'bg-white/5 rounded-2xl px-4 py-3',
+              )}
+            >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
                 rehypePlugins={[rehypeKatex]}
@@ -244,12 +227,28 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
             </div>
           )}
 
-          <div
-            className={clsx(
-              'flex items-center gap-2.5 mt-3 pt-1.5 border-t border-transparent group-hover:border-white/5 transition-colors opacity-0 group-hover:opacity-100',
-              isUser && 'justify-end',
+          <div className={clsx('flex items-center gap-2.5 mt-3 pt-1.5 border-t border-white/5 transition-colors', isUser && 'justify-end')}>
+            {siblings.length > 1 && (
+              <div className="flex items-center gap-1 mr-1 text-zinc-500 select-none border-r border-white/5 pr-2">
+                <button
+                  disabled={currentIndex === 0}
+                  onClick={() => handleSwitchBranch(siblings[currentIndex - 1])}
+                  className="hover:text-zinc-300 disabled:opacity-30 transition-colors flex items-center"
+                >
+                  <Icon name="ChevronLeft" size={12} />
+                </button>
+                <span className="text-[10px] font-medium min-w-[28px] text-center tabular-nums">
+                  {currentIndex + 1} / {siblings.length}
+                </span>
+                <button
+                  disabled={currentIndex === siblings.length - 1}
+                  onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
+                  className="hover:text-zinc-300 disabled:opacity-30 transition-colors flex items-center"
+                >
+                  <Icon name="ChevronRight" size={12} />
+                </button>
+              </div>
             )}
-          >
             <button
               onClick={handleCopy}
               className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
