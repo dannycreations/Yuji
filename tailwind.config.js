@@ -13,6 +13,13 @@ export default {
         primary_hover: '#be123c', // rose-700
         primary_dim: 'rgba(225, 29, 72, 0.1)',
       },
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1rem' }], // 12px
+        sm: ['0.875rem', { lineHeight: '1.25rem' }], // 14px
+        base: ['0.875rem', { lineHeight: '1.5rem' }], // 14px (Default)
+        lg: ['1.125rem', { lineHeight: '1.75rem' }], // 18px
+        xl: ['1.5rem', { lineHeight: '2.25rem' }], // 24px
+      },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         mono: ['Fira Code', 'monospace'],

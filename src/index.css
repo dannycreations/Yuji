@@ -5,6 +5,8 @@ body {
   background-color: #09090b;
   color: #f4f4f5;
   font-family: 'Inter', sans-serif;
+  font-size: 0.875rem; /* 14px default */
+  line-height: 1.5rem;
 }
 
 /* Custom Scrollbar */
@@ -36,7 +38,7 @@ body {
 
 .markdown-body code {
   font-family: 'Fira Code', monospace;
-  font-size: 0.85em;
+  font-size: 0.875rem; /* 14px */
 }
 
 /* Katex adjustments */

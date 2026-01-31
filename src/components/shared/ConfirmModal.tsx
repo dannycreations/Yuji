@@ -55,7 +55,7 @@ export const ConfirmModal: FC = () => {
             >
               <Icon name={variant === 'danger' ? 'Trash2' : 'AlertTriangle'} size={20} />
             </div>
-            <h3 className="text-base font-display font-bold text-white tracking-tight">{title}</h3>
+            <h3 className="text-lg font-display font-bold text-white tracking-tight">{title}</h3>
           </div>
           <p className="text-sm text-zinc-400 leading-relaxed">{message}</p>
         </div>

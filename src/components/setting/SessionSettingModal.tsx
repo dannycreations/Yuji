@@ -130,7 +130,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
                 className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
                 placeholder="e.g., gpt-4o"
               />
-              <p className="text-[11px] text-zinc-500">Overrides the global default model for this specific chat.</p>
+              <p className="text-xs text-zinc-500">Overrides the global default model for this specific chat.</p>
             </div>
           </div>
         );

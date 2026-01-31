@@ -159,7 +159,7 @@ export const InputArea: FC<InputAreaProps> = ({ onSend, onStop, isLoading }) => 
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={`Message ${currentModel}...`}
-            className="w-full bg-transparent text-white placeholder-zinc-500 px-4 py-3.5 focus:outline-none resize-none overflow-y-auto text-[15px]"
+            className="w-full bg-transparent text-white placeholder-zinc-500 px-4 py-3.5 focus:outline-none resize-none overflow-y-auto text-sm"
             minRows={1}
             maxRows={10}
             disabled={isLoading && false} // Keep enabled to allow queuing or typing next thought (though UI is locked for now)
@@ -171,7 +171,7 @@ export const InputArea: FC<InputAreaProps> = ({ onSend, onStop, isLoading }) => 
                 <button
                   onClick={() => setShowModelPicker(!showModelPicker)}
                   className={clsx(
-                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all text-[11px] font-medium group border',
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all text-xs font-medium group border',
                     showModelPicker ? 'bg-primary/20 text-primary border-primary/30' : 'bg-white/5 hover:bg-white/10 text-zinc-300 border-white/5',
                   )}
                 >

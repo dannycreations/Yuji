@@ -123,12 +123,12 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
         <div className={clsx('flex-1 min-w-0 overflow-hidden flex flex-col', isUser && 'items-end')}>
           <div
             className={clsx(
-              'font-medium text-[13px] mb-1.5 text-zinc-400 flex items-center gap-2 select-none',
+              'font-medium text-sm mb-1.5 text-zinc-400 flex items-center gap-2 select-none',
               isUser ? 'justify-end flex-row-reverse' : 'flex-row',
             )}
           >
             {isUser ? 'You' : 'Yuji'}
-            <span className="text-[11px] text-zinc-600 font-normal">
+            <span className="text-xs text-zinc-600 font-normal">
               {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -209,7 +209,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                     ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />,
                     h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />,
                     h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />,
-                    h3: ({ node, ...props }) => <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />,
+                    h3: ({ node, ...props }) => <h3 className="text-sm font-bold mt-4 mb-2 text-zinc-100" {...props} />,
                     blockquote: ({ node, ...props }) => (
                       <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
                     ),
@@ -219,21 +219,21 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                       </div>
                     ),
                     th: ({ node, ...props }) => (
-                      <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
+                      <th className="px-3 py-2 bg-white/5 text-left text-xs font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
                     ),
                     td: ({ node, ...props }) => (
-                      <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-zinc-400 border-t border-white/5" {...props} />
                     ),
                     p: ({ node, ...props }) => {
                       const content = String(props.children);
                       if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
                         return (
                           <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
-                            <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
+                            <summary className="px-3 py-2 text-xs font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
                               <Icon name="Brain" size={12} />
                               Reasoning
                             </summary>
-                            <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
+                            <div className="px-4 py-3 text-zinc-400 text-sm italic leading-relaxed bg-black/20">
                               {content.replace(/<\/?reasoning>/g, '')}
                             </div>
                           </details>
@@ -265,7 +265,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                 >
                   <Icon name="ChevronLeft" size={12} />
                 </button>
-                <span className="text-[10px] font-medium min-w-[28px] text-center tabular-nums">
+                <span className="text-xs font-medium min-w-[28px] text-center tabular-nums">
                   {currentIndex + 1} / {siblings.length}
                 </span>
                 <button
@@ -282,14 +282,14 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
               className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               <Icon name={copied ? 'Check' : 'Copy'} size={12} />
-              <span className="text-[10px] font-medium uppercase tracking-tight">Copy</span>
+              <span className="text-xs font-medium uppercase tracking-tight">Copy</span>
             </button>
             <button
               onClick={handleBranch}
               className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
             >
               <Icon name="GitFork" size={12} />
-              <span className="text-[10px] font-medium uppercase tracking-tight">Branch</span>
+              <span className="text-xs font-medium uppercase tracking-tight">Branch</span>
             </button>
 
             {isUser && !isEditing && (
@@ -301,7 +301,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <Icon name="Pencil" size={12} />
-                <span className="text-[10px] font-medium uppercase tracking-tight">Edit</span>
+                <span className="text-xs font-medium uppercase tracking-tight">Edit</span>
               </button>
             )}
 
@@ -311,7 +311,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                 className="flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-white/5 text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 <Icon name="RefreshCw" size={12} />
-                <span className="text-[10px] font-medium uppercase tracking-tight">Regenerate</span>
+                <span className="text-xs font-medium uppercase tracking-tight">Regenerate</span>
               </button>
             )}
             <button
@@ -319,7 +319,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
               className="flex items-center gap-1 px-1.5 py-0.5 rounded  text-red-500 hover:bg-red-500/10 transition-colors"
             >
               <Icon name="Trash2" size={12} />
-              <span className="text-[10px] font-medium uppercase tracking-tight">Delete</span>
+              <span className="text-xs font-medium uppercase tracking-tight">Delete</span>
             </button>
           </div>
         </div>

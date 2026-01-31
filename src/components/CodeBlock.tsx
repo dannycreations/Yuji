@@ -82,7 +82,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
         <div className="p-1.5 rounded-md text-zinc-500 group-hover:text-zinc-300 transition-colors" title={isCollapsed ? 'Expand' : 'Collapse'}>
           <Icon name={isCollapsed ? 'ChevronDown' : 'ChevronUp'} size={14} />
         </div>
-        <span className="text-[11px] font-medium text-zinc-500 lowercase tracking-wider group-hover:text-zinc-300 transition-colors">
+        <span className="text-xs font-medium text-zinc-500 lowercase tracking-wider group-hover:text-zinc-300 transition-colors">
           {isMermaid ? 'diagram' : language || 'code'}
         </span>
       </div>
@@ -124,7 +124,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
                 borderRadius: 0,
                 background: 'transparent',
                 padding: '1.25rem',
-                fontSize: '0.85rem',
+                fontSize: '0.875rem',
                 lineHeight: '1.6',
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',
               }}

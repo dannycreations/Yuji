@@ -147,12 +147,12 @@ export const Sidebar: FC = () => {
           ([label, group]) =>
             group.length > 0 && (
               <div key={label} className="px-1">
-                <h3 className="text-[11px] font-bold text-zinc-500 mb-2 px-3 uppercase tracking-widest">{label}</h3>
+                <h3 className="text-xs font-bold text-zinc-500 mb-2 px-3 uppercase tracking-widest">{label}</h3>
                 <div className="space-y-1">
                   {group.map((session) => (
                     <div
                       key={session.id}
-                      className={`group relative flex items-center rounded-xl px-3.5 py-3 text-[13px] transition-all cursor-pointer ${
+                      className={`group relative flex items-center rounded-xl px-3.5 py-3 text-sm transition-all cursor-pointer ${
                         activeSessionId === session.id
                           ? 'bg-surface_light text-white shadow-sm ring-1 ring-white/5'
                           : 'text-zinc-400 hover:bg-surface_light/40 hover:text-zinc-200'
@@ -226,8 +226,8 @@ export const Sidebar: FC = () => {
             <Icon name="User" size={18} />
           </div>
           <div className="flex-1 text-left min-w-0">
-            <div className="text-[13px] font-bold truncate">Local User</div>
-            <div className="text-[10px] text-zinc-600 uppercase tracking-wider">Personal Space</div>
+            <div className="text-sm font-bold truncate">Local User</div>
+            <div className="text-xs text-zinc-600 uppercase tracking-wider">Personal Space</div>
           </div>
           <Icon name="Settings" size={16} />
         </button>

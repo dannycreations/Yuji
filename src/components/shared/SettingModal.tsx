@@ -28,7 +28,7 @@ export const SettingModal: FC<SettingModalProps> = ({ title, tabs, activeTab, on
         {/* Sidebar */}
         <div className="w-64 bg-[#09090b] border-r border-white/5 flex flex-col flex-shrink-0">
           <div className="h-16 flex items-center px-6 border-b border-white/5">
-            <h2 className="text-sm font-display font-bold text-white tracking-wide uppercase">{title}</h2>
+            <h2 className="text-lg font-display font-bold text-white tracking-wide uppercase">{title}</h2>
           </div>
 
           <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
@@ -37,7 +37,7 @@ export const SettingModal: FC<SettingModalProps> = ({ title, tabs, activeTab, on
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 className={clsx(
-                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all group text-left border border-transparent',
+                  'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group text-left border border-transparent',
                   activeTab === tab.id ? 'bg-white/10 text-white border-white/5 shadow-sm' : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-300',
                 )}
               >

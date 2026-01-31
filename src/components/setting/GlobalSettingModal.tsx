@@ -292,7 +292,7 @@ export const GlobalSettingModal: FC = () => {
                   placeholder="http://localhost:11434/v1"
                 />
               </div>
-              <p className="text-[11px] text-zinc-500 pl-1">For LocalAI or Ollama, use your local endpoint.</p>
+              <p className="text-xs text-zinc-500 pl-1">For LocalAI or Ollama, use your local endpoint.</p>
             </div>
 
             <div className="space-y-2">
@@ -370,14 +370,12 @@ export const GlobalSettingModal: FC = () => {
                         <div className="flex items-center gap-2 mb-1">
                           <span className={clsx('font-bold text-sm', isEnabled ? 'text-zinc-200' : 'text-zinc-500')}>{model.name}</span>
                           {effectiveDefaultModelId === model.id && isEnabled && (
-                            <div className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">
-                              Default
-                            </div>
+                            <div className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-xs font-bold uppercase tracking-wide">Default</div>
                           )}
                           {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                         </div>
                         <p className="text-xs text-zinc-500 line-clamp-1">{model.description}</p>
-                        <div className="text-[10px] text-zinc-600 font-mono mt-0.5">{model.id}</div>
+                        <div className="text-xs text-zinc-600 font-mono mt-0.5">{model.id}</div>
                       </div>
 
                       <button
@@ -521,7 +519,7 @@ export const GlobalSettingModal: FC = () => {
                       </div>
                       <div className="flex-1 min-w-0 pr-4">
                         <div className="text-sm text-zinc-200 font-medium truncate">{session.title}</div>
-                        <div className="text-[10px] text-zinc-500 font-mono mt-0.5">{session.id}</div>
+                        <div className="text-xs text-zinc-500 font-mono mt-0.5">{session.id}</div>
                       </div>
                       <div className="text-xs text-zinc-500 whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
                     </div>
@@ -587,7 +585,7 @@ export const GlobalSettingModal: FC = () => {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-semibold text-white truncate">{settings.userName || 'Local User'}</div>
-            <div className="text-[10px] text-zinc-500 truncate">Pro Account</div>
+            <div className="text-xs text-zinc-500 truncate">Pro Account</div>
           </div>
         </div>
       }

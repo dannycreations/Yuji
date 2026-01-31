@@ -66,10 +66,7 @@ export const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onCl
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span
-                  className={clsx(
-                    'text-[13px] font-medium truncate',
-                    currentModel === model.id ? 'text-white' : 'text-zinc-300 group-hover:text-white',
-                  )}
+                  className={clsx('text-sm font-medium truncate', currentModel === model.id ? 'text-white' : 'text-zinc-300 group-hover:text-white')}
                 >
                   {model.name}
                 </span>
@@ -79,7 +76,7 @@ export const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onCl
                   {currentModel === model.id && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(225, 29, 72, 0.8)]" />}
                 </div>
               </div>
-              <div className="text-[11px] text-zinc-500 leading-relaxed line-clamp-1 mt-0.5 group-hover:text-zinc-400">{model.description}</div>
+              <div className="text-xs text-zinc-500 leading-relaxed line-clamp-1 mt-0.5 group-hover:text-zinc-400">{model.description}</div>
             </div>
           </button>
         ))}
