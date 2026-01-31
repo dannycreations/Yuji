@@ -44,7 +44,7 @@ const MermaidBlock: React.FC<{ code: string }> = ({ code }) => {
     return <pre className="p-4 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto">{code}</pre>;
   }
 
-  return <div ref={containerRef} className="flex justify-center p-6 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
+  return <div ref={containerRef} className="flex justify-center p-4 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
 };
 
 export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
@@ -104,7 +104,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
   );
 
   return (
-    <div className="my-4 border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d] shadow-lg">
+    <div className="my-1 border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d] shadow-lg">
       {renderHeader()}
       {!isCollapsed && (
         <div className="relative">
@@ -119,7 +119,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
                 margin: 0,
                 borderRadius: 0,
                 background: 'transparent',
-                padding: '1.25rem',
+                padding: '1rem',
                 fontSize: '0.85rem',
                 lineHeight: '1.6',
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',

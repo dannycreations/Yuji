@@ -118,8 +118,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           ) : (
             <div
               className={clsx(
-                'prose prose-invert prose-sm max-w-none leading-relaxed markdown-body w-fit',
-                isUser && 'bg-white/5 rounded-2xl px-4 py-3',
+                'prose prose-invert prose-sm max-w-none leading-relaxed markdown-body',
+                isUser ? 'bg-white/5 rounded-2xl px-4 py-3 w-fit' : 'w-full',
               )}
             >
               {!isUser && !message.content && isLast ? (
