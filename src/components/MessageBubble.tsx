@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import React, { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -6,8 +7,11 @@ import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
-import { Message } from '../app/types';
-import { useStore } from '../stores/useStore';
+import { AppState, Message } from '../app/Schema';
+import { YujiRuntime } from '../app/Yuji';
+import { useAction, useStore } from '../hooks/useStore';
+import { ChatService } from '../services/ChatService';
+import { StoreService } from '../services/StoreService';
 import { CodeBlock } from './CodeBlock';
 import { Icon } from './shared/Icon';
 import { VirtualBlock } from './shared/VirtualBlock';
@@ -20,9 +24,9 @@ interface MessageBubbleProps {
   onEdit: (content: string) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId, isLast, onRegenerate, onEdit }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit }) => {
   const isUser = message.role === 'user';
-  const { branchChat, sessions } = useStore();
+  const sessions = useStore((s: AppState) => s.sessions, {});
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -37,7 +41,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
   }, [message.parentId, session]);
 
   const currentIndex = siblings.indexOf(message.id);
-  const { switchBranch } = useStore();
+
+  const switchBranch = useAction((sessionId: string, messageId: string) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => {
+        const session = s.sessions[sessionId];
+        if (!session) return s;
+        return {
+          ...s,
+          sessions: {
+            ...s.sessions,
+            [sessionId]: {
+              ...session,
+              activeMessageId: messageId,
+              updatedAt: Date.now(),
+            },
+          },
+        };
+      });
+    }),
+  );
 
   const handleSwitchBranch = (newId: string) => {
     switchBranch(sessionId, newId);
@@ -50,7 +74,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
   };
 
   const handleBranch = () => {
-    branchChat(sessionId, message.id);
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const chat = yield* ChatService;
+        yield* chat.branchChat(sessionId, message.id);
+      }),
+    );
   };
 
   const handleSaveEdit = () => {
@@ -58,6 +87,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
       onEdit(editContent);
     }
     setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const store = yield* StoreService;
+        const chat = yield* ChatService;
+
+        yield* store.setConfirm({
+          title: 'Delete Message',
+          message: 'Are you sure you want to delete this message?',
+          confirmLabel: 'Delete',
+          variant: 'danger',
+          onConfirm: () => YujiRuntime.runSync(chat.deleteMessage(sessionId, message.id)),
+        });
+      }),
+    );
   };
 
   return (
@@ -118,123 +164,112 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
           ) : (
             <div
               className={clsx(
-                'prose prose-invert prose-sm max-w-none leading-relaxed markdown-body',
-                isUser ? 'bg-white/5 rounded-2xl px-4 py-3 w-fit' : 'w-full',
+                'prose prose-invert prose-sm max-w-none leading-relaxed markdown-body w-fit',
+                isUser && 'bg-white/5 rounded-2xl px-4 py-3',
               )}
             >
-              {!isUser && !message.content && isLast ? (
-                <div className="flex items-center gap-1.5 py-2 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-dot-bounce [animation-delay:-0.32s]" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-dot-bounce [animation-delay:-0.16s]" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-dot-bounce" />
-                </div>
-              ) : (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkMath]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    code({ node, inline, className, children, ...props }: any) {
-                      const match = /language-(\w+)/.exec(className || '');
-                      const language = match ? match[1] : '';
-                      const value = String(children).replace(/\n$/, '');
-                      const isMultiline = value.includes('\n');
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={{
+                  code({ node, inline, className, children, ...props }: any) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    const language = match ? match[1] : '';
+                    const value = String(children).replace(/\n$/, '');
+                    const isMultiline = value.includes('\n');
 
-                      if (!inline && (match || isMultiline)) {
-                        return (
-                          <VirtualBlock>
-                            <CodeBlock language={language} value={value} />
-                          </VirtualBlock>
-                        );
-                      }
-
-                      return (
-                        <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
-                          {children}
-                        </code>
-                      );
-                    },
-                    a: ({ node, ...props }) => (
-                      <a
-                        className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        {...props}
-                      />
-                    ),
-                    ul: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
-                      </VirtualBlock>
-                    ),
-                    ol: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
-                      </VirtualBlock>
-                    ),
-                    h1: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />
-                      </VirtualBlock>
-                    ),
-                    h2: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />
-                      </VirtualBlock>
-                    ),
-                    h3: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />
-                      </VirtualBlock>
-                    ),
-                    blockquote: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <blockquote
-                          className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg"
-                          {...props}
-                        />
-                      </VirtualBlock>
-                    ),
-                    table: ({ node, ...props }) => (
-                      <VirtualBlock>
-                        <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
-                          <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
-                        </div>
-                      </VirtualBlock>
-                    ),
-                    th: ({ node, ...props }) => (
-                      <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
-                    ),
-                    td: ({ node, ...props }) => (
-                      <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
-                    ),
-                    p: ({ node, ...props }) => {
-                      const content = String(props.children);
-                      if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
-                        return (
-                          <VirtualBlock>
-                            <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
-                              <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
-                                <Icon name="Brain" size={12} />
-                                Reasoning
-                              </summary>
-                              <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
-                                {content.replace(/<\/?reasoning>/g, '')}
-                              </div>
-                            </details>
-                          </VirtualBlock>
-                        );
-                      }
+                    if (!inline && (match || isMultiline)) {
                       return (
                         <VirtualBlock>
-                          <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />
+                          <CodeBlock language={language} value={value} />
                         </VirtualBlock>
                       );
-                    },
-                  }}
-                >
-                  {message.content}
-                </ReactMarkdown>
-              )}
+                    }
+
+                    return (
+                      <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  a: ({ node, ...props }) => (
+                    <a
+                      className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      {...props}
+                    />
+                  ),
+                  ul: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
+                    </VirtualBlock>
+                  ),
+                  ol: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
+                    </VirtualBlock>
+                  ),
+                  h1: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />
+                    </VirtualBlock>
+                  ),
+                  h2: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />
+                    </VirtualBlock>
+                  ),
+                  h3: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />
+                    </VirtualBlock>
+                  ),
+                  blockquote: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
+                    </VirtualBlock>
+                  ),
+                  table: ({ node, ...props }) => (
+                    <VirtualBlock>
+                      <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
+                        <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
+                      </div>
+                    </VirtualBlock>
+                  ),
+                  th: ({ node, ...props }) => (
+                    <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
+                  ),
+                  td: ({ node, ...props }) => (
+                    <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
+                  ),
+                  p: ({ node, ...props }) => {
+                    const content = String(props.children);
+                    if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
+                      return (
+                        <VirtualBlock>
+                          <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                            <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
+                              <Icon name="Brain" size={12} />
+                              Reasoning
+                            </summary>
+                            <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
+                              {content.replace(/<\/?reasoning>/g, '')}
+                            </div>
+                          </details>
+                        </VirtualBlock>
+                      );
+                    }
+                    return (
+                      <VirtualBlock>
+                        <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />
+                      </VirtualBlock>
+                    );
+                  },
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
             </div>
           )}
 
@@ -297,6 +332,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId
                 <span className="text-[10px] font-medium uppercase tracking-tight">Regenerate</span>
               </button>
             )}
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded  text-red-500 hover:bg-red-500/10 transition-colors"
+            >
+              <Icon name="Trash2" size={12} />
+              <span className="text-[10px] font-medium uppercase tracking-tight">Delete</span>
+            </button>
           </div>
         </div>
       </div>

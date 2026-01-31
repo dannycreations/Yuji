@@ -1,7 +1,8 @@
 import clsx from 'clsx';
 import React, { useState } from 'react';
 
-import { MODELS } from '../app/models';
+import { AppState, Model } from '../app/Schema';
+import { useStore } from '../hooks/useStore';
 import { Icon } from './shared/Icon';
 
 interface ModelPickerProps {
@@ -11,9 +12,14 @@ interface ModelPickerProps {
 }
 
 export const ModelPicker: React.FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) => {
+  const availableModels = useStore((s: AppState) => s.availableModels, []);
+  const disabledModels = useStore((s: AppState) => s.settings.disabledModels, []);
+
   const [search, setSearch] = useState('');
 
-  const filtered = MODELS.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.id.toLowerCase().includes(search.toLowerCase()));
+  const filtered = availableModels
+    .filter((m) => !disabledModels.includes(m.id))
+    .filter((m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.id.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="absolute bottom-full left-0 mb-3 w-[380px] bg-[#18181b] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50 animate-fade-in origin-bottom-left select-none">
@@ -39,8 +45,8 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ currentModel, onSelect
         </div>
       </div>
 
-      <div className="overflow-y-auto max-h-[320px] p-2 space-y-0.5 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-        {filtered.map((model) => (
+      <div className="overflow-y-auto max-h-[320px] p-2 space-y-0.5 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent overscroll-y-contain">
+        {filtered.map((model: Model) => (
           <button
             key={model.id}
             onClick={() => {
@@ -68,7 +74,7 @@ export const ModelPicker: React.FC<ModelPickerProps> = ({ currentModel, onSelect
                 <div className="flex items-center gap-1.5">
                   {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                   {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
-                  {currentModel === model.id && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(225,29,72,0.8)]" />}
+                  {currentModel === model.id && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(225, 29, 72, 0.8)]" />}
                 </div>
               </div>
               <div className="text-[11px] text-zinc-500 leading-relaxed line-clamp-1 mt-0.5 group-hover:text-zinc-400">{model.description}</div>

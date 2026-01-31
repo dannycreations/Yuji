@@ -14,6 +14,9 @@ export const DEFAULT_SETTINGS = {
   userOccupation: '',
   assistantTraits: ['helpful', 'precise'],
   additionalContext: '',
+
+  // Model Defaults
+  disabledModels: [],
 };
 
 export const INITIAL_GREETING = 'How can I help you today?';

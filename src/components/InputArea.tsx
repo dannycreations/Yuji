@@ -1,9 +1,12 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import React, { useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
-import { Attachment } from '../app/types';
-import { useStore } from '../stores/useStore';
+import { DEFAULT_SETTINGS } from '../app/Constant';
+import { AppState, Attachment } from '../app/Schema';
+import { useAction, useStore } from '../hooks/useStore';
+import { StoreService } from '../services/StoreService';
 import { ModelPicker } from './ModelPicker';
 import { Icon } from './shared/Icon';
 
@@ -17,12 +20,55 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
-  const { settings, activeSessionId, sessions, updateSettings, setSessionModel } = useStore();
+
+  const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
+  const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
+  const sessions = useStore((s: AppState) => s.sessions, {});
+  const availableModels = useStore((s: AppState) => s.availableModels, []);
+
+  const setSessionModel = useAction((sessionId: string, model: string) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((state) => {
+        const session = state.sessions[sessionId];
+        if (!session) return state;
+        return {
+          ...state,
+          sessions: {
+            ...state.sessions,
+            [sessionId]: {
+              ...session,
+              modelConfig: {
+                ...(session.modelConfig || { provider: 'openai', temperature: 0.7 }),
+                model,
+                provider: 'openai',
+              },
+            },
+          },
+        };
+      });
+    }),
+  );
+
+  const setGlobalModel = useAction((modelId: string) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => ({
+        ...s,
+        settings: { ...s.settings, defaultModel: modelId },
+      }));
+    }),
+  );
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const disabledModels = settings.disabledModels || [];
+  const activeModels = availableModels.filter((m) => !disabledModels.includes(m.id));
+  const effectiveDefaultModel = activeModels.find((m) => m.id === settings.defaultModel)?.id || activeModels[0]?.id || 'gpt-4o';
+
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
-  const currentModel = activeSession?.modelConfig?.model || settings.defaultModel;
+  const currentModel = activeSession?.modelConfig?.model || effectiveDefaultModel;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && settings.enterToSend) {
@@ -70,10 +116,9 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
   };
 
   const handleModelSelect = (modelId: string) => {
+    setGlobalModel(modelId);
     if (activeSessionId) {
       setSessionModel(activeSessionId, modelId);
-    } else {
-      updateSettings({ defaultModel: modelId });
     }
     setShowModelPicker(false);
   };
@@ -81,7 +126,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
   return (
     <>
       {showModelPicker && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setShowModelPicker(false)} />}
-      <div className="w-full max-w-3xl mx-auto px-4 pb-4 pt-1 z-[5]">
+      <div className={clsx('w-full max-w-3xl mx-auto px-4 pb-4 pt-1', showModelPicker ? 'z-50' : 'z-[5]')}>
         <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
 
         <div

@@ -1,19 +1,41 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import React from 'react';
 
-import { useStore } from '../../stores/useStore';
+import { AppState } from '../../app/Schema';
+import { YujiRuntime } from '../../app/Yuji';
+import { useAction, useStore } from '../../hooks/useStore';
+import { StoreService } from '../../services/StoreService';
 import { Icon } from './Icon';
 
 export const ConfirmModal: React.FC = () => {
-  const { confirm, hideConfirm } = useStore();
+  const confirm = useStore((s: AppState) => s.confirm, {
+    isOpen: false,
+    title: '',
+    message: '',
+  });
+  const hideConfirm = useAction(() =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+    }),
+  );
 
   if (!confirm.isOpen) return null;
 
-  const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', onConfirm, variant = 'danger' } = confirm;
+  const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger' } = confirm;
 
   const handleConfirm = () => {
-    onConfirm();
-    hideConfirm();
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const store = yield* StoreService;
+        if (id) {
+          const onConfirm = store.getOnConfirm(id);
+          if (onConfirm) onConfirm();
+        }
+        yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+      }),
+    );
   };
 
   return (

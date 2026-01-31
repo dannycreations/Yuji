@@ -1,18 +1,23 @@
-import { FetchHttpClient } from '@effect/platform';
-import { Effect, Stream } from 'effect';
+import { Effect, Stream, SubscriptionRef } from 'effect';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { INITIAL_GREETING, SUGGESTIONS } from '../app/constants';
-import { Attachment, Message } from '../app/types';
-import { LLMError, streamCompletion } from '../services/llmService';
-import { useStore } from '../stores/useStore';
+import { INITIAL_GREETING, SUGGESTIONS } from '../app/Constant';
+import { LLMProviderError } from '../app/Error';
+import { AppState, Attachment, Message } from '../app/Schema';
+import { YujiRuntime } from '../app/Yuji';
+import { useStore } from '../hooks/useStore';
+import { LLMProvider } from '../providers/LLMProvider';
+import { ChatService } from '../services/ChatService';
+import { PlatformService } from '../services/PlatformService';
+import { StoreService } from '../services/StoreService';
 import { InputArea } from './InputArea';
 import { MessageBubble } from './MessageBubble';
 import { Icon } from './shared/Icon';
 import { VirtualBlock } from './shared/VirtualBlock';
 
 export const ChatInterface: React.FC = () => {
-  const { activeSessionId, sessions, addMessage, updateMessage, settings, createSession } = useStore();
+  const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
+  const sessions = useStore((s: AppState) => s.sessions, {});
 
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -65,170 +70,146 @@ export const ChatInterface: React.FC = () => {
 
   const handleStop = () => {
     if (fiberRef.current) {
-      Effect.runFork(fiberRef.current.interruptAsFork(Effect.void));
+      YujiRuntime.runFork(fiberRef.current.interruptAsFork(Effect.void));
       fiberRef.current = null;
       setIsLoading(false);
     }
   };
 
-  const generateResponse = async (sessionId: string, messagesToProcess: Message[]) => {
-    const session = useStore.getState().sessions[sessionId];
-    if (!session) return;
+  const generateResponse = (sessionId: string, messagesToProcess: ReadonlyArray<Message>) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      const llm = yield* LLMProvider;
+      const chat = yield* ChatService;
 
-    if (fiberRef.current) {
-      await Effect.runPromise(fiberRef.current.interruptAsFork(Effect.void));
-    }
+      const state = yield* SubscriptionRef.get(store.state);
+      const session = state.sessions[sessionId];
+      const latestSettings = state.settings;
 
-    setIsLoading(true);
+      if (!session) return;
 
-    const assistantMessageId = crypto.randomUUID();
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: Date.now(),
-      parentId: messagesToProcess[messagesToProcess.length - 1]?.id,
-    };
-    addMessage(sessionId, assistantMessage);
+      if (fiberRef.current) {
+        yield* fiberRef.current.interruptAsFork(Effect.void);
+      }
 
-    let fullContent = '';
+      setIsLoading(true);
 
-    const streamEffect = Effect.gen(function* () {
-      const stream = yield* streamCompletion(
-        messagesToProcess,
-        settings.defaultSystemPrompt,
-        settings,
-        session.modelConfig || { provider: 'openai', model: settings.defaultModel, temperature: 0.7 },
-        session.systemPrompt,
-        session.overrideGlobalPrompt,
+      const assistantMessageId = crypto.randomUUID();
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: Date.now(),
+        parentId: messagesToProcess[messagesToProcess.length - 1]?.id,
+      };
+
+      const streamEffect = Effect.gen(function* () {
+        yield* chat.addMessage(sessionId, assistantMessage);
+
+        const stream = yield* llm.streamCompletion(
+          messagesToProcess,
+          latestSettings.defaultSystemPrompt,
+          latestSettings,
+          session.modelConfig || { provider: 'openai', model: latestSettings.defaultModel, temperature: 0.7 },
+          session.systemPrompt,
+          session.overrideGlobalPrompt,
+        );
+
+        let fullContent = '';
+        yield* Stream.runForEach(stream, (token) =>
+          Effect.gen(function* () {
+            fullContent += token;
+            yield* chat.updateMessage(sessionId, assistantMessageId, fullContent);
+          }),
+        );
+      }).pipe(
+        Effect.catchAll((err) =>
+          Effect.gen(function* () {
+            const msg = err instanceof LLMProviderError ? err.message : 'Unknown error';
+            console.error(err);
+            yield* chat.updateMessage(sessionId, assistantMessageId, `*[Error: ${msg}]*`);
+          }),
+        ),
+        Effect.ensuring(Effect.sync(() => setIsLoading(false))),
       );
 
-      yield* Stream.runForEach(stream, (token) =>
-        Effect.sync(() => {
-          fullContent += token;
-          updateMessage(sessionId, assistantMessageId, fullContent);
-        }),
-      );
-    }).pipe(
-      Effect.catchAll((err) =>
-        Effect.sync(() => {
-          const msg = err instanceof LLMError ? err.message : 'Unknown error';
-          console.error(err);
-          updateMessage(sessionId, assistantMessageId, fullContent + `\n\n*[Error: ${msg}]*`);
-        }),
-      ),
-      Effect.ensuring(Effect.sync(() => setIsLoading(false))),
-      Effect.provide(FetchHttpClient.layer),
-    );
+      fiberRef.current = yield* Effect.forkDaemon(streamEffect);
+    });
 
-    fiberRef.current = Effect.runFork(streamEffect as any);
-  };
+  const handleSend = (content: string, attachments: Attachment[] = []) => {
+    const sendEffect = Effect.gen(function* () {
+      const chat = yield* ChatService;
+      const platform = yield* PlatformService;
 
-  const handleSend = async (content: string, attachments: Attachment[] = []) => {
-    let currentSessionId = activeSessionId;
-
-    if (!currentSessionId) {
-      currentSessionId = createSession();
-    }
-
-    // Use current state to ensure we have the newly created session if applicable
-    const state = useStore.getState();
-    const session = state.sessions[currentSessionId];
-    if (!session) return;
-
-    // Determine parentId based on current visible path or last message
-    const parentId = activeSession?.activeMessageId;
-
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content,
-      attachments,
-      timestamp: Date.now(),
-      parentId,
-    };
-    addMessage(currentSessionId, userMessage);
-
-    // Get updated session messages for the LLM call
-    const updatedState = useStore.getState();
-    const updatedSession = updatedState.sessions[currentSessionId];
-
-    // Construct the actual message history for the LLM based on the path
-    const history: Message[] = [];
-    let currId: string | undefined = userMessage.id;
-    while (currId) {
-      const msg: Message | undefined = updatedSession.messages.find((m) => m.id === currId);
-      if (msg) {
-        history.unshift(msg);
-        currId = msg.parentId;
-      } else {
-        currId = undefined;
+      let currentSessionId = activeSessionId;
+      if (!currentSessionId) {
+        const session = yield* chat.createSession();
+        currentSessionId = session.id;
       }
-    }
 
-    await generateResponse(currentSessionId, history);
+      const parentId = activeSession?.activeMessageId;
+      const userMessageId = yield* platform.nextId;
+      const now = yield* platform.now;
+      const userMessage: Message = {
+        id: userMessageId,
+        role: 'user',
+        content,
+        attachments,
+        timestamp: now,
+        parentId,
+      };
+
+      yield* chat.addMessage(currentSessionId, userMessage);
+      const history = yield* chat.getSessionPath(currentSessionId, userMessage.id);
+
+      yield* generateResponse(currentSessionId, history);
+    });
+
+    YujiRuntime.runFork(sendEffect as Effect.Effect<void, never, any>);
   };
 
-  const handleRegenerate = async (messageId: string) => {
+  const handleRegenerate = (messageId: string) => {
     if (!activeSession) return;
 
-    const originalMessage = activeSession.messages.find((m) => m.id === messageId);
-    if (!originalMessage || originalMessage.role !== 'assistant') return;
+    const regenerateEffect = Effect.gen(function* () {
+      const chat = yield* ChatService;
+      const originalMessage = activeSession.messages.find((m) => m.id === messageId);
+      if (!originalMessage || originalMessage.role !== 'assistant') return;
 
-    // Regeneration strategy: Use the path up to the parent of the message being regenerated
-    const history: Message[] = [];
-    let currId: string | undefined = originalMessage.parentId;
-    while (currId) {
-      const msg: Message | undefined = activeSession.messages.find((m) => m.id === currId);
-      if (msg) {
-        history.unshift(msg);
-        currId = msg.parentId;
-      } else {
-        currId = undefined;
-      }
-    }
+      const history = yield* chat.getSessionPath(activeSession.id, originalMessage.parentId || '');
+      yield* generateResponse(activeSession.id, history);
+    });
 
-    await generateResponse(activeSession.id, history);
+    YujiRuntime.runFork(regenerateEffect as Effect.Effect<void, never, any>);
   };
 
-  const handleEdit = async (messageId: string, newContent: string) => {
+  const handleEdit = (messageId: string, newContent: string) => {
     if (!activeSession) return;
 
-    const messageIndex = activeSession.messages.findIndex((m) => m.id === messageId);
-    if (messageIndex === -1) return;
+    const editEffect = Effect.gen(function* () {
+      const chat = yield* ChatService;
+      const platform = yield* PlatformService;
+      const originalMessage = activeSession.messages.find((m) => m.id === messageId);
+      if (!originalMessage) return;
 
-    // In-chat branching strategy:
-    // We add a new message with the same parent as the edited message.
-    const originalMessage = activeSession.messages[messageIndex];
-    const userMessageId = crypto.randomUUID();
-    const userMessage: Message = {
-      id: userMessageId,
-      role: 'user',
-      content: newContent,
-      attachments: originalMessage.attachments,
-      timestamp: Date.now(),
-      parentId: originalMessage.parentId,
-    };
+      const userMessageId = yield* platform.nextId;
+      const now = yield* platform.now;
+      const userMessage: Message = {
+        id: userMessageId,
+        role: 'user',
+        content: newContent,
+        attachments: originalMessage.attachments,
+        timestamp: now,
+        parentId: originalMessage.parentId,
+      };
 
-    addMessage(activeSession.id, userMessage);
+      yield* chat.addMessage(activeSession.id, userMessage);
+      const history = yield* chat.getSessionPath(activeSession.id, userMessageId);
 
-    // To properly "branch" within the same session's flat list,
-    // we should ideally filter the message list to only show the path to the current leaf.
-    const updatedState = useStore.getState();
-    const updatedSession = updatedState.sessions[activeSession.id];
+      yield* generateResponse(activeSession.id, history);
+    });
 
-    const history: Message[] = [];
-    let currId: string | undefined = userMessageId;
-    while (currId) {
-      const msg: Message | undefined = updatedSession.messages.find((m) => m.id === currId);
-      if (msg) {
-        history.unshift(msg);
-        currId = msg.parentId;
-      } else {
-        currId = undefined;
-      }
-    }
-    await generateResponse(activeSession.id, history);
+    YujiRuntime.runFork(editEffect as Effect.Effect<void, never, any>);
   };
 
   if (!activeSession || activeSession.messages.length === 0) {

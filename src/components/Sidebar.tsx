@@ -1,13 +1,37 @@
+import { Effect } from 'effect';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-import { ChatSession } from '../app/types';
-import { useStore } from '../stores/useStore';
-import { SessionSettingsDialog } from './SessionSettingsDialog';
+import { AppState, ChatSession, ConfirmState } from '../app/Schema';
+import { YujiRuntime } from '../app/Yuji';
+import { useAction, useStore } from '../hooks/useStore';
+import { ChatService } from '../services/ChatService';
+import { StoreService } from '../services/StoreService';
+import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
 
 export const Sidebar: React.FC = () => {
-  const { sessions, activeSessionId, setActiveSession, createSession, deleteSession, isSidebarOpen, toggleSidebar, toggleSettings, showConfirm } =
-    useStore();
+  const sessions = useStore((s: AppState) => s.sessions, {});
+  const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
+  const isSidebarOpen = useStore((s: AppState) => s.isSidebarOpen, true);
+
+  const updateStore = useAction((f: (s: AppState) => AppState) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      return yield* store.update(f);
+    }),
+  );
+
+  const setActiveSession = (id: string | null) => updateStore((s) => ({ ...s, activeSessionId: id }));
+  const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
+  const toggleSettings = () => updateStore((s) => ({ ...s, isSettingsOpen: !s.isSettingsOpen }));
+  const showConfirm = (config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const store = yield* StoreService;
+        yield* store.setConfirm(config);
+      }),
+    );
+
   const [searchTerm, setSearchTerm] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -23,8 +47,26 @@ export const Sidebar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleCreateSession = () => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const chat = yield* ChatService;
+        yield* chat.createSession();
+      }),
+    );
+  };
+
+  const handleDeleteSession = (id: string) => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const chat = yield* ChatService;
+        yield* chat.deleteSession(id);
+      }),
+    );
+  };
+
   const filteredSessions = useMemo(() => {
-    const allSessions = Object.values(sessions).sort((a, b) => b.updatedAt - a.updatedAt);
+    const allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
     if (!searchTerm.trim()) return allSessions;
     return allSessions.filter((session) => session.title.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [sessions, searchTerm]);
@@ -76,7 +118,7 @@ export const Sidebar: React.FC = () => {
         <button onClick={toggleSidebar} className="text-zinc-500 hover:text-white transition-colors p-1.5">
           <Icon name="PanelLeftClose" size={20} />
         </button>
-        <button onClick={() => createSession()} className="p-1.5 text-zinc-500 hover:text-white transition-colors" title="New Chat">
+        <button onClick={handleCreateSession} className="p-1.5 text-zinc-500 hover:text-white transition-colors" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </button>
       </div>
@@ -153,7 +195,7 @@ export const Sidebar: React.FC = () => {
                                   title: 'Delete Chat',
                                   message: 'Are you sure you want to delete this chat? This action cannot be undone.',
                                   confirmLabel: 'Delete',
-                                  onConfirm: () => deleteSession(session.id),
+                                  onConfirm: () => handleDeleteSession(session.id),
                                   variant: 'danger',
                                 });
                                 setMenuOpenId(null);
@@ -188,7 +230,7 @@ export const Sidebar: React.FC = () => {
           <Icon name="Settings" size={16} />
         </button>
       </div>
-      {settingsOpenId && <SessionSettingsDialog sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
+      {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
     </div>
   );
 };

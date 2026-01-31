@@ -1,31 +1,52 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { MODELS } from '../app/models';
-import { ChatSession } from '../app/types';
-import { useStore } from '../stores/useStore';
-import { Icon } from './shared/Icon';
+import { DEFAULT_SETTINGS } from '../../app/Constant';
+import { AppState, ChatSession, Model, Settings } from '../../app/Schema';
+import { YujiRuntime } from '../../app/Yuji';
+import { useAction, useStore } from '../../hooks/useStore';
+import { LLMProvider } from '../../providers/LLMProvider';
+import { StoreService } from '../../services/StoreService';
+import { timeAgo } from '../../utilities/time';
+import { Icon } from '../shared/Icon';
 
-type SettingsTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
+type GlobalSettingTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
 
-function timeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return Math.floor(interval) + ' years ago';
-  interval = seconds / 2592000;
-  if (interval > 1) return Math.floor(interval) + ' months ago';
-  interval = seconds / 86400;
-  if (interval > 1) return Math.floor(interval) + ' days ago';
-  interval = seconds / 3600;
-  if (interval > 1) return Math.floor(interval) + ' hours ago';
-  interval = seconds / 60;
-  if (interval > 1) return Math.floor(interval) + ' minutes ago';
-  return 'just now';
-}
+export const GlobalSettingModal: React.FC = () => {
+  const isSettingsOpen = useStore((s: AppState) => s.isSettingsOpen, false);
+  const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
+  const sessions = useStore((s: AppState) => s.sessions, {});
+  const availableModels = useStore((s: AppState) => s.availableModels, []);
 
-export const SettingsDialog: React.FC = () => {
-  const { isSettingsOpen, toggleSettings, settings, updateSettings, sessions, importSessions } = useStore();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const toggleSettings = useAction(() =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => ({ ...s, isSettingsOpen: !s.isSettingsOpen }));
+    }),
+  );
+
+  const updateSettings = useAction((newSettings: Partial<Settings>) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => ({ ...s, settings: { ...s.settings, ...newSettings } }));
+    }),
+  );
+
+  const importSessions = useAction((newSessions: Record<string, ChatSession>) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => ({ ...s, sessions: { ...s.sessions, ...newSessions } }));
+    }),
+  );
+
+  const setAvailableModels = useAction((models: ReadonlyArray<Model>) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => ({ ...s, availableModels: models }));
+    }),
+  );
+  const [activeTab, setActiveTab] = useState<GlobalSettingTab>('general');
   const [traitInput, setTraitInput] = useState('');
   const [modelSearch, setModelSearch] = useState('');
 
@@ -34,12 +55,42 @@ export const SettingsDialog: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 7;
 
+  const handleRefreshModels = () => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const llm = yield* LLMProvider;
+        const result = yield* llm.fetchModels(settings);
+
+        const apiModels: ReadonlyArray<Model> = result.data.map((m: any) =>
+          Model({
+            id: m.id,
+            name: m.id,
+            description: `Fetched from ${settings.baseUrl}`,
+            provider: 'OpenAI Compatible',
+            icon: 'Cpu',
+            color: 'text-zinc-400',
+            tags: ['API'],
+          }),
+        );
+
+        const staticIds = new Set(availableModels.map((m: any) => m.id));
+        const newModels = apiModels.filter((m: any) => !staticIds.has(m.id));
+
+        setAvailableModels([...availableModels, ...newModels]);
+      }).pipe(
+        Effect.catchAll((error) => {
+          console.error('Failed to fetch models:', error);
+          return Effect.void;
+        }),
+      ),
+    );
+  };
+
   useEffect(() => {
     if (isSettingsOpen) {
-      setModelSearch(settings.defaultModel);
       setHistoryPage(0);
     }
-  }, [isSettingsOpen, settings.defaultModel]);
+  }, [isSettingsOpen]);
 
   useEffect(() => {
     if (activeTab === 'persona') {
@@ -66,12 +117,12 @@ export const SettingsDialog: React.FC = () => {
 
   if (!isSettingsOpen) return null;
 
-  const tabs: { id: SettingsTab; label: string; icon: any; description?: string }[] = [
-    { id: 'general', label: 'General', icon: 'Settings', description: 'App preferences' },
-    { id: 'connection', label: 'Connection', icon: 'Link', description: 'Provider settings' },
-    { id: 'models', label: 'Models', icon: 'Cpu', description: 'Model config' },
-    { id: 'persona', label: 'Persona', icon: 'Sparkles', description: 'System prompts' },
-    { id: 'history', label: 'History & Sync', icon: 'History', description: 'Manage chat data' },
+  const tabs: { icon: string; id: GlobalSettingTab; label: string }[] = [
+    { icon: 'Settings', id: 'general', label: 'General' },
+    { icon: 'Link', id: 'connection', label: 'Connection' },
+    { icon: 'Cpu', id: 'models', label: 'Models' },
+    { icon: 'Sparkles', id: 'persona', label: 'Persona' },
+    { icon: 'History', id: 'history', label: 'History & Sync' },
   ];
 
   const handleAddTrait = (trait: string) => {
@@ -83,7 +134,7 @@ export const SettingsDialog: React.FC = () => {
   };
 
   const handleRemoveTrait = (trait: string) => {
-    updateSettings({ assistantTraits: settings.assistantTraits.filter((t) => t !== trait) });
+    updateSettings({ assistantTraits: (settings.assistantTraits as string[]).filter((t: string) => t !== trait) });
   };
 
   const handleKeyDownTrait = (e: React.KeyboardEvent) => {
@@ -91,11 +142,6 @@ export const SettingsDialog: React.FC = () => {
       e.preventDefault();
       handleAddTrait(traitInput);
     }
-  };
-
-  const handleModelSelect = (modelId: string) => {
-    updateSettings({ defaultModel: modelId });
-    setModelSearch(modelId);
   };
 
   const handleExport = () => {
@@ -134,17 +180,41 @@ export const SettingsDialog: React.FC = () => {
     e.target.value = ''; // Reset
   };
 
-  const filteredModels = MODELS.filter(
-    (m) =>
-      m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
-      m.id.toLowerCase().includes(modelSearch.toLowerCase()) ||
-      m.provider.toLowerCase().includes(modelSearch.toLowerCase()),
-  );
+  const filteredModels = (availableModels as ReadonlyArray<Model>)
+    .filter(
+      (m: Model) =>
+        m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
+        m.id.toLowerCase().includes(modelSearch.toLowerCase()) ||
+        m.provider.toLowerCase().includes(modelSearch.toLowerCase()),
+    )
+    .sort((a, b) => {
+      const aDisabled = (settings.disabledModels || []).includes(a.id);
+      const bDisabled = (settings.disabledModels || []).includes(b.id);
+      if (aDisabled && !bDisabled) return 1;
+      if (!aDisabled && bDisabled) return -1;
+      return 0;
+    });
 
   // History Pagination Logic
   const sortedSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
   const totalHistoryPages = Math.ceil(sortedSessions.length / ITEMS_PER_PAGE);
   const currentHistoryItems = sortedSessions.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
+
+  const disabledModels = settings.disabledModels || [];
+  const activeModels = (availableModels as ReadonlyArray<Model>).filter((m) => !disabledModels.includes(m.id));
+  const effectiveDefaultModelId = activeModels.find((m) => m.id === settings.defaultModel)?.id || activeModels[0]?.id;
+
+  const toggleModel = (modelId: string) => {
+    const isDisabled = disabledModels.includes(modelId);
+    let newDisabledModels = [...disabledModels];
+
+    if (isDisabled) {
+      newDisabledModels = newDisabledModels.filter((id) => id !== modelId);
+    } else {
+      newDisabledModels.push(modelId);
+    }
+    updateSettings({ disabledModels: newDisabledModels });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
@@ -175,13 +245,6 @@ export const SettingsDialog: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          {activeTab !== 'history' && (
-            <div className="mb-5">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider">{tabs.find((t) => t.id === activeTab)?.label}</h3>
-              <p className="text-[10px] text-zinc-500">{tabs.find((t) => t.id === activeTab)?.description}</p>
-            </div>
-          )}
-
           <div className="h-full">
             {activeTab === 'general' && (
               <div className="space-y-4 animate-fade-in">
@@ -193,14 +256,14 @@ export const SettingsDialog: React.FC = () => {
                   <button
                     onClick={() => updateSettings({ enterToSend: !settings.enterToSend })}
                     className={clsx(
-                      'w-9 h-4.5 rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-primary/50',
+                      'w-9 h-5 rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-primary/50 flex-shrink-0',
                       settings.enterToSend ? 'bg-primary' : 'bg-zinc-700',
                     )}
                   >
                     <div
                       className={clsx(
-                        'absolute top-0.5 left-0.5 bg-white w-3.5 h-3.5 rounded-full transition-transform shadow-sm',
-                        settings.enterToSend ? 'translate-x-4.5' : '',
+                        'absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform shadow-sm',
+                        settings.enterToSend ? 'translate-x-4' : '',
                       )}
                     />
                   </button>
@@ -261,7 +324,16 @@ export const SettingsDialog: React.FC = () => {
             {activeTab === 'models' && (
               <div className="space-y-4 animate-fade-in">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Model Search</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Available Models</label>
+                    <button
+                      onClick={handleRefreshModels}
+                      className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary_hover transition-colors uppercase tracking-widest"
+                    >
+                      <Icon name="RefreshCw" size={10} />
+                      Refresh
+                    </button>
+                  </div>
                   <div className="relative group">
                     <Icon
                       name="Search"
@@ -271,49 +343,62 @@ export const SettingsDialog: React.FC = () => {
                     <input
                       type="text"
                       value={modelSearch}
-                      onChange={(e) => {
-                        setModelSearch(e.target.value);
-                        updateSettings({ defaultModel: e.target.value });
-                      }}
+                      onChange={(e) => setModelSearch(e.target.value)}
                       className="w-full bg-black border border-surface_light rounded-xl pl-9 pr-3 py-2.5 text-xs text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                      placeholder="Search or enter custom ID..."
+                      placeholder="Search model library..."
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
                   <div className="grid grid-cols-1 gap-2">
                     {filteredModels.length > 0 ? (
-                      filteredModels.map((model) => (
-                        <button
-                          key={model.id}
-                          onClick={() => handleModelSelect(model.id)}
-                          className={clsx(
-                            'flex items-start gap-3 p-2.5 rounded-xl border transition-all text-left',
-                            settings.defaultModel === model.id
-                              ? 'bg-primary/10 border-primary/40'
-                              : 'bg-surface_light/20 border-transparent hover:bg-surface_light/40',
-                          )}
-                        >
+                      filteredModels.map((model: Model) => {
+                        const isDisabled = disabledModels.includes(model.id);
+                        const isEnabled = !isDisabled;
+                        return (
                           <div
+                            key={model.id}
                             className={clsx(
-                              'p-2 rounded-lg flex-shrink-0',
-                              settings.defaultModel === model.id ? 'bg-primary text-white' : clsx('bg-black/40', model.color || 'text-zinc-500'),
+                              'flex items-center gap-3 p-2.5 rounded-xl border transition-all',
+                              isEnabled ? 'bg-surface_light/20 border-surface_light/40' : 'bg-black/20 border-transparent opacity-60',
                             )}
                           >
-                            <Icon name={model.icon as any} size={16} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-1 mb-0.5">
-                              <span className={clsx('font-bold text-xs', settings.defaultModel === model.id ? 'text-white' : 'text-zinc-300')}>
-                                {model.name}
-                              </span>
-                              {settings.defaultModel === model.id && <Icon name="Check" size={12} className="text-primary" />}
+                            <div
+                              className={clsx(
+                                'p-2 rounded-lg flex-shrink-0',
+                                isEnabled ? clsx('bg-black/40', model.color || 'text-zinc-500') : 'bg-black/40 text-zinc-600',
+                              )}
+                            >
+                              <Icon name={model.icon as any} size={16} />
                             </div>
-                            <p className="text-[10px] text-zinc-500 line-clamp-1">{model.description}</p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <span className={clsx('font-bold text-xs', isEnabled ? 'text-zinc-200' : 'text-zinc-500')}>{model.name}</span>
+                                {effectiveDefaultModelId === model.id && isEnabled && (
+                                  <div className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-bold uppercase">Default</div>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-zinc-500 line-clamp-1">{model.description}</p>
+                            </div>
+
+                            <button
+                              onClick={() => toggleModel(model.id)}
+                              className={clsx(
+                                'w-9 h-5 rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-primary/50 flex-shrink-0',
+                                isEnabled ? 'bg-primary' : 'bg-zinc-700',
+                              )}
+                            >
+                              <div
+                                className={clsx(
+                                  'absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform shadow-sm',
+                                  isEnabled ? 'translate-x-4' : '',
+                                )}
+                              />
+                            </button>
                           </div>
-                        </button>
-                      ))
+                        );
+                      })
                     ) : (
                       <div className="text-center py-6 text-[10px] text-zinc-500 bg-surface_light/10 rounded-xl border border-dashed border-surface_light">
                         No library models match "{modelSearch}"
@@ -351,7 +436,7 @@ export const SettingsDialog: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Assistant Traits</label>
                   <div className="p-2 bg-black border border-surface_light rounded-xl flex flex-wrap gap-1.5 min-h-[40px] focus-within:border-primary/50 transition-all">
-                    {settings.assistantTraits.map((trait, idx) => (
+                    {(settings.assistantTraits as string[]).map((trait: string, idx: number) => (
                       <div
                         key={idx}
                         className="flex items-center gap-1 bg-surface_light text-zinc-300 text-[10px] px-2 py-0.5 rounded border border-white/5 font-medium"

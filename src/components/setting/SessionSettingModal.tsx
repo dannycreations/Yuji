@@ -1,21 +1,77 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import React, { useState } from 'react';
 
-import { useStore } from '../stores/useStore';
-import { Icon } from './shared/Icon';
+import { AppState } from '../../app/Schema';
+import { useAction, useStore } from '../../hooks/useStore';
+import { ChatService } from '../../services/ChatService';
+import { StoreService } from '../../services/StoreService';
+import { Icon } from '../shared/Icon';
 
-interface SessionSettingsDialogProps {
+interface SessionSettingModalProps {
   sessionId: string;
   onClose: () => void;
 }
 
-type Tab = 'general' | 'persona';
+type SessionSettingTab = 'general' | 'persona';
 
-export const SessionSettingsDialog: React.FC<SessionSettingsDialogProps> = ({ sessionId, onClose }) => {
-  const { sessions, setSessionSystemPrompt, setSessionModel, renameSession } = useStore();
+export const SessionSettingModal: React.FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
+  const sessions = useStore((s: AppState) => s.sessions, {});
+
+  const setSessionSystemPrompt = useAction((sessionId: string, prompt: string, override?: boolean) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((state) => {
+        const session = state.sessions[sessionId];
+        if (!session) return state;
+        return {
+          ...state,
+          sessions: {
+            ...state.sessions,
+            [sessionId]: {
+              ...session,
+              systemPrompt: prompt,
+              overrideGlobalPrompt: override !== undefined ? override : session.overrideGlobalPrompt,
+            },
+          },
+        };
+      });
+    }),
+  );
+
+  const setSessionModel = useAction((sessionId: string, model: string) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((state) => {
+        const session = state.sessions[sessionId];
+        if (!session) return state;
+        return {
+          ...state,
+          sessions: {
+            ...state.sessions,
+            [sessionId]: {
+              ...session,
+              modelConfig: {
+                ...(session.modelConfig || { provider: 'openai', temperature: 0.7 }),
+                model,
+                provider: 'openai',
+              },
+            },
+          },
+        };
+      });
+    }),
+  );
+
+  const renameSession = useAction((sessionId: string, title: string) =>
+    Effect.gen(function* () {
+      const chat = yield* ChatService;
+      yield* chat.renameSession(sessionId, title);
+    }),
+  );
   const session = sessions[sessionId];
 
-  const [activeTab, setActiveTab] = useState<Tab>('general');
+  const [activeTab, setActiveTab] = useState<SessionSettingTab>('general');
   const [title, setTitle] = useState(session?.title || '');
   const [prompt, setPrompt] = useState(session?.systemPrompt || '');
   const [overrideGlobal, setOverrideGlobal] = useState(session?.overrideGlobalPrompt ?? true);
@@ -34,7 +90,7 @@ export const SessionSettingsDialog: React.FC<SessionSettingsDialogProps> = ({ se
     onClose();
   };
 
-  const tabs: { id: Tab; label: string; icon: any }[] = [
+  const tabs: { id: SessionSettingTab; label: string; icon: any }[] = [
     { id: 'general', label: 'General', icon: 'Settings' },
     { id: 'persona', label: 'Persona', icon: 'Sparkles' },
   ];
@@ -106,12 +162,12 @@ export const SessionSettingsDialog: React.FC<SessionSettingsDialogProps> = ({ se
                 </div>
                 <button
                   onClick={() => setOverrideGlobal(!overrideGlobal)}
-                  className={clsx('w-9 h-4.5 rounded-full transition-colors relative flex-shrink-0', overrideGlobal ? 'bg-primary' : 'bg-zinc-700')}
+                  className={clsx('w-9 h-5 rounded-full transition-colors relative flex-shrink-0', overrideGlobal ? 'bg-primary' : 'bg-zinc-700')}
                 >
                   <div
                     className={clsx(
-                      'absolute top-0.5 left-0.5 bg-white w-3.5 h-3.5 rounded-full transition-transform shadow-sm',
-                      overrideGlobal ? 'translate-x-4.5' : '',
+                      'absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform shadow-sm',
+                      overrideGlobal ? 'translate-x-4' : '',
                     )}
                   />
                 </button>
