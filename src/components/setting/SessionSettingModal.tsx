@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAction, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
@@ -83,6 +83,15 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const [prompt, setPrompt] = useState(session?.systemPrompt || '');
   const [overrideGlobal, setOverrideGlobal] = useState(session?.overrideGlobalPrompt ?? true);
   const [model, setModel] = useState(session?.modelConfig?.model || '');
+
+  useEffect(() => {
+    if (session) {
+      setTitle(session.title || '');
+      setPrompt(session.systemPrompt || '');
+      setOverrideGlobal(session.overrideGlobalPrompt ?? true);
+      setModel(session.modelConfig?.model || '');
+    }
+  }, [session]);
 
   if (!session) return null;
 
