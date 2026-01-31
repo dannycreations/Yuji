@@ -171,16 +171,29 @@ export const ChatInterface: FC = () => {
   };
 
   const handleRegenerate = (messageId: string) => {
-    if (!activeSession) return;
+    if (!activeSessionId) return;
 
     const regenerateEffect = Effect.gen(function* () {
       const chat = yield* ChatService;
-      const originalMessage = activeSession.messages.find((m) => m.id === messageId);
+      const store = yield* StoreService;
+      const state = yield* SubscriptionRef.get(store.state);
+      const session = state.sessions[activeSessionId];
+
+      if (!session) return;
+
+      const originalMessage = session.messages.find((m) => m.id === messageId);
       if (!originalMessage || originalMessage.role !== 'assistant') return;
 
-      const history = yield* chat.getSessionPath(activeSession.id, originalMessage.parentId || '');
-      yield* generateResponse(activeSession.id, history);
-    });
+      const history = originalMessage.parentId ? yield* chat.getSessionPath(activeSessionId, originalMessage.parentId) : [];
+
+      yield* generateResponse(activeSessionId, history);
+    }).pipe(
+      Effect.catchAll((err) =>
+        Effect.sync(() => {
+          console.error('Failed to regenerate:', err);
+        }),
+      ),
+    );
 
     YujiRuntime.runFork(regenerateEffect as Effect.Effect<void, never, any>);
   };

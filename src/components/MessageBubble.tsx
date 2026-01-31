@@ -287,7 +287,13 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
             </div>
           )}
 
-          <div className={clsx('flex items-center gap-2.5 mt-3 pt-1.5 border-t border-white/5 transition-colors', isUser && 'justify-end')}>
+          <div
+            className={clsx(
+              'flex items-center gap-2.5 mt-3 pt-1.5 border-t border-white/5 transition-opacity duration-200',
+              isUser && 'justify-end',
+              isThinking && 'opacity-0 pointer-events-none',
+            )}
+          >
             {siblings.length > 1 && (
               <div className="flex items-center gap-1 mr-1 text-zinc-500 select-none border-r border-white/5 pr-2">
                 <button
