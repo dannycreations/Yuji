@@ -61,7 +61,7 @@ export const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onCl
             )}
           >
             <div className={clsx('flex-shrink-0 mt-0.5', model.color)}>
-              <Icon name={model.icon as any} size={18} />
+              <Icon name={model.icon} size={18} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">

@@ -10,10 +10,11 @@ import { LLMProvider } from '../../providers/LLMProvider';
 import { StoreService } from '../../services/StoreService';
 import { timeAgo } from '../../utilities/time';
 import { Icon } from '../shared/Icon';
-import { SettingModal, SettingTabItem } from '../shared/SettingModal';
+import { SettingModal } from '../shared/SettingModal';
 
 import type { ChangeEvent, FC, KeyboardEvent } from 'react';
 import type { AppState, ChatSession, Settings } from '../../app/Schema';
+import type { SettingTabItem } from '../shared/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
 
@@ -73,7 +74,7 @@ export const GlobalSettingModal: FC = () => {
         const llm = yield* LLMProvider;
         const result = yield* llm.fetchModels(settings);
 
-        const apiModels: ReadonlyArray<Model> = result.data.map((m: any) =>
+        const apiModels: ReadonlyArray<Model> = result.data.map((m) =>
           Model({
             id: m.id,
             name: m.id,
@@ -85,8 +86,8 @@ export const GlobalSettingModal: FC = () => {
           }),
         );
 
-        const staticIds = new Set(availableModels.map((m: any) => m.id));
-        const newModels = apiModels.filter((m: any) => !staticIds.has(m.id));
+        const staticIds = new Set(availableModels.map((m) => m.id));
+        const newModels = apiModels.filter((m) => !staticIds.has(m.id));
 
         setAvailableModels([...availableModels, ...newModels]);
       }).pipe(
@@ -364,7 +365,7 @@ export const GlobalSettingModal: FC = () => {
                           isEnabled ? clsx('bg-black/40', model.color || 'text-zinc-500') : 'bg-black/40 text-zinc-600',
                         )}
                       >
-                        <Icon name={model.icon as any} size={20} />
+                        <Icon name={model.icon} size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">

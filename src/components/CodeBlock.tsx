@@ -43,7 +43,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   }, [code]);
 
   if (error) {
-    return <pre className="p-4 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto">{code}</pre>;
+    return <pre className="p-4 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs">{code}</pre>;
   }
 
   return <div ref={containerRef} className="flex justify-center p-6 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
@@ -124,7 +124,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
                 borderRadius: 0,
                 background: 'transparent',
                 padding: '1.25rem',
-                fontSize: '0.875rem',
+                fontSize: '12px',
                 lineHeight: '1.6',
                 fontFamily: '"JetBrains Mono", "Fira Code", monospace',
               }}

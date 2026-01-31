@@ -38,7 +38,7 @@ body {
 
 .markdown-body code {
   font-family: 'Fira Code', monospace;
-  font-size: 0.875rem; /* 14px */
+  font-size: 12px;
 }
 
 /* Katex adjustments */

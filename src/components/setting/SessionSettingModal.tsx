@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react';
 import { useAction, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { StoreService } from '../../services/StoreService';
-import { SettingModal, SettingTabItem } from '../shared/SettingModal';
+import { SettingModal } from '../shared/SettingModal';
 
 import type { FC } from 'react';
 import type { AppState } from '../../app/Schema';
+import type { SettingTabItem } from '../shared/SettingModal';
 
 interface SessionSettingModalProps {
   readonly sessionId: string;

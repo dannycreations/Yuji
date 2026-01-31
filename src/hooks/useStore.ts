@@ -7,21 +7,26 @@ import { StoreService } from '../services/StoreService';
 import type { AppState } from '../app/Schema';
 
 export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T): T => {
-  const [state, setState] = useState<T>(initialValue as any);
+  const [state, setState] = useState(initialValue as T);
   const selectorRef = useRef(selector);
   selectorRef.current = selector;
 
   useEffect(() => {
+    let active = true;
     const fiber = YujiRuntime.runFork(
       Effect.gen(function* () {
         const store = yield* StoreService;
         const initialState = yield* SubscriptionRef.get(store.state);
-        setState(selectorRef.current(initialState));
+        if (active) {
+          setState(selectorRef.current(initialState));
+        }
 
         yield* store.state.changes.pipe(
           Stream.runForEach((s) =>
             Effect.sync(() => {
-              setState(selectorRef.current(s));
+              if (active) {
+                setState(selectorRef.current(s));
+              }
             }),
           ),
         );
@@ -29,6 +34,7 @@ export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T):
     );
 
     return () => {
+      active = false;
       YujiRuntime.runFork(Fiber.interrupt(fiber));
     };
   }, []);
@@ -36,7 +42,7 @@ export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T):
   return state;
 };
 
-export const useAction = <A extends any[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {
+export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {
   return useMemo(
     () =>
       (...args: A) =>

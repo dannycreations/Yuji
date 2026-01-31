@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 
 import { YujiRuntime } from '../../app/Yuji';
-import { useAction, useStore } from '../../hooks/useStore';
+import { useStore } from '../../hooks/useStore';
 import { StoreService } from '../../services/StoreService';
 import { Icon } from './Icon';
 
@@ -16,13 +16,6 @@ export const ConfirmModal: FC = () => {
     message: '',
   });
 
-  const hideConfirm = useAction(() =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-    }),
-  );
-
   if (!confirm.isOpen) return null;
 
   const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger' } = confirm;
@@ -32,8 +25,21 @@ export const ConfirmModal: FC = () => {
       Effect.gen(function* () {
         const store = yield* StoreService;
         if (id) {
-          const onConfirm = store.getOnConfirm(id);
+          const onConfirm = yield* store.getOnConfirm(id);
           if (onConfirm) onConfirm();
+          yield* store.clearConfirm(id);
+        }
+        yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+      }),
+    );
+  };
+
+  const handleCancel = () => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const store = yield* StoreService;
+        if (id) {
+          yield* store.clearConfirm(id);
         }
         yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
       }),
@@ -62,7 +68,7 @@ export const ConfirmModal: FC = () => {
 
         <div className="flex px-6 py-4 bg-surface_light/20 border-t border-surface_light gap-3">
           <button
-            onClick={hideConfirm}
+            onClick={handleCancel}
             className="flex-1 px-4 py-2.5 text-zinc-400 hover:text-white text-xs font-semibold transition-colors rounded-xl hover:bg-white/5"
           >
             {cancelLabel}

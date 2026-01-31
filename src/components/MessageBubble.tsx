@@ -102,7 +102,7 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
           message: 'Are you sure you want to delete this message?',
           confirmLabel: 'Delete',
           variant: 'danger',
-          onConfirm: () => YujiRuntime.runSync(chat.deleteMessage(sessionId, message.id)),
+          onConfirm: () => YujiRuntime.runFork(chat.deleteMessage(sessionId, message.id)),
         });
       }),
     );
@@ -181,13 +181,21 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                   remarkPlugins={[remarkGfm, remarkMath]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
-                    code({ node, inline, className, children, ...props }: any) {
+                    code({ node, className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || '');
                       const language = match ? match[1] : '';
                       const value = String(children).replace(/\n$/, '');
                       const isMultiline = value.includes('\n');
 
-                      if (!inline && (match || isMultiline)) {
+                      if (!className && !isMultiline) {
+                        return (
+                          <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
+                            {children}
+                          </code>
+                        );
+                      }
+
+                      if (match || isMultiline) {
                         return <CodeBlock language={language} value={value} />;
                       }
 

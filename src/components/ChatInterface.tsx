@@ -1,4 +1,4 @@
-import { Effect, Stream, SubscriptionRef } from 'effect';
+import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_GREETING, SUGGESTIONS } from '../app/Constant';
@@ -15,6 +15,7 @@ import { Icon } from './shared/Icon';
 import { VirtualBlock } from './shared/VirtualBlock';
 
 import type { FC } from 'react';
+import type { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
 import type { AppState, Attachment, Message } from '../app/Schema';
 
 export const ChatInterface: FC = () => {
@@ -24,7 +25,7 @@ export const ChatInterface: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fiberRef = useRef<any>(null);
+  const fiberRef = useRef<Fiber.Fiber<void, SessionNotFoundError | MessageNotFoundError>>(null);
   const isAutoScrolling = useRef(true);
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
@@ -91,11 +92,19 @@ export const ChatInterface: FC = () => {
 
   const handleStop = () => {
     if (fiberRef.current) {
-      YujiRuntime.runFork(fiberRef.current.interruptAsFork(Effect.void));
+      YujiRuntime.runFork(Fiber.interrupt(fiberRef.current));
       fiberRef.current = null;
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (fiberRef.current) {
+        YujiRuntime.runFork(Fiber.interrupt(fiberRef.current));
+      }
+    };
+  }, []);
 
   const generateResponse = (sessionId: string, messagesToProcess: ReadonlyArray<Message>) =>
     Effect.gen(function* () {
@@ -110,7 +119,7 @@ export const ChatInterface: FC = () => {
       if (!session) return;
 
       if (fiberRef.current) {
-        yield* fiberRef.current.interruptAsFork(Effect.void);
+        yield* Fiber.interrupt(fiberRef.current);
       }
 
       setIsLoading(true);
@@ -186,7 +195,7 @@ export const ChatInterface: FC = () => {
       yield* generateResponse(currentSessionId, history);
     });
 
-    YujiRuntime.runFork(sendEffect as Effect.Effect<void, never, any>);
+    YujiRuntime.runFork(sendEffect);
   };
 
   const handleRegenerate = (messageId: string) => {
@@ -214,7 +223,7 @@ export const ChatInterface: FC = () => {
       ),
     );
 
-    YujiRuntime.runFork(regenerateEffect as Effect.Effect<void, never, any>);
+    YujiRuntime.runFork(regenerateEffect);
   };
 
   const handleEdit = (messageId: string, newContent: string) => {
@@ -243,7 +252,7 @@ export const ChatInterface: FC = () => {
       yield* generateResponse(activeSession.id, history);
     });
 
-    YujiRuntime.runFork(editEffect as Effect.Effect<void, never, any>);
+    YujiRuntime.runFork(editEffect);
   };
 
   if (!activeSession || activeSession.messages.length === 0) {
@@ -264,7 +273,7 @@ export const ChatInterface: FC = () => {
                   className="flex items-start gap-3.5 p-4 rounded-xl bg-surface hover:bg-surface_light border border-surface_light hover:border-zinc-700 transition-all text-left group hover:shadow-md"
                 >
                   <Icon
-                    name={suggestion.icon as any}
+                    name={suggestion.icon}
                     size={20}
                     className="text-primary mt-0.5 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all"
                   />

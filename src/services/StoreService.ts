@@ -12,7 +12,8 @@ export interface StoreService {
   readonly setConfirm: (
     options: Omit<Schema.Schema.Type<typeof ConfirmState>, 'isOpen' | 'id'> & { readonly onConfirm: () => void },
   ) => Effect.Effect<void>;
-  readonly getOnConfirm: (id: string) => (() => void) | undefined;
+  readonly getOnConfirm: (id: string) => Effect.Effect<(() => void) | undefined>;
+  readonly clearConfirm: (id: string) => Effect.Effect<void>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -83,7 +84,8 @@ export const StoreServiceLive = Layer.effect(
             },
           }));
         }),
-      getOnConfirm: (id) => OnConfirmStore.get(id),
+      getOnConfirm: (id) => Effect.sync(() => OnConfirmStore.get(id)),
+      clearConfirm: (id) => Effect.sync(() => OnConfirmStore.delete(id)),
     });
   }),
 );
