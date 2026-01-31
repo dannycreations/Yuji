@@ -259,6 +259,7 @@ export const ChatInterface: FC = () => {
               message={message}
               sessionId={activeSession.id}
               isLast={idx === visibleMessages.length - 1}
+              isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
               onRegenerate={() => handleRegenerate(message.id)}
               onEdit={(newContent) => handleEdit(message.id, newContent)}
             />

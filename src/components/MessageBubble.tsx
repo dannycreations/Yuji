@@ -22,11 +22,12 @@ interface MessageBubbleProps {
   readonly message: Message;
   readonly sessionId: string;
   readonly isLast: boolean;
+  readonly isThinking?: boolean;
   readonly onRegenerate: () => void;
   readonly onEdit: (content: string) => void;
 }
 
-export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit }) => {
+export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit, isThinking }) => {
   const isUser = message.role === 'user';
   const sessions = useStore((s: AppState) => s.sessions, {});
   const [copied, setCopied] = useState(false);
@@ -170,108 +171,119 @@ export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRe
                 isUser ? 'w-fit bg-white/5 rounded-2xl px-4 py-3' : 'w-full',
               )}
             >
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={{
-                  code({ node, inline, className, children, ...props }: any) {
-                    const match = /language-(\w+)/.exec(className || '');
-                    const language = match ? match[1] : '';
-                    const value = String(children).replace(/\n$/, '');
-                    const isMultiline = value.includes('\n');
+              {isThinking && !message.content ? (
+                <div className="flex items-center gap-1.5 px-1 py-2">
+                  <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-dot-bounce" style={{ animationDelay: '0s' }} />
+                  <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-dot-bounce" style={{ animationDelay: '0.2s' }} />
+                  <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-dot-bounce" style={{ animationDelay: '0.4s' }} />
+                </div>
+              ) : (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                  components={{
+                    code({ node, inline, className, children, ...props }: any) {
+                      const match = /language-(\w+)/.exec(className || '');
+                      const language = match ? match[1] : '';
+                      const value = String(children).replace(/\n$/, '');
+                      const isMultiline = value.includes('\n');
 
-                    if (!inline && (match || isMultiline)) {
-                      return (
-                        <VirtualBlock>
-                          <CodeBlock language={language} value={value} />
-                        </VirtualBlock>
-                      );
-                    }
+                      if (!inline && (match || isMultiline)) {
+                        return (
+                          <VirtualBlock>
+                            <CodeBlock language={language} value={value} />
+                          </VirtualBlock>
+                        );
+                      }
 
-                    return (
-                      <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  a: ({ node, ...props }) => (
-                    <a
-                      className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      {...props}
-                    />
-                  ),
-                  ul: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
-                    </VirtualBlock>
-                  ),
-                  ol: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
-                    </VirtualBlock>
-                  ),
-                  h1: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />
-                    </VirtualBlock>
-                  ),
-                  h2: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />
-                    </VirtualBlock>
-                  ),
-                  h3: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />
-                    </VirtualBlock>
-                  ),
-                  blockquote: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <blockquote className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg" {...props} />
-                    </VirtualBlock>
-                  ),
-                  table: ({ node, ...props }) => (
-                    <VirtualBlock>
-                      <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
-                        <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
-                      </div>
-                    </VirtualBlock>
-                  ),
-                  th: ({ node, ...props }) => (
-                    <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
-                  ),
-                  td: ({ node, ...props }) => (
-                    <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
-                  ),
-                  p: ({ node, ...props }) => {
-                    const content = String(props.children);
-                    if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
                       return (
-                        <VirtualBlock>
-                          <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
-                            <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
-                              <Icon name="Brain" size={12} />
-                              Reasoning
-                            </summary>
-                            <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
-                              {content.replace(/<\/?reasoning>/g, '')}
-                            </div>
-                          </details>
-                        </VirtualBlock>
+                        <code className={clsx('bg-white/10 px-1.5 py-0.5 rounded text-[0.9em]', className)} {...props}>
+                          {children}
+                        </code>
                       );
-                    }
-                    return (
+                    },
+                    a: ({ node, ...props }) => (
+                      <a
+                        className="text-primary hover:text-primary_hover underline decoration-primary/30 underline-offset-2"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        {...props}
+                      />
+                    ),
+                    ul: ({ node, ...props }) => (
                       <VirtualBlock>
-                        <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />
+                        <ul className="list-disc pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
                       </VirtualBlock>
-                    );
-                  },
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
+                    ),
+                    ol: ({ node, ...props }) => (
+                      <VirtualBlock>
+                        <ol className="list-decimal pl-4 space-y-1.5 my-3 text-zinc-300" {...props} />
+                      </VirtualBlock>
+                    ),
+                    h1: ({ node, ...props }) => (
+                      <VirtualBlock>
+                        <h1 className="text-xl font-bold mt-6 mb-3 text-white" {...props} />
+                      </VirtualBlock>
+                    ),
+                    h2: ({ node, ...props }) => (
+                      <VirtualBlock>
+                        <h2 className="text-lg font-bold mt-5 mb-2.5 text-white" {...props} />
+                      </VirtualBlock>
+                    ),
+                    h3: ({ node, ...props }) => (
+                      <VirtualBlock>
+                        <h3 className="text-base font-bold mt-4 mb-2 text-zinc-100" {...props} />
+                      </VirtualBlock>
+                    ),
+                    blockquote: ({ node, ...props }) => (
+                      <VirtualBlock>
+                        <blockquote
+                          className="border-l-4 border-primary/50 pl-3 py-0.5 my-3 italic text-zinc-400 bg-white/5 rounded-r-lg"
+                          {...props}
+                        />
+                      </VirtualBlock>
+                    ),
+                    table: ({ node, ...props }) => (
+                      <VirtualBlock>
+                        <div className="overflow-x-auto my-4 rounded-lg border border-white/10">
+                          <table className="min-w-full divide-y divide-white/10 bg-surface" {...props} />
+                        </div>
+                      </VirtualBlock>
+                    ),
+                    th: ({ node, ...props }) => (
+                      <th className="px-3 py-2 bg-white/5 text-left text-[11px] font-semibold text-zinc-300 uppercase tracking-wider" {...props} />
+                    ),
+                    td: ({ node, ...props }) => (
+                      <td className="px-3 py-2 whitespace-nowrap text-[13px] text-zinc-400 border-t border-white/5" {...props} />
+                    ),
+                    p: ({ node, ...props }) => {
+                      const content = String(props.children);
+                      if (content.startsWith('<reasoning>') && content.endsWith('</reasoning>')) {
+                        return (
+                          <VirtualBlock>
+                            <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                              <summary className="px-3 py-2 text-[11px] font-bold text-zinc-500 cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-widest flex items-center gap-2">
+                                <Icon name="Brain" size={12} />
+                                Reasoning
+                              </summary>
+                              <div className="px-4 py-3 text-zinc-400 text-[13px] italic leading-relaxed bg-black/20">
+                                {content.replace(/<\/?reasoning>/g, '')}
+                              </div>
+                            </details>
+                          </VirtualBlock>
+                        );
+                      }
+                      return (
+                        <VirtualBlock>
+                          <p className="mb-3 last:mb-0 leading-6 text-zinc-200" {...props} />
+                        </VirtualBlock>
+                      );
+                    },
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              )}
             </div>
           )}
 
