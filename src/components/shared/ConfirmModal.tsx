@@ -1,7 +1,9 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
+import { useRef, useState } from 'react';
 
 import { YujiRuntime } from '../../app/Yuji';
+import { useClickOutside } from '../../hooks/useClickOutside';
 import { useStore } from '../../hooks/useStore';
 import { StoreService } from '../../services/StoreService';
 import { Icon } from './Icon';
@@ -16,9 +18,13 @@ export const ConfirmModal: FC = () => {
     message: '',
   });
 
+  const [isClosing, setIsClosing] = useState(false);
+
   if (!confirm.isOpen) return null;
 
   const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger' } = confirm;
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleConfirm = () => {
     YujiRuntime.runPromise(
@@ -35,20 +41,37 @@ export const ConfirmModal: FC = () => {
   };
 
   const handleCancel = () => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const store = yield* StoreService;
-        if (id) {
-          yield* store.clearConfirm(id);
-        }
-        yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-      }),
-    );
+    setIsClosing(true);
+    setTimeout(() => {
+      YujiRuntime.runPromise(
+        Effect.gen(function* () {
+          const store = yield* StoreService;
+          if (id) {
+            yield* store.clearConfirm(id);
+          }
+          yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+          setIsClosing(false);
+        }),
+      );
+    }, 200);
   };
 
+  useClickOutside(containerRef, handleCancel);
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="w-full max-w-sm bg-surface border border-surface_light rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
+    <div
+      className={clsx(
+        'fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4',
+        isClosing ? 'animate-fade-out' : 'animate-fade-in',
+      )}
+    >
+      <div
+        ref={containerRef}
+        className={clsx(
+          'w-full max-w-sm bg-surface border border-surface_light rounded-2xl shadow-2xl overflow-hidden',
+          isClosing ? 'animate-slide-down' : 'animate-slide-up',
+        )}
+      >
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div

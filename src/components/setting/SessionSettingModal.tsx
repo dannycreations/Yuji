@@ -94,7 +94,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
   if (!session) return null;
 
-  const handleSave = () => {
+  const handleClose = () => {
     if (title && title !== session.title) {
       renameSession(sessionId, title);
     }
@@ -110,7 +110,6 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
       case 'general':
         return (
           <div className="space-y-5 animate-fade-in">
-            <h3 className="text-lg font-medium text-white mb-4">Chat Configuration</h3>
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Chat Title</label>
               <input
@@ -139,7 +138,6 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
       case 'persona':
         return (
           <div className="space-y-5 animate-fade-in">
-            <h3 className="text-lg font-medium text-white mb-4">Chat Persona</h3>
             <div className="flex items-center justify-between px-4 py-3.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/[0.07] transition-colors">
               <div className="space-y-1 pr-4">
                 <label className="text-sm font-semibold text-zinc-200 block">Override Global Persona</label>
@@ -176,27 +174,10 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     }
   };
 
+  const activeTabLabel = SESSION_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
+
   return (
-    <SettingModal
-      title="Chat Settings"
-      tabs={SESSION_SETTING_TABS}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      onClose={onClose}
-      footer={
-        <>
-          <button onClick={onClose} className="px-4 py-2 text-zinc-400 hover:text-white text-xs font-semibold transition-colors">
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary_hover transition-colors shadow-lg shadow-primary/20 active:scale-95 duration-100"
-          >
-            Save Changes
-          </button>
-        </>
-      }
-    >
+    <SettingModal tabs={SESSION_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={handleClose} title={activeTabLabel}>
       {renderContent()}
     </SettingModal>
   );

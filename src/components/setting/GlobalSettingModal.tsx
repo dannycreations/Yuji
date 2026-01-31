@@ -64,6 +64,7 @@ export const GlobalSettingModal: FC = () => {
   const [modelSearch, setModelSearch] = useState('');
 
   // History Tab State
+  const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
   const [historyPage, setHistoryPage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 7;
@@ -102,6 +103,7 @@ export const GlobalSettingModal: FC = () => {
   useEffect(() => {
     if (isSettingsOpen) {
       setHistoryPage(0);
+      setSelectedSessionIds(new Set());
     }
   }, [isSettingsOpen]);
 
@@ -204,6 +206,24 @@ export const GlobalSettingModal: FC = () => {
   const totalHistoryPages = Math.ceil(sortedSessions.length / ITEMS_PER_PAGE);
   const currentHistoryItems = sortedSessions.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
 
+  const toggleSelectAll = () => {
+    if (selectedSessionIds.size === currentHistoryItems.length) {
+      setSelectedSessionIds(new Set());
+    } else {
+      setSelectedSessionIds(new Set(currentHistoryItems.map((s) => s.id)));
+    }
+  };
+
+  const toggleSelectSession = (id: string) => {
+    const next = new Set(selectedSessionIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setSelectedSessionIds(next);
+  };
+
   const disabledModels = settings.disabledModels || [];
   const activeModels = (availableModels as ReadonlyArray<Model>).filter((m) => !disabledModels.includes(m.id));
   const effectiveDefaultModelId = activeModels.find((m) => m.id === settings.defaultModel)?.id || activeModels[0]?.id;
@@ -225,7 +245,6 @@ export const GlobalSettingModal: FC = () => {
       case 'general':
         return (
           <div className="space-y-5 animate-fade-in">
-            <h3 className="text-lg font-medium text-white mb-4">General Settings</h3>
             <div className="flex items-center justify-between px-4 py-3.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/[0.07] transition-colors">
               <div className="space-y-1">
                 <label className="text-sm font-semibold text-zinc-200 block">Enter to Send</label>
@@ -262,7 +281,6 @@ export const GlobalSettingModal: FC = () => {
       case 'connection':
         return (
           <div className="space-y-5 animate-fade-in">
-            <h3 className="text-lg font-medium text-white mb-4">Connection & Provider</h3>
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">API Provider</label>
               <div className="relative">
@@ -319,18 +337,8 @@ export const GlobalSettingModal: FC = () => {
       case 'models':
         return (
           <div className="space-y-5 animate-fade-in h-full flex flex-col">
-            <div className="flex-shrink-0 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-white">Model Library</h3>
-                <button
-                  onClick={handleRefreshModels}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold uppercase tracking-wide transition-colors"
-                >
-                  <Icon name="RefreshCw" size={12} />
-                  Refresh Library
-                </button>
-              </div>
-              <div className="relative group">
+            <div className="flex-shrink-0 flex gap-2">
+              <div className="relative flex-1 group">
                 <Icon
                   name="Search"
                   size={14}
@@ -341,9 +349,17 @@ export const GlobalSettingModal: FC = () => {
                   value={modelSearch}
                   onChange={(e) => setModelSearch(e.target.value)}
                   className="w-full bg-black border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                  placeholder="Search models by name, provider, or ID..."
+                  placeholder="Search models..."
                 />
               </div>
+              <button
+                onClick={handleRefreshModels}
+                className="flex items-center gap-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-bold uppercase tracking-wide transition-colors border border-primary/10"
+                title="Refresh Library"
+              >
+                <Icon name="RefreshCw" size={14} />
+                <span>Refresh</span>
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 min-h-0 space-y-2">
@@ -409,7 +425,6 @@ export const GlobalSettingModal: FC = () => {
       case 'persona':
         return (
           <div className="space-y-5 animate-fade-in">
-            <h3 className="text-lg font-medium text-white mb-4">User Persona & Context</h3>
             <div className="space-y-2">
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Display Name</label>
               <input
@@ -475,25 +490,6 @@ export const GlobalSettingModal: FC = () => {
             <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
 
             <div className="flex flex-col gap-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-white">Data Management</h3>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExport}
-                    className="flex items-center gap-2 px-3 py-2 bg-black hover:bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-300 transition-colors uppercase tracking-wide"
-                  >
-                    <Icon name="Upload" size={14} />
-                    Export
-                  </button>
-                  <button
-                    onClick={handleImportClick}
-                    className="flex items-center gap-2 px-3 py-2 bg-black hover:bg-white/5 border border-white/10 rounded-lg text-xs font-bold text-zinc-300 transition-colors uppercase tracking-wide"
-                  >
-                    <Icon name="Download" size={14} />
-                    Import
-                  </button>
-                </div>
-              </div>
               <p className="text-sm text-zinc-400 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
                 Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations.
               </p>
@@ -501,22 +497,60 @@ export const GlobalSettingModal: FC = () => {
 
             <div className="flex-1 min-h-0 flex flex-col border border-white/10 rounded-xl overflow-hidden bg-black/40">
               <div className="flex items-center px-4 py-3 border-b border-white/10 bg-white/5">
-                <div className="w-8 flex-shrink-0">
-                  <div className="w-4 h-4 rounded border border-zinc-600/50" />
+                <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                  <button
+                    onClick={toggleSelectAll}
+                    className={clsx(
+                      'w-4 h-4 rounded border flex items-center justify-center transition-all',
+                      currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id))
+                        ? 'bg-primary border-primary text-white'
+                        : 'border-zinc-700 bg-black/50 text-transparent',
+                    )}
+                  >
+                    <Icon name="Check" size={10} strokeWidth={4} />
+                  </button>
                 </div>
                 <div className="flex-1 text-xs font-bold text-zinc-300 uppercase tracking-wider">Title</div>
-                <div className="text-xs font-bold text-zinc-300 uppercase tracking-wider">Last Updated</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-black hover:bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-zinc-400 transition-colors uppercase tracking-wide"
+                  >
+                    <Icon name="Upload" size={12} />
+                    Export
+                  </button>
+                  <button
+                    onClick={handleImportClick}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-black hover:bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-zinc-400 transition-colors uppercase tracking-wide"
+                  >
+                    <Icon name="Download" size={12} />
+                    Import
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto divide-y divide-white/5">
                 {currentHistoryItems.length > 0 ? (
                   currentHistoryItems.map((session) => (
-                    <div key={session.id} className="flex items-center px-4 py-3.5 hover:bg-white/5 transition-colors group">
-                      <div className="w-8 flex-shrink-0">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded border-zinc-700 bg-black/50 checked:bg-primary accent-primary cursor-pointer"
-                        />
+                    <div
+                      key={session.id}
+                      className={clsx(
+                        'flex items-center px-4 py-3.5 hover:bg-white/5 transition-colors group',
+                        selectedSessionIds.has(session.id) ? 'bg-white/[0.02]' : '',
+                      )}
+                    >
+                      <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                        <button
+                          onClick={() => toggleSelectSession(session.id)}
+                          className={clsx(
+                            'w-4 h-4 rounded border flex items-center justify-center transition-all',
+                            selectedSessionIds.has(session.id)
+                              ? 'bg-primary border-primary text-white'
+                              : 'border-zinc-700 bg-black/50 text-transparent',
+                          )}
+                        >
+                          <Icon name="Check" size={10} strokeWidth={4} />
+                        </button>
                       </div>
                       <div className="flex-1 min-w-0 pr-4">
                         <div className="text-sm text-zinc-200 font-medium truncate">{session.title}</div>
@@ -564,21 +598,15 @@ export const GlobalSettingModal: FC = () => {
     }
   };
 
+  const activeTabLabel = GLOBAL_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
+
   return (
     <SettingModal
-      title="Settings"
       tabs={GLOBAL_SETTING_TABS}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       onClose={toggleSettings}
-      footer={
-        <button
-          onClick={toggleSettings}
-          className="px-6 py-2.5 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary_hover transition-colors shadow-lg shadow-primary/20 active:scale-95 duration-100"
-        >
-          Done
-        </button>
-      }
+      title={activeTabLabel}
       sidebarBottom={
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-surface_light border border-white/5 flex items-center justify-center text-zinc-400">
@@ -586,7 +614,7 @@ export const GlobalSettingModal: FC = () => {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-semibold text-white truncate">{settings.userName || 'Local User'}</div>
-            <div className="text-xs text-zinc-500 truncate">Pro Account</div>
+            <div className="text-xs text-zinc-500 truncate">Personal Space</div>
           </div>
         </div>
       }

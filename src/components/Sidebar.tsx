@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { DEFAULT_SETTINGS } from '../app/Constant';
 import { YujiRuntime } from '../app/Yuji';
 import { useAction, useStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
@@ -13,6 +14,7 @@ import type { AppState, ChatSession, ConfirmState } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
+  const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
   const isSidebarOpen = useStore((s: AppState) => s.isSidebarOpen, true);
 
@@ -226,7 +228,7 @@ export const Sidebar: FC = () => {
             <Icon name="User" size={18} />
           </div>
           <div className="flex-1 text-left min-w-0">
-            <div className="text-sm font-bold truncate">Local User</div>
+            <div className="text-sm font-bold truncate">{settings.userName || 'Local User'}</div>
             <div className="text-xs text-zinc-600 uppercase tracking-wider">Personal Space</div>
           </div>
           <Icon name="Settings" size={16} />
