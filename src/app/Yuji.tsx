@@ -5,12 +5,11 @@ import { ChatInterface } from '../components/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
 import { ConfirmModal } from '../components/shared/ConfirmModal';
 import { Sidebar } from '../components/Sidebar';
-import { LLMProvider } from '../providers/LLMProvider';
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
-import { ChatService, ChatServiceLive } from '../services/ChatService';
-import { PlatformService, PlatformServiceLive } from '../services/PlatformService';
+import { ChatServiceLive } from '../services/ChatService';
+import { PlatformServiceLive } from '../services/PlatformService';
 import { StorageServiceLive } from '../services/StorageService';
-import { StoreService, StoreServiceLive } from '../services/StoreService';
+import { StoreServiceLive } from '../services/StoreService';
 
 const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(OpenAIProviderLive),
@@ -18,7 +17,7 @@ const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(StoreServiceLive),
   Layer.provideMerge(StorageServiceLive),
   Layer.provide(FetchHttpClient.layer),
-).pipe(Layer.orDie) as Layer.Layer<LLMProvider | ChatService | PlatformService | StoreService, never, never>;
+).pipe(Layer.orDie);
 
 export const YujiRuntime = ManagedRuntime.make(MainLayer);
 

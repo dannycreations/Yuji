@@ -1,9 +1,10 @@
 import { Context, Effect, Layer, SubscriptionRef } from 'effect';
 
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
-import { ChatSession, Message } from '../app/Schema';
 import { PlatformService } from './PlatformService';
 import { StoreService } from './StoreService';
+
+import type { ChatSession, Message } from '../app/Schema';
 
 export interface ChatService {
   readonly createSession: () => Effect.Effect<ChatSession>;

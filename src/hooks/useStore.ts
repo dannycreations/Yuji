@@ -1,9 +1,10 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { AppState } from '../app/Schema';
 import { YujiRuntime } from '../app/Yuji';
 import { StoreService } from '../services/StoreService';
+
+import type { AppState } from '../app/Schema';
 
 export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T): T => {
   const [state, setState] = useState<T>(initialValue as any);

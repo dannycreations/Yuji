@@ -1,22 +1,24 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
-import { AppState, Attachment } from '../app/Schema';
 import { useAction, useStore } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { ModelPicker } from './ModelPicker';
 import { Icon } from './shared/Icon';
 
+import type { ChangeEvent, FC, KeyboardEvent } from 'react';
+import type { AppState, Attachment } from '../app/Schema';
+
 interface InputAreaProps {
-  onSend: (text: string, attachments: Attachment[]) => void;
-  onStop: () => void;
-  isLoading: boolean;
+  readonly onSend: (text: string, attachments: Attachment[]) => void;
+  readonly onStop: () => void;
+  readonly isLoading: boolean;
 }
 
-export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading }) => {
+export const InputArea: FC<InputAreaProps> = ({ onSend, onStop, isLoading }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showModelPicker, setShowModelPicker] = useState(false);
@@ -70,7 +72,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
   const currentModel = activeSession?.modelConfig?.model || effectiveDefaultModel;
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && settings.enterToSend) {
       e.preventDefault();
       handleSubmit();
@@ -88,7 +90,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, onStop, isLoading 
     setAttachments([]);
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files: File[] = Array.from(e.target.files);
       for (const file of files) {

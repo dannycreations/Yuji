@@ -1,7 +1,8 @@
 import { Context, Effect, Stream } from 'effect';
 
 import { LLMProviderError } from '../app/Error';
-import { Message, ModelConfig, Settings } from '../app/Schema';
+
+import type { Message, ModelConfig, Settings } from '../app/Schema';
 
 export interface LLMProvider {
   readonly streamCompletion: (

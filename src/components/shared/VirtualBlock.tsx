@@ -1,8 +1,10 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+
+import type { CSSProperties, FC, ReactNode } from 'react';
 
 interface VirtualBlockProps {
-  children: React.ReactNode;
-  className?: string;
+  readonly children: ReactNode;
+  readonly className?: string;
 }
 
 /**
@@ -11,7 +13,7 @@ interface VirtualBlockProps {
  * that are outside the viewport while maintaining scroll position and
  * accessible document structure.
  */
-export const VirtualBlock: React.FC<VirtualBlockProps> = ({ children, className }) => {
+export const VirtualBlock: FC<VirtualBlockProps> = ({ children, className }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [intrinsicHeight, setIntrinsicHeight] = useState<number>(100);
 
@@ -40,7 +42,7 @@ export const VirtualBlock: React.FC<VirtualBlockProps> = ({ children, className 
         {
           contentVisibility: 'auto',
           containIntrinsicSize: `auto ${intrinsicHeight}px`,
-        } as React.CSSProperties
+        } as CSSProperties
       }
     >
       {children}

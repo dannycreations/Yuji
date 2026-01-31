@@ -1,17 +1,19 @@
 import clsx from 'clsx';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { AppState, Model } from '../app/Schema';
 import { useStore } from '../hooks/useStore';
 import { Icon } from './shared/Icon';
 
+import type { FC } from 'react';
+import type { AppState, Model } from '../app/Schema';
+
 interface ModelPickerProps {
-  currentModel: string;
-  onSelect: (modelId: string) => void;
-  onClose: () => void;
+  readonly currentModel: string;
+  readonly onSelect: (modelId: string) => void;
+  readonly onClose: () => void;
 }
 
-export const ModelPicker: React.FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) => {
+export const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) => {
   const availableModels = useStore((s: AppState) => s.availableModels, []);
   const disabledModels = useStore((s: AppState) => s.settings.disabledModels, []);
 

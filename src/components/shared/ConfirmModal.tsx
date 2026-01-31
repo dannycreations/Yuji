@@ -1,19 +1,21 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import React from 'react';
 
-import { AppState } from '../../app/Schema';
 import { YujiRuntime } from '../../app/Yuji';
 import { useAction, useStore } from '../../hooks/useStore';
 import { StoreService } from '../../services/StoreService';
 import { Icon } from './Icon';
 
-export const ConfirmModal: React.FC = () => {
+import type { FC } from 'react';
+import type { AppState } from '../../app/Schema';
+
+export const ConfirmModal: FC = () => {
   const confirm = useStore((s: AppState) => s.confirm, {
     isOpen: false,
     title: '',
     message: '',
   });
+
   const hideConfirm = useAction(() =>
     Effect.gen(function* () {
       const store = yield* StoreService;

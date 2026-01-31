@@ -1,7 +1,6 @@
 import { Effect } from 'effect';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { AppState, ChatSession, ConfirmState } from '../app/Schema';
 import { YujiRuntime } from '../app/Yuji';
 import { useAction, useStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
@@ -9,7 +8,10 @@ import { StoreService } from '../services/StoreService';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
 
-export const Sidebar: React.FC = () => {
+import type { FC } from 'react';
+import type { AppState, ChatSession, ConfirmState } from '../app/Schema';
+
+export const Sidebar: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
   const isSidebarOpen = useStore((s: AppState) => s.isSidebarOpen, true);

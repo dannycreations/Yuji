@@ -1,9 +1,9 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../../app/Constant';
-import { AppState, ChatSession, Model, Settings } from '../../app/Schema';
+import { Model } from '../../app/Schema';
 import { YujiRuntime } from '../../app/Yuji';
 import { useAction, useStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
@@ -11,9 +11,12 @@ import { StoreService } from '../../services/StoreService';
 import { timeAgo } from '../../utilities/time';
 import { Icon } from '../shared/Icon';
 
+import type { ChangeEvent, FC, KeyboardEvent } from 'react';
+import type { AppState, ChatSession, Settings } from '../../app/Schema';
+
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
 
-export const GlobalSettingModal: React.FC = () => {
+export const GlobalSettingModal: FC = () => {
   const isSettingsOpen = useStore((s: AppState) => s.isSettingsOpen, false);
   const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
   const sessions = useStore((s: AppState) => s.sessions, {});
@@ -137,7 +140,7 @@ export const GlobalSettingModal: React.FC = () => {
     updateSettings({ assistantTraits: (settings.assistantTraits as string[]).filter((t: string) => t !== trait) });
   };
 
-  const handleKeyDownTrait = (e: React.KeyboardEvent) => {
+  const handleKeyDownTrait = (e: KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddTrait(traitInput);
@@ -158,7 +161,7 @@ export const GlobalSettingModal: React.FC = () => {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 

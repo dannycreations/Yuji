@@ -2,15 +2,24 @@ import { HttpClient, HttpClientRequest, HttpClientResponse } from '@effect/platf
 import { Effect, Layer, Option, Schema, Stream } from 'effect';
 
 import { LLMProviderError } from '../app/Error';
-import { Attachment, Message } from '../app/Schema';
 import { LLMProvider } from './LLMProvider';
+
+import type { Attachment, Message } from '../app/Schema';
 
 interface OpenAIMessage {
   readonly role: string;
   readonly content: string | ReadonlyArray<OpenAIContent>;
 }
 
-type OpenAIContent = { readonly type: 'text'; readonly text: string } | { readonly type: 'image_url'; readonly image_url: { readonly url: string } };
+type OpenAIContent =
+  | {
+      readonly type: 'text';
+      readonly text: string;
+    }
+  | {
+      readonly type: 'image_url';
+      readonly image_url: { readonly url: string };
+    };
 
 const mapAttachment = (att: Attachment): OpenAIContent => {
   switch (att.type) {

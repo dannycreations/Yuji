@@ -1,21 +1,23 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { AppState } from '../../app/Schema';
 import { useAction, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { StoreService } from '../../services/StoreService';
 import { Icon } from '../shared/Icon';
 
+import type { FC } from 'react';
+import type { AppState } from '../../app/Schema';
+
 interface SessionSettingModalProps {
-  sessionId: string;
-  onClose: () => void;
+  readonly sessionId: string;
+  readonly onClose: () => void;
 }
 
 type SessionSettingTab = 'general' | 'persona';
 
-export const SessionSettingModal: React.FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
+export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
   const sessions = useStore((s: AppState) => s.sessions, {});
 
   const setSessionSystemPrompt = useAction((sessionId: string, prompt: string, override?: boolean) =>

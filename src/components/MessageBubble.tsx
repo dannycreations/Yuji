@@ -1,13 +1,12 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import TextareaAutosize from 'react-textarea-autosize';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
-import { AppState, Message } from '../app/Schema';
 import { YujiRuntime } from '../app/Yuji';
 import { useAction, useStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
@@ -16,15 +15,18 @@ import { CodeBlock } from './CodeBlock';
 import { Icon } from './shared/Icon';
 import { VirtualBlock } from './shared/VirtualBlock';
 
+import type { FC } from 'react';
+import type { AppState, Message } from '../app/Schema';
+
 interface MessageBubbleProps {
-  message: Message;
-  sessionId: string;
-  isLast: boolean;
-  onRegenerate: () => void;
-  onEdit: (content: string) => void;
+  readonly message: Message;
+  readonly sessionId: string;
+  readonly isLast: boolean;
+  readonly onRegenerate: () => void;
+  readonly onEdit: (content: string) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit }) => {
+export const MessageBubble: FC<MessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit }) => {
   const isUser = message.role === 'user';
   const sessions = useStore((s: AppState) => s.sessions, {});
   const [copied, setCopied] = useState(false);

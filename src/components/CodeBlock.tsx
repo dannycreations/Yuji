@@ -1,16 +1,18 @@
 import mermaid from 'mermaid';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import { Icon } from './shared/Icon';
 
+import type { FC } from 'react';
+
 interface CodeBlockProps {
-  language: string;
-  value: string;
+  readonly language: string;
+  readonly value: string;
 }
 
-const MermaidBlock: React.FC<{ code: string }> = ({ code }) => {
+const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +49,7 @@ const MermaidBlock: React.FC<{ code: string }> = ({ code }) => {
   return <div ref={containerRef} className="flex justify-center p-6 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
 };
 
-export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
+export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
   const [copied, setCopied] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isMermaid = language === 'mermaid';

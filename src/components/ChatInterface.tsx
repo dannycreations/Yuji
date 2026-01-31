@@ -1,9 +1,8 @@
 import { Effect, Stream, SubscriptionRef } from 'effect';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_GREETING, SUGGESTIONS } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
-import { AppState, Attachment, Message } from '../app/Schema';
 import { YujiRuntime } from '../app/Yuji';
 import { useStore } from '../hooks/useStore';
 import { LLMProvider } from '../providers/LLMProvider';
@@ -15,7 +14,10 @@ import { MessageBubble } from './MessageBubble';
 import { Icon } from './shared/Icon';
 import { VirtualBlock } from './shared/VirtualBlock';
 
-export const ChatInterface: React.FC = () => {
+import type { FC } from 'react';
+import type { AppState, Attachment, Message } from '../app/Schema';
+
+export const ChatInterface: FC = () => {
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
   const sessions = useStore((s: AppState) => s.sessions, {});
 

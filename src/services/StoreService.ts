@@ -1,13 +1,17 @@
 import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
-import { AppState, AppStoreState, ConfirmState, MODELS } from '../app/Schema';
+import { AppStoreState, MODELS } from '../app/Schema';
 import { StorageService } from './StorageService';
+
+import type { AppState, ConfirmState } from '../app/Schema';
 
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppState>;
   readonly update: (f: (state: AppState) => AppState) => Effect.Effect<void>;
-  readonly setConfirm: (options: Omit<Schema.Schema.Type<typeof ConfirmState>, 'isOpen' | 'id'> & { onConfirm: () => void }) => Effect.Effect<void>;
+  readonly setConfirm: (
+    options: Omit<Schema.Schema.Type<typeof ConfirmState>, 'isOpen' | 'id'> & { readonly onConfirm: () => void },
+  ) => Effect.Effect<void>;
   readonly getOnConfirm: (id: string) => (() => void) | undefined;
 }
 
