@@ -166,7 +166,7 @@ export const InputArea: FC<InputAreaProps> = ({ onSend, onStop, isLoading }) => 
           />
 
           <div className="flex items-center justify-between px-3 pb-3 relative">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <div className="relative">
                 <button
                   onClick={() => setShowModelPicker(!showModelPicker)}
