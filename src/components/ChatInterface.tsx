@@ -22,8 +22,10 @@ export const ChatInterface: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
 
   const [isLoading, setIsLoading] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fiberRef = useRef<any>(null);
+  const isAutoScrolling = useRef(true);
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
 
@@ -52,9 +54,17 @@ export const ChatInterface: FC = () => {
     }
   };
 
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const atBottom = scrollHeight - scrollTop - clientHeight < 100;
+    isAutoScrolling.current = atBottom;
+  };
+
   // Handle session change: instant scroll to bottom
   useEffect(() => {
     if (activeSessionId && visibleMessages.length > 0) {
+      isAutoScrolling.current = true;
       // Small delay to ensure DOM is ready and VirtualBlocks have registered their sizes
       const timer = setTimeout(() => {
         scrollToBottom('auto');
@@ -63,12 +73,21 @@ export const ChatInterface: FC = () => {
     }
   }, [activeSessionId]);
 
-  // Handle new messages or loading state: smooth scroll
+  // Handle new messages: smooth scroll
   useEffect(() => {
-    if (isLoading || visibleMessages.length > 0) {
+    if (visibleMessages.length > 0) {
       scrollToBottom('smooth');
+      isAutoScrolling.current = true;
     }
-  }, [visibleMessages.length, isLoading]);
+  }, [visibleMessages.length]);
+
+  // Handle streaming content updates: pinning to bottom
+  const lastMessageContent = visibleMessages[visibleMessages.length - 1]?.content;
+  useEffect(() => {
+    if (isLoading && isAutoScrolling.current) {
+      scrollToBottom('auto');
+    }
+  }, [lastMessageContent, isLoading]);
 
   const handleStop = () => {
     if (fiberRef.current) {
@@ -265,7 +284,11 @@ export const ChatInterface: FC = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background relative">
-      <div className="flex-1 min-h-0 overflow-y-auto w-full scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto w-full scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
+      >
         {visibleMessages.map((message, idx) => (
           <VirtualBlock key={message.id}>
             <MessageBubble
