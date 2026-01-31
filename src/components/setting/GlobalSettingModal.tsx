@@ -16,6 +16,14 @@ import type { AppState, ChatSession, Settings } from '../../app/Schema';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
 
+const GLOBAL_SETTING_TAB: { icon: string; id: GlobalSettingTab; label: string }[] = [
+  { icon: 'Settings', id: 'general', label: 'General' },
+  { icon: 'Link', id: 'connection', label: 'Connection' },
+  { icon: 'Cpu', id: 'models', label: 'Models' },
+  { icon: 'Sparkles', id: 'persona', label: 'Persona' },
+  { icon: 'History', id: 'history', label: 'History & Sync' },
+];
+
 export const GlobalSettingModal: FC = () => {
   const isSettingsOpen = useStore((s: AppState) => s.isSettingsOpen, false);
   const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
@@ -120,14 +128,6 @@ export const GlobalSettingModal: FC = () => {
 
   if (!isSettingsOpen) return null;
 
-  const tabs: { icon: string; id: GlobalSettingTab; label: string }[] = [
-    { icon: 'Settings', id: 'general', label: 'General' },
-    { icon: 'Link', id: 'connection', label: 'Connection' },
-    { icon: 'Cpu', id: 'models', label: 'Models' },
-    { icon: 'Sparkles', id: 'persona', label: 'Persona' },
-    { icon: 'History', id: 'history', label: 'History & Sync' },
-  ];
-
   const handleAddTrait = (trait: string) => {
     const formatted = trait.trim().toLowerCase();
     if (formatted && !settings.assistantTraits.includes(formatted)) {
@@ -231,7 +231,7 @@ export const GlobalSettingModal: FC = () => {
           </div>
 
           <div className="px-5 flex gap-1 overflow-x-auto scrollbar-hide">
-            {tabs.map((tab) => (
+            {GLOBAL_SETTING_TAB.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}

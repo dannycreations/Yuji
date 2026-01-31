@@ -17,6 +17,11 @@ interface SessionSettingModalProps {
 
 type SessionSettingTab = 'general' | 'persona';
 
+const SESSION_SETTING_TAB: { icon: string; id: SessionSettingTab; label: string }[] = [
+  { icon: 'Settings', id: 'general', label: 'General' },
+  { icon: 'Sparkles', id: 'persona', label: 'Persona' },
+];
+
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
   const sessions = useStore((s: AppState) => s.sessions, {});
 
@@ -92,11 +97,6 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     onClose();
   };
 
-  const tabs: { id: SessionSettingTab; label: string; icon: any }[] = [
-    { id: 'general', label: 'General', icon: 'Settings' },
-    { id: 'persona', label: 'Persona', icon: 'Sparkles' },
-  ];
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
       <div className="w-full max-w-lg h-[500px] bg-surface border border-surface_light rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
@@ -109,7 +109,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
           </div>
 
           <div className="px-5 flex gap-1">
-            {tabs.map((tab) => (
+            {SESSION_SETTING_TAB.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
