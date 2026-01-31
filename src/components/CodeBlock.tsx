@@ -71,18 +71,20 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ language, value }) => {
   };
 
   const renderHeader = () => (
-    <div className="flex items-center justify-between px-4 py-1.5 bg-zinc-900/50 border-b border-white/5">
+    <div
+      className="flex items-center justify-between px-4 py-1.5 bg-zinc-900/50 cursor-pointer select-none group transition-colors border-b border-white/[0.05]"
+      onClick={() => setIsCollapsed(!isCollapsed)}
+      style={{ borderBottomColor: isCollapsed ? 'transparent' : undefined }}
+    >
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
-          title={isCollapsed ? 'Expand' : 'Collapse'}
-        >
+        <div className="p-1.5 rounded-md text-zinc-500 group-hover:text-zinc-300 transition-colors" title={isCollapsed ? 'Expand' : 'Collapse'}>
           <Icon name={isCollapsed ? 'ChevronDown' : 'ChevronUp'} size={14} />
-        </button>
-        <span className="text-[11px] font-medium text-zinc-500 lowercase tracking-wider">{isMermaid ? 'diagram' : language || 'code'}</span>
+        </div>
+        <span className="text-[11px] font-medium text-zinc-500 lowercase tracking-wider group-hover:text-zinc-300 transition-colors">
+          {isMermaid ? 'diagram' : language || 'code'}
+        </span>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
         {!isMermaid && (
           <button
             onClick={handleDownload}
