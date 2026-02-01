@@ -1,45 +1,51 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Yuji';
 import { StoreService } from '../services/StoreService';
 
 import type { AppState } from '../app/Schema';
 
+export const StoreContext = createContext<StoreService | null>(null);
+
 export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T): T => {
-  const [state, setState] = useState(initialValue as T);
-  const selectorRef = useRef(selector);
-  selectorRef.current = selector;
+  const storeService = useContext(StoreContext);
+  const lastSnapshotRef = useRef<T>(initialValue as T);
+  const lastStateRef = useRef<AppState | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    const fiber = YujiRuntime.runFork(
-      Effect.gen(function* () {
-        const store = yield* StoreService;
-        const initialState = yield* SubscriptionRef.get(store.state);
-        if (active) {
-          setState(selectorRef.current(initialState));
-        }
-
-        yield* store.state.changes.pipe(
-          Stream.runForEach((s) =>
-            Effect.sync(() => {
-              if (active) {
-                setState(selectorRef.current(s));
-              }
-            }),
-          ),
-        );
-      }),
-    );
-
-    return () => {
-      active = false;
-      YujiRuntime.runFork(Fiber.interrupt(fiber));
+  const subscribe = useMemo(() => {
+    if (!storeService) return () => () => {};
+    return (callback: () => void) => {
+      const fiber = YujiRuntime.runFork(
+        Stream.runForEach(storeService.state.changes, () =>
+          Effect.sync(() => {
+            callback();
+          }),
+        ),
+      );
+      return () => {
+        YujiRuntime.runFork(Fiber.interrupt(fiber));
+      };
     };
-  }, []);
+  }, [storeService]);
 
-  return state;
+  const getSnapshot = () => {
+    if (!storeService) return initialValue as T;
+    const state = YujiRuntime.runSync(SubscriptionRef.get(storeService.state));
+
+    if (state === lastStateRef.current) {
+      return lastSnapshotRef.current;
+    }
+
+    const nextSnapshot = selector(state);
+    lastStateRef.current = state;
+    lastSnapshotRef.current = nextSnapshot;
+    return nextSnapshot;
+  };
+
+  const getServerSnapshot = () => initialValue as T;
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 };
 
 export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {

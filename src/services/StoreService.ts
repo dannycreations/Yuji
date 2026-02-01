@@ -29,6 +29,7 @@ const INITIAL_STATE: AppState = {
   availableModels: MODELS,
   isSidebarOpen: true,
   isSettingOpen: false,
+  isHydrated: false,
   confirm: {
     isOpen: false,
     title: '',
@@ -48,11 +49,11 @@ export const StoreServiceLive = Layer.effect(
       const stored = yield* storage.getItem(STORAGE_KEY);
       if (stored) {
         return yield* Schema.decodeUnknown(Schema.parseJson(AppStoreState))(stored).pipe(
-          Effect.map((parsed) => ({ ...INITIAL_STATE, ...parsed })),
-          Effect.orElseSucceed(() => INITIAL_STATE),
+          Effect.map((parsed) => ({ ...INITIAL_STATE, ...parsed, isHydrated: true })),
+          Effect.orElseSucceed(() => ({ ...INITIAL_STATE, isHydrated: true })),
         );
       }
-      return INITIAL_STATE;
+      return { ...INITIAL_STATE, isHydrated: true };
     });
 
     const initialState = yield* loadState;

@@ -1,16 +1,18 @@
 import { FetchHttpClient } from '@effect/platform';
-import { Layer, ManagedRuntime } from 'effect';
+import { Effect, Fiber, Layer, ManagedRuntime, Stream, SubscriptionRef } from 'effect';
+import { useEffect, useState } from 'react';
 
 import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
 import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
 import { NotificationToast } from '../components/shared/NotificationToast';
 import { Sidebar } from '../components/Sidebar';
+import { StoreContext } from '../hooks/useStore';
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
 import { PlatformServiceLive } from '../services/PlatformService';
 import { StorageServiceLive } from '../services/StorageService';
-import { StoreServiceLive } from '../services/StoreService';
+import { StoreService, StoreServiceLive } from '../services/StoreService';
 
 const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(OpenAIProviderLive),
@@ -23,15 +25,48 @@ const MainLayer = ChatServiceLive.pipe(
 export const YujiRuntime = ManagedRuntime.make(MainLayer);
 
 export const YujiApp = () => {
+  const [store, setStore] = useState<StoreService | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    const fiber = YujiRuntime.runFork(
+      Effect.gen(function* () {
+        const service = yield* StoreService;
+        setStore(service);
+
+        const current = yield* SubscriptionRef.get(service.state);
+        if (current.isHydrated) {
+          setIsHydrated(true);
+          return;
+        }
+
+        yield* service.state.changes.pipe(
+          Stream.filter((s) => s.isHydrated),
+          Stream.runHead,
+          Effect.map(() => setIsHydrated(true)),
+        );
+      }),
+    );
+    return () => {
+      YujiRuntime.runFork(Fiber.interrupt(fiber));
+    };
+  }, []);
+
+  if (!store || !isHydrated) {
+    return null;
+  }
+
   return (
-    <div className="app-container">
-      <Sidebar />
-      <main className="main-layout">
-        <ChatInterface />
-      </main>
-      <GlobalSettingModal />
-      <ConfirmModal />
-      <NotificationToast />
-    </div>
+    <StoreContext.Provider value={store}>
+      <div className="app-container">
+        <Sidebar />
+        <main className="main-layout">
+          <ChatInterface />
+        </main>
+        <GlobalSettingModal />
+        <ConfirmModal />
+        <NotificationToast />
+      </div>
+    </StoreContext.Provider>
   );
 };

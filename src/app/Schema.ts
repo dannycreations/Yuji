@@ -137,6 +137,7 @@ export const AppState = Schema.extend(
   Schema.Struct({
     isSidebarOpen: Schema.Boolean,
     isSettingOpen: Schema.Boolean,
+    isHydrated: Schema.Boolean,
     confirm: ConfirmState,
     notifications: Schema.Array(Notification),
   }),
