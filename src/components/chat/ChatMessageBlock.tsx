@@ -76,7 +76,7 @@ export const ChatMessageBlock: FC<CodeBlockProps> = ({ language, value }) => {
   const renderHeader = () => (
     <div
       className={clsx(
-        'flex items-center justify-between px-4 py-1.5 bg-code-header border-b select-none group/cbheader transition-colors cursor-pointer',
+        'flex items-center justify-between px-4 py-1.5 bg-code-header border-b select-none group/cbheader transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md',
         isCollapsed ? 'border-b-transparent' : 'border-b-separator',
       )}
       onClick={() => setIsCollapsed(!isCollapsed)}
@@ -114,10 +114,10 @@ export const ChatMessageBlock: FC<CodeBlockProps> = ({ language, value }) => {
   );
 
   return (
-    <div className="my-1 border border-line rounded-xl overflow-hidden bg-code shadow-lg w-full flex-shrink-0">
+    <div className="my-1 border border-line rounded-xl bg-code shadow-lg w-full flex-shrink-0 overflow-clip">
       {renderHeader()}
       {!isCollapsed && (
-        <div className="relative">
+        <div className="relative overflow-hidden">
           {isMermaid ? (
             <MermaidBlock code={value} />
           ) : (
