@@ -52,8 +52,12 @@ export const ChatInterface: FC = () => {
   }, [activeSession]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    if (scrollContainerRef.current) {
+      if (behavior === 'instant') {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      } else {
+        messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+      }
     }
   };
 
@@ -64,13 +68,33 @@ export const ChatInterface: FC = () => {
     isAutoScrolling.current = atBottom;
   };
 
+  // Reset auto-scroll and force jump when switching sessions
+  useEffect(() => {
+    isAutoScrolling.current = true;
+    if (visibleMessages.length > 0) {
+      // Double RAF to ensure layout has settled for virtualized elements
+      const frame1 = requestAnimationFrame(() => {
+        const frame2 = requestAnimationFrame(() => {
+          scrollToBottom('instant');
+        });
+        return () => cancelAnimationFrame(frame2);
+      });
+      return () => cancelAnimationFrame(frame1);
+    }
+  }, [activeSessionId, visibleMessages.length > 0]);
+
   // Handle streaming content updates: pinning to bottom
+  const lastMessageId = visibleMessages[visibleMessages.length - 1]?.id;
   const lastMessageContent = visibleMessages[visibleMessages.length - 1]?.content;
+
   useEffect(() => {
     if (isLoading && isAutoScrolling.current) {
-      scrollToBottom('auto');
+      const frame = requestAnimationFrame(() => {
+        scrollToBottom('auto');
+      });
+      return () => cancelAnimationFrame(frame);
     }
-  }, [lastMessageContent, isLoading]);
+  }, [lastMessageId, lastMessageContent, isLoading]);
 
   const handleStop = () => {
     if (fiberRef.current) {

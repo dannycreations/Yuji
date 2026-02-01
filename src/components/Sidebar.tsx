@@ -113,11 +113,19 @@ export const Sidebar: FC = () => {
 
   return (
     <div className="sidebar-container">
-      <div className="sidebar-header">
-        <button onClick={toggleSidebar} className="btn-icon" title="Close Sidebar">
+      <div className="sidebar-header relative">
+        <button onClick={toggleSidebar} className="btn-icon z-10" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />
         </button>
-        <button onClick={handleCreateSession} className="btn-icon" title="New Chat">
+
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+          <div className="flex items-center gap-1">
+            <Icon name="Bot" size={20} className="text-primary" />
+            <span className="header-title">Yuji</span>
+          </div>
+        </div>
+
+        <button onClick={handleCreateSession} className="btn-icon z-10" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </button>
       </div>

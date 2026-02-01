@@ -61,7 +61,7 @@ export const ConfirmModal: FC = () => {
     <div className={clsx('modal-overlay z-[100]', isClosing ? 'animate-fade-out' : 'animate-fade-in')}>
       <div ref={containerRef} className={clsx('confirm-modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up')}>
         <div className="confirm-modal-content">
-          <h3 className="confirm-modal-title">{title}</h3>
+          <h3 className="header-title mb-3 border-b border-line pb-2">{title}</h3>
           <div className="confirm-modal-message">
             {message
               .split(/(\*\*.*?\*\*)/)

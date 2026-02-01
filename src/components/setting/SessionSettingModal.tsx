@@ -109,7 +109,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     switch (activeTab) {
       case 'general':
         return (
-          <div className="space-y-3 animate-fade-in">
+          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <div className="space-y-2">
               <label className="settings-label">Chat Title</label>
               <InputText value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter chat title..." />
@@ -125,7 +125,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
       case 'persona':
         return (
-          <div className="space-y-3 animate-fade-in">
+          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <div className="flex items-center justify-between py-2 border-b border-separator">
               <div>
                 <div className="text-sm text-text-primary">Override Global Persona</div>

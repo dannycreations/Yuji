@@ -175,7 +175,7 @@ export const Header: FC = () => {
   }
 
   return (
-    <div className="sticky-header">
+    <div className="sticky-header border-b border-separator">
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
           <button onClick={toggleSidebar} className="btn-icon" title="Open Sidebar">
@@ -185,7 +185,7 @@ export const Header: FC = () => {
 
         <div className="relative" ref={pickerRef}>
           <button onClick={() => setShowModelPicker(!showModelPicker)} className="header-model-button">
-            <span>{currentModelName}</span>
+            <span className="header-title">{currentModelName}</span>
             <Icon name="ChevronDown" size={16} className="text-text-secondary" />
           </button>
 

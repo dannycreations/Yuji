@@ -186,7 +186,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                       ),
                       th: ({ node, ...props }) => <th className="prose-th" {...props} />,
                       td: ({ node, ...props }) => <td className="prose-td" {...props} />,
-                      p: ({ node, ...props }) => <p {...props} />,
+                      p: ({ node, ...props }) => <div className="prose-p" {...props} />,
                     }}
                   >
                     {message.content}

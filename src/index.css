@@ -141,6 +141,10 @@
 
 @layer components {
   /* Common Effects */
+  .header-title {
+    @apply text-lg font-bold text-text-primary tracking-tight;
+  }
+
   .shadow-glow-primary {
     box-shadow: 0 0 8px var(--color-primary);
   }
@@ -309,10 +313,6 @@
     @apply px-3 pt-3 pb-3;
   }
 
-  .confirm-modal-title {
-    @apply text-[20px] font-semibold text-text-primary mb-3;
-  }
-
   .confirm-modal-message {
     @apply text-[15px] text-text-primary leading-relaxed;
   }
@@ -387,7 +387,7 @@
     & > :last-child {
       @apply mb-0! pb-0!;
     }
-    & p {
+    & .prose-p {
       @apply leading-normal m-0;
     }
     & li {
@@ -486,12 +486,12 @@
   }
 
   .header-model-button {
-    @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors text-lg font-bold text-text-primary;
+    @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors;
   }
 
   /* Chat Interface */
   .chat-scroll-area {
-    @apply flex-1 min-h-0 overflow-y-auto w-full flex flex-col-reverse;
+    @apply flex-1 min-h-0 overflow-y-auto w-full;
   }
 
   .suggestion-grid {
@@ -517,7 +517,7 @@
   }
 
   .message-row {
-    @apply max-w-chat mx-auto w-full px-3 md:px-0 py-2 flex gap-3 md:gap-3 text-text-primary;
+    @apply max-w-chat mx-auto w-full px-3 md:px-0 py-3 flex gap-3 md:gap-3 text-text-primary;
     &.user {
       @apply justify-end;
     }
@@ -597,7 +597,7 @@
   }
 
   .chat-input-wrapper {
-    @apply w-full max-w-chat mx-auto px-3 pb-3 pt-2 z-chat-input;
+    @apply w-full max-w-chat mx-auto px-3 md:px-0 pb-3 pt-2 z-chat-input;
   }
 
   .chat-input-container {

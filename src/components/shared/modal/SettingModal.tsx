@@ -43,8 +43,8 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
         )}
       >
         {/* Sidebar */}
-        <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-3 px-2 border-r border-separator">
-          <div className="flex justify-between items-center px-2 mb-2">
+        <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator">
+          <div className="flex justify-between items-center px-1 mb-2">
             <button onClick={handleClose} className="btn-icon">
               <Icon name="X" size={18} />
             </button>
@@ -62,12 +62,12 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
 
         {/* Main Content */}
         <div className="settings-main-content">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-lg font-bold text-text-primary">{title}</div>
+          <div className="flex items-center justify-between mb-2 border-b border-line pb-2">
+            <div className="header-title">{title}</div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2">
-            <div className="w-full min-h-full pb-3">{children}</div>
+          <div className="flex-1 min-h-0">
+            <div className="w-full h-full">{children}</div>
           </div>
         </div>
       </div>

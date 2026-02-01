@@ -251,7 +251,7 @@ export const GlobalSettingModal: FC = () => {
     switch (activeTab) {
       case 'general':
         return (
-          <div className="animate-fade-in flex flex-col">
+          <div className="animate-fade-in flex flex-col h-full overflow-y-auto pr-2">
             <div className="panel-section flex items-center justify-between">
               <div className="text-sm text-text-primary">Appearance</div>
               <button className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
@@ -269,7 +269,7 @@ export const GlobalSettingModal: FC = () => {
 
       case 'connection':
         return (
-          <div className="space-y-3 animate-fade-in">
+          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <div className="space-y-2">
               <label className="settings-label">API Provider</label>
               <InputSelect value="openai" disabled>
@@ -367,7 +367,7 @@ export const GlobalSettingModal: FC = () => {
 
       case 'persona':
         return (
-          <div className="space-y-3 animate-fade-in">
+          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <div className="space-y-3">
               <div className="space-y-2">
                 <label className="settings-label">Nickname</label>
