@@ -1,22 +1,23 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { INITIAL_GREETING, SUGGESTIONS } from '../app/Constant';
-import { LLMProviderError } from '../app/Error';
-import { YujiRuntime } from '../app/Yuji';
-import { useStore } from '../hooks/useStore';
-import { LLMProvider } from '../providers/LLMProvider';
-import { ChatService } from '../services/ChatService';
-import { PlatformService } from '../services/PlatformService';
-import { StoreService } from '../services/StoreService';
-import { InputArea } from './InputArea';
-import { MessageBubble } from './MessageBubble';
-import { Icon } from './shared/Icon';
-import { VirtualBlock } from './shared/VirtualBlock';
+import { SUGGESTIONS } from '../../app/Constant';
+import { LLMProviderError } from '../../app/Error';
+import { YujiRuntime } from '../../app/Yuji';
+import { useStore } from '../../hooks/useStore';
+import { LLMProvider } from '../../providers/LLMProvider';
+import { ChatService } from '../../services/ChatService';
+import { PlatformService } from '../../services/PlatformService';
+import { StoreService } from '../../services/StoreService';
+import { Header } from '../Header';
+import { Icon } from '../shared/Icon';
+import { ChatInput } from './ChatInput';
+import { ChatMessageBubble } from './ChatMessageBubble';
+import { ChatMessageVirtual } from './ChatMessageVirtual';
 
 import type { FC } from 'react';
-import type { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
-import type { AppState, Attachment, Message } from '../app/Schema';
+import type { MessageNotFoundError, SessionNotFoundError } from '../../app/Error';
+import type { AppState, Attachment, Message } from '../../app/Schema';
 
 export const ChatInterface: FC = () => {
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
@@ -257,63 +258,54 @@ export const ChatInterface: FC = () => {
 
   if (!activeSession || activeSession.messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col h-full bg-background relative">
-        <div className="flex-1 min-h-0 overflow-y-auto w-full scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-          <div className="flex flex-col items-center justify-center p-6 min-h-full animate-fade-in">
-            <div className="w-14 h-14 bg-surface_light rounded-2xl shadow-xl flex items-center justify-center mb-6 border border-white/5">
-              <Icon name="Bot" size={28} className="text-zinc-200" />
+      <div className="main-layout">
+        <Header />
+        <div className="chat-scroll-area">
+          <div className="flex flex-col items-center justify-center p-6 min-h-full animate-fade-in chat-container">
+            <div className="mb-8">
+              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator">
+                <Icon name="Bot" size={24} className="text-background" />
+              </div>
             </div>
-            <h1 className="text-xl font-display font-semibold text-white mb-6 text-center tracking-tight">{INITIAL_GREETING}</h1>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl mb-8">
+            <div className="suggestion-grid">
               {SUGGESTIONS.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSend(suggestion.prompt)}
-                  className="flex items-start gap-3.5 p-4 rounded-xl bg-surface hover:bg-surface_light border border-surface_light hover:border-zinc-700 transition-all text-left group hover:shadow-md"
-                >
-                  <Icon
-                    name={suggestion.icon}
-                    size={20}
-                    className="text-primary mt-0.5 opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all"
-                  />
-                  <div>
-                    <div className="font-medium text-zinc-200 text-sm mb-1">{suggestion.label}</div>
-                    <div className="text-zinc-500 text-xs line-clamp-2 leading-relaxed">{suggestion.prompt}</div>
-                  </div>
+                <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">
+                  <Icon name={suggestion.icon} size={20} className="text-text-secondary" />
+                  <div className="font-medium text-text-primary text-sm">{suggestion.label}</div>
+                  <div className="text-text-secondary text-xs line-clamp-2">{suggestion.prompt}</div>
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <InputArea onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
+        <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-background relative">
-      <div
-        ref={scrollContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 min-h-0 overflow-y-auto w-full scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
-      >
-        {visibleMessages.map((message, idx) => (
-          <VirtualBlock key={message.id}>
-            <MessageBubble
-              message={message}
-              sessionId={activeSession.id}
-              isLast={idx === visibleMessages.length - 1}
-              isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
-              onRegenerate={() => handleRegenerate(message.id)}
-              onEdit={(newContent) => handleEdit(message.id, newContent)}
-            />
-          </VirtualBlock>
-        ))}
-        <div ref={messagesEndRef} className="h-4" />
+    <div className="main-layout">
+      <Header />
+      <div ref={scrollContainerRef} onScroll={handleScroll} className="chat-scroll-area">
+        <div className="flex flex-col pb-4">
+          {visibleMessages.map((message, idx) => (
+            <ChatMessageVirtual key={message.id}>
+              <ChatMessageBubble
+                message={message}
+                sessionId={activeSession.id}
+                isLast={idx === visibleMessages.length - 1}
+                isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
+                onRegenerate={() => handleRegenerate(message.id)}
+                onEdit={(newContent) => handleEdit(message.id, newContent)}
+              />
+            </ChatMessageVirtual>
+          ))}
+          <div ref={messagesEndRef} className="h-4" />
+        </div>
       </div>
 
-      <InputArea onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
+      <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
     </div>
   );
 };

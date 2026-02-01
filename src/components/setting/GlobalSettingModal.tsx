@@ -10,11 +10,12 @@ import { LLMProvider } from '../../providers/LLMProvider';
 import { StoreService } from '../../services/StoreService';
 import { timeAgo } from '../../utilities/time';
 import { Icon } from '../shared/Icon';
-import { SettingModal } from '../shared/SettingModal';
+import { InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
+import { SettingModal } from '../shared/modal/SettingModal';
 
-import type { ChangeEvent, FC, KeyboardEvent } from 'react';
+import type { ChangeEvent, FC } from 'react';
 import type { AppState, ChatSession, Settings } from '../../app/Schema';
-import type { SettingTabItem } from '../shared/SettingModal';
+import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
 
@@ -22,7 +23,7 @@ const GLOBAL_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
   { icon: 'Link', id: 'connection', label: 'Connection' },
   { icon: 'Cpu', id: 'models', label: 'Models' },
-  { icon: 'Sparkles', id: 'persona', label: 'Persona' },
+  { icon: 'User', id: 'persona', label: 'Personalization' },
   { icon: 'History', id: 'history', label: 'History & Sync' },
 ];
 
@@ -60,7 +61,6 @@ export const GlobalSettingModal: FC = () => {
     }),
   );
   const [activeTab, setActiveTab] = useState<GlobalSettingTab>('general');
-  const [traitInput, setTraitInput] = useState('');
   const [modelSearch, setModelSearch] = useState('');
 
   // History Tab State
@@ -82,7 +82,7 @@ export const GlobalSettingModal: FC = () => {
             description: `Fetched from ${settings.baseUrl}`,
             provider: 'OpenAI Compatible',
             icon: 'Cpu',
-            color: 'text-zinc-400',
+            color: 'text-text-secondary',
             tags: ['API'],
           }),
         );
@@ -131,25 +131,6 @@ export const GlobalSettingModal: FC = () => {
   }, [settings.userName, settings.userOccupation, settings.assistantTraits, settings.additionalContext]);
 
   if (!isSettingsOpen) return null;
-
-  const handleAddTrait = (trait: string) => {
-    const formatted = trait.trim().toLowerCase();
-    if (formatted && !settings.assistantTraits.includes(formatted)) {
-      updateSettings({ assistantTraits: [...settings.assistantTraits, formatted] });
-    }
-    setTraitInput('');
-  };
-
-  const handleRemoveTrait = (trait: string) => {
-    updateSettings({ assistantTraits: (settings.assistantTraits as string[]).filter((t: string) => t !== trait) });
-  };
-
-  const handleKeyDownTrait = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAddTrait(traitInput);
-    }
-  };
 
   const handleExport = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sessions));
@@ -244,36 +225,18 @@ export const GlobalSettingModal: FC = () => {
     switch (activeTab) {
       case 'general':
         return (
-          <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between px-4 py-3.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/[0.07] transition-colors">
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-zinc-200 block">Enter to Send</label>
-                <p className="text-xs text-zinc-500">Sends the message immediately when you press Enter.</p>
-              </div>
-              <button
-                onClick={() => updateSettings({ enterToSend: !settings.enterToSend })}
-                className={clsx(
-                  'w-11 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-primary/50 flex-shrink-0',
-                  settings.enterToSend ? 'bg-primary' : 'bg-zinc-700',
-                )}
-              >
-                <div
-                  className={clsx(
-                    'absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm',
-                    settings.enterToSend ? 'translate-x-5' : '',
-                  )}
-                />
+          <div className="animate-fade-in flex flex-col">
+            <div className="panel-section flex items-center justify-between">
+              <div className="text-sm text-text-primary">Appearance</div>
+              <button className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
+                Dark
+                <Icon name="ChevronDown" size={16} />
               </button>
             </div>
 
-            <div className="flex items-center justify-between px-4 py-3.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/[0.07] transition-colors">
-              <div className="space-y-1">
-                <label className="text-sm font-semibold text-zinc-200 block">Theme</label>
-                <p className="text-xs text-zinc-500">Current theme applied to the interface.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="px-3 py-1.5 bg-black/40 rounded-lg text-xs font-medium text-zinc-300 border border-white/10">Dark (Default)</div>
-              </div>
+            <div className="panel-section flex items-center justify-between">
+              <div className="text-sm text-text-primary">Enter to send</div>
+              <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSettings({ enterToSend: checked })} />
             </div>
           </div>
         );
@@ -282,54 +245,35 @@ export const GlobalSettingModal: FC = () => {
         return (
           <div className="space-y-5 animate-fade-in">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">API Provider</label>
+              <label className="label-caps">API Provider</label>
               <div className="relative">
-                <select
-                  className="w-full appearance-none bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all"
-                  value="openai"
-                  disabled
-                >
+                <select className="select-base" value="openai" disabled>
                   <option value="openai">OpenAI Compatible</option>
                 </select>
-                <Icon name="ChevronDown" size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+                <Icon name="ChevronDown" size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Base URL</label>
-              <div className="relative group">
-                <Icon
-                  name="Link"
-                  size={14}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-primary transition-colors"
-                />
-                <input
-                  type="text"
-                  value={settings.baseUrl}
-                  onChange={(e) => updateSettings({ baseUrl: e.target.value })}
-                  className="w-full bg-black border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                  placeholder="http://localhost:11434/v1"
-                />
-              </div>
-              <p className="text-xs text-zinc-500 pl-1">For LocalAI or Ollama, use your local endpoint.</p>
+              <label className="label-caps">Base URL</label>
+              <InputText
+                leftIcon="Link"
+                value={settings.baseUrl}
+                onChange={(e) => updateSettings({ baseUrl: e.target.value })}
+                placeholder="http://localhost:11434/v1"
+              />
+              <p className="text-xs text-text-secondary pl-1">For LocalAI or Ollama, use your local endpoint.</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">API Key</label>
-              <div className="relative group">
-                <Icon
-                  name="Key"
-                  size={14}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-primary transition-colors"
-                />
-                <input
-                  type="password"
-                  value={settings.apiKey}
-                  onChange={(e) => updateSettings({ apiKey: e.target.value })}
-                  className="w-full bg-black border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                  placeholder="sk-..."
-                />
-              </div>
+              <label className="label-caps">API Key</label>
+              <InputText
+                type="password"
+                leftIcon="Key"
+                value={settings.apiKey}
+                onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                placeholder="sk-..."
+              />
             </div>
           </div>
         );
@@ -338,23 +282,12 @@ export const GlobalSettingModal: FC = () => {
         return (
           <div className="space-y-5 animate-fade-in h-full flex flex-col">
             <div className="flex-shrink-0 flex gap-2">
-              <div className="relative flex-1 group">
-                <Icon
-                  name="Search"
-                  size={14}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-primary transition-colors"
-                />
-                <input
-                  type="text"
-                  value={modelSearch}
-                  onChange={(e) => setModelSearch(e.target.value)}
-                  className="w-full bg-black border border-white/10 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                  placeholder="Search models..."
-                />
+              <div className="flex-1">
+                <InputText leftIcon="Search" value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
               </div>
               <button
                 onClick={handleRefreshModels}
-                className="flex items-center gap-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-xs font-bold uppercase tracking-wide transition-colors border border-primary/10"
+                className="flex items-center gap-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl badge-primary transition-colors border border-separator"
                 title="Refresh Library"
               >
                 <Icon name="RefreshCw" size={14} />
@@ -372,48 +305,33 @@ export const GlobalSettingModal: FC = () => {
                       key={model.id}
                       className={clsx(
                         'flex items-center gap-3 p-3 rounded-xl border transition-all',
-                        isEnabled ? 'bg-white/5 border-white/10' : 'bg-black/20 border-transparent opacity-60',
+                        isEnabled ? 'bg-line border-separator' : 'bg-surface/50 border-transparent opacity-60',
                       )}
                     >
                       <div
                         className={clsx(
                           'p-2.5 rounded-lg flex-shrink-0',
-                          isEnabled ? clsx('bg-black/40', model.color || 'text-zinc-500') : 'bg-black/40 text-zinc-600',
+                          isEnabled ? clsx('bg-surface/50', model.color || 'text-text-secondary') : 'bg-surface/50 text-text-secondary/50',
                         )}
                       >
                         <Icon name={model.icon} size={20} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={clsx('font-bold text-sm', isEnabled ? 'text-zinc-200' : 'text-zinc-500')}>{model.name}</span>
-                          {effectiveDefaultModelId === model.id && isEnabled && (
-                            <div className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-xs font-bold uppercase tracking-wide">Default</div>
-                          )}
+                          <span className={clsx('font-bold text-sm', isEnabled ? 'text-text-primary' : 'text-text-secondary')}>{model.name}</span>
+                          {effectiveDefaultModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
                           {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                         </div>
-                        <p className="text-xs text-zinc-500 line-clamp-1">{model.description}</p>
-                        <div className="text-xs text-zinc-600 font-mono mt-0.5">{model.id}</div>
+                        <p className="text-xs text-text-secondary line-clamp-1">{model.description}</p>
+                        <div className="text-xs text-text-secondary/80 font-mono mt-0.5">{model.id}</div>
                       </div>
 
-                      <button
-                        onClick={() => toggleModel(model.id)}
-                        className={clsx(
-                          'w-11 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-1 focus:ring-primary/50 flex-shrink-0',
-                          isEnabled ? 'bg-primary' : 'bg-zinc-700',
-                        )}
-                      >
-                        <div
-                          className={clsx(
-                            'absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm',
-                            isEnabled ? 'translate-x-5' : '',
-                          )}
-                        />
-                      </button>
+                      <InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />
                     </div>
                   );
                 })
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-zinc-500 bg-white/5 rounded-xl border border-dashed border-white/10">
+                <div className="flex flex-col items-center justify-center py-12 text-text-secondary bg-line rounded-xl border border-dashed border-separator">
                   <Icon name="Search" size={24} className="mb-2 opacity-50" />
                   <p className="text-sm">No models match "{modelSearch}"</p>
                 </div>
@@ -424,62 +342,37 @@ export const GlobalSettingModal: FC = () => {
 
       case 'persona':
         return (
-          <div className="space-y-5 animate-fade-in">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Display Name</label>
-              <input
-                type="text"
-                value={settings.userName}
-                onChange={(e) => updateSettings({ userName: e.target.value.slice(0, 50) })}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                placeholder="How should the AI address you?"
-              />
-            </div>
+          <div className="space-y-8 animate-fade-in">
+            <div className="space-y-4">
+              <h3 className="settings-section-title">About you</h3>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Occupation</label>
-              <input
-                type="text"
-                value={settings.userOccupation}
-                onChange={(e) => updateSettings({ userOccupation: e.target.value.slice(0, 100) })}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                placeholder="What do you do?"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Assistant Traits</label>
-              <div className="p-2.5 bg-black border border-white/10 rounded-xl flex flex-wrap gap-2 min-h-[50px] focus-within:border-primary/50 transition-all">
-                {(settings.assistantTraits as string[]).map((trait: string, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-1.5 bg-white/10 text-zinc-200 text-xs px-2.5 py-1 rounded-lg border border-white/5 font-medium"
-                  >
-                    <span>{trait}</span>
-                    <button onClick={() => handleRemoveTrait(trait)} className="hover:text-red-400 transition-colors">
-                      <Icon name="X" size={12} />
-                    </button>
-                  </div>
-                ))}
-                <input
-                  type="text"
-                  value={traitInput}
-                  onChange={(e) => setTraitInput(e.target.value)}
-                  onKeyDown={handleKeyDownTrait}
-                  className="bg-transparent outline-none flex-1 min-w-[120px] text-sm text-white placeholder:text-zinc-700 py-1"
-                  placeholder="Add a trait and press Enter..."
+              <div className="space-y-2">
+                <label className="settings-label">Nickname</label>
+                <InputText
+                  value={settings.userName}
+                  onChange={(e) => updateSettings({ userName: e.target.value.slice(0, 50) })}
+                  placeholder="What would you like Yuji to call you?"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Custom Context</label>
-              <textarea
-                value={settings.additionalContext}
-                onChange={(e) => updateSettings({ additionalContext: e.target.value.slice(0, 3000) })}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700 min-h-[120px] resize-none leading-relaxed"
-                placeholder="Any special instructions, background information, or preferences for the AI to know..."
-              />
+              <div className="space-y-2">
+                <label className="settings-label">Occupation</label>
+                <InputText
+                  value={settings.userOccupation}
+                  onChange={(e) => updateSettings({ userOccupation: e.target.value.slice(0, 100) })}
+                  placeholder="What do you do?"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="settings-label">More about you</label>
+                <InputTextarea
+                  value={settings.additionalContext}
+                  onChange={(e) => updateSettings({ additionalContext: e.target.value.slice(0, 3000) })}
+                  minRows={4}
+                  placeholder="What would you like Yuji to know about you to provide better responses?"
+                />
+              </div>
             </div>
           </div>
         );
@@ -490,13 +383,13 @@ export const GlobalSettingModal: FC = () => {
             <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
 
             <div className="flex flex-col gap-4 flex-shrink-0">
-              <p className="text-sm text-zinc-400 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/5">
+              <p className="settings-info-box">
                 Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations.
               </p>
             </div>
 
-            <div className="flex-1 min-h-0 flex flex-col border border-white/10 rounded-xl overflow-hidden bg-black/40">
-              <div className="flex items-center px-4 py-3 border-b border-white/10 bg-white/5">
+            <div className="settings-history-table">
+              <div className="settings-history-header">
                 <div className="w-8 flex-shrink-0 flex items-center justify-center">
                   <button
                     onClick={toggleSelectAll}
@@ -504,24 +397,24 @@ export const GlobalSettingModal: FC = () => {
                       'w-4 h-4 rounded border flex items-center justify-center transition-all',
                       currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id))
                         ? 'bg-primary border-primary text-white'
-                        : 'border-zinc-700 bg-black/50 text-transparent',
+                        : 'border-highlight bg-black/50 text-transparent',
                     )}
                   >
                     <Icon name="Check" size={10} strokeWidth={4} />
                   </button>
                 </div>
-                <div className="flex-1 text-xs font-bold text-zinc-300 uppercase tracking-wider">Title</div>
+                <div className="flex-1 label-caps text-text-primary">Title</div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleExport}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-black hover:bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-zinc-400 transition-colors uppercase tracking-wide"
+                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide"
                   >
                     <Icon name="Upload" size={12} />
                     Export
                   </button>
                   <button
                     onClick={handleImportClick}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-black hover:bg-white/5 border border-white/10 rounded-md text-[10px] font-bold text-zinc-400 transition-colors uppercase tracking-wide"
+                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide"
                   >
                     <Icon name="Download" size={12} />
                     Import
@@ -529,15 +422,12 @@ export const GlobalSettingModal: FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto divide-y divide-white/5">
+              <div className="flex-1 overflow-y-auto divide-y divide-separator">
                 {currentHistoryItems.length > 0 ? (
                   currentHistoryItems.map((session) => (
                     <div
                       key={session.id}
-                      className={clsx(
-                        'flex items-center px-4 py-3.5 hover:bg-white/5 transition-colors group',
-                        selectedSessionIds.has(session.id) ? 'bg-white/[0.02]' : '',
-                      )}
+                      className={clsx('settings-history-row', selectedSessionIds.has(session.id) && 'settings-history-row-active')}
                     >
                       <div className="w-8 flex-shrink-0 flex items-center justify-center">
                         <button
@@ -546,21 +436,21 @@ export const GlobalSettingModal: FC = () => {
                             'w-4 h-4 rounded border flex items-center justify-center transition-all',
                             selectedSessionIds.has(session.id)
                               ? 'bg-primary border-primary text-white'
-                              : 'border-zinc-700 bg-black/50 text-transparent',
+                              : 'border-highlight bg-surface/50 text-transparent',
                           )}
                         >
                           <Icon name="Check" size={10} strokeWidth={4} />
                         </button>
                       </div>
                       <div className="flex-1 min-w-0 pr-4">
-                        <div className="text-sm text-zinc-200 font-medium truncate">{session.title}</div>
-                        <div className="text-xs text-zinc-500 font-mono mt-0.5">{session.id}</div>
+                        <div className="text-sm text-text-primary font-medium truncate">{session.title}</div>
+                        <div className="text-xs text-text-secondary font-mono mt-0.5">{session.id}</div>
                       </div>
-                      <div className="text-xs text-zinc-500 whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
+                      <div className="text-xs text-text-secondary whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
                     </div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-2">
+                  <div className="flex flex-col items-center justify-center h-full text-text-secondary gap-2">
                     <Icon name="Inbox" size={32} className="opacity-20" />
                     <p className="text-sm">No chat history available.</p>
                   </div>
@@ -570,14 +460,14 @@ export const GlobalSettingModal: FC = () => {
 
             {totalHistoryPages > 1 && (
               <div className="flex justify-between items-center pt-2 flex-shrink-0">
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-text-secondary">
                   Page {historyPage + 1} of {totalHistoryPages}
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
                     disabled={historyPage === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-xs font-medium text-zinc-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <Icon name="ChevronLeft" size={12} />
                     Prev
@@ -585,7 +475,7 @@ export const GlobalSettingModal: FC = () => {
                   <button
                     onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages - 1, p + 1))}
                     disabled={historyPage >= totalHistoryPages - 1}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black border border-white/10 text-xs font-medium text-zinc-300 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     Next
                     <Icon name="ChevronRight" size={12} />
@@ -601,24 +491,7 @@ export const GlobalSettingModal: FC = () => {
   const activeTabLabel = GLOBAL_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
 
   return (
-    <SettingModal
-      tabs={GLOBAL_SETTING_TABS}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      onClose={toggleSettings}
-      title={activeTabLabel}
-      sidebarBottom={
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-surface_light border border-white/5 flex items-center justify-center text-zinc-400">
-            <Icon name="User" size={14} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-white truncate">{settings.userName || 'Local User'}</div>
-            <div className="text-xs text-zinc-500 truncate">Personal Space</div>
-          </div>
-        </div>
-      }
-    >
+    <SettingModal tabs={GLOBAL_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={toggleSettings} title={activeTabLabel}>
       {renderContent()}
     </SettingModal>
   );

@@ -1,0 +1,267 @@
+import clsx from 'clsx';
+import { Effect } from 'effect';
+import { useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+
+import { YujiRuntime } from '../../app/Yuji';
+import { useAction, useStore } from '../../hooks/useStore';
+import { ChatService } from '../../services/ChatService';
+import { StoreService } from '../../services/StoreService';
+import { Icon } from '../shared/Icon';
+import { InputTextarea } from '../shared/InputArea';
+import { ChatMessageBlock } from './ChatMessageBlock';
+
+import type { FC } from 'react';
+import type { AppState, Message } from '../../app/Schema';
+
+interface ChatMessageBubbleProps {
+  readonly message: Message;
+  readonly sessionId: string;
+  readonly isLast: boolean;
+  readonly isThinking?: boolean;
+  readonly onRegenerate: () => void;
+  readonly onEdit: (content: string) => void;
+}
+
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit, isThinking }) => {
+  const isUser = message.role === 'user';
+  const sessions = useStore((s: AppState) => s.sessions, {});
+  const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(message.content);
+
+  const session = sessions[sessionId];
+
+  // Logic to find siblings for navigation
+  const siblings = useMemo(() => {
+    if (!message.parentId || !session) return [];
+    const parent = session.messages.find((m) => m.id === message.parentId);
+    return parent?.childrenIds || [];
+  }, [message.parentId, session]);
+
+  const currentIndex = siblings.indexOf(message.id);
+
+  const switchBranch = useAction((sessionId: string, messageId: string) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => {
+        const session = s.sessions[sessionId];
+        if (!session) return s;
+        return {
+          ...s,
+          sessions: {
+            ...s.sessions,
+            [sessionId]: {
+              ...session,
+              activeMessageId: messageId,
+              updatedAt: Date.now(),
+            },
+          },
+        };
+      });
+    }),
+  );
+
+  const handleSwitchBranch = (newId: string) => {
+    switchBranch(sessionId, newId);
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleBranch = () => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const chat = yield* ChatService;
+        yield* chat.branchChat(sessionId, message.id);
+      }),
+    );
+  };
+
+  const handleSaveEdit = () => {
+    if (editContent.trim() !== message.content) {
+      onEdit(editContent);
+    }
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const store = yield* StoreService;
+        const chat = yield* ChatService;
+
+        yield* store.setConfirm({
+          title: 'Delete Message',
+          message: 'Are you sure you want to delete this message?',
+          confirmLabel: 'Delete',
+          variant: 'danger',
+          onConfirm: () => YujiRuntime.runFork(chat.deleteMessage(sessionId, message.id)),
+        });
+      }),
+    );
+  };
+
+  return (
+    <div className="group w-full text-text-primary">
+      <div className={clsx('message-row', isUser && 'message-row-user')}>
+        <div className={clsx('message-container', isUser ? 'message-container-user' : 'message-container-assistant')}>
+          <div className={clsx('flex-1 min-w-0 flex flex-col w-full', isUser ? 'items-end' : 'items-start')}>
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="message-attachment-grid">
+                {message.attachments.map((att) => (
+                  <div key={att.id} className="message-attachment-item">
+                    <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {isEditing ? (
+              <div className="w-full bg-surface border border-line rounded-xl overflow-hidden animate-fade-in my-2">
+                <InputTextarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="bg-transparent border-none focus:border-none p-4 text-sm font-sans"
+                  minRows={2}
+                />
+                <div className="flex items-center justify-end gap-2 p-3 bg-surface-hover/50">
+                  <button onClick={() => setIsEditing(false)} className="btn-secondary">
+                    Cancel
+                  </button>
+                  <button onClick={handleSaveEdit} className="btn-primary">
+                    Send
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={clsx('prose-chat break-words max-w-full', isUser ? 'message-bubble-user' : 'w-full')}>
+                {isThinking && !message.content ? (
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 bg-text-primary rounded-full animate-pulse" />
+                  </div>
+                ) : (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      code({ node, className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const language = match ? match[1] : '';
+                        const value = String(children).replace(/\n$/, '');
+                        const isMultiline = value.includes('\n');
+
+                        if (!className && !isMultiline) {
+                          return (
+                            <code className={clsx('code-inline', className)} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+
+                        if (match || isMultiline) {
+                          return <ChatMessageBlock language={language} value={value} />;
+                        }
+
+                        return (
+                          <code className={clsx('code-inline', className)} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />,
+                      ul: ({ node, ...props }) => <ul {...props} />,
+                      ol: ({ node, ...props }) => <ol {...props} />,
+                      h1: ({ node, ...props }) => <h1 {...props} />,
+                      h2: ({ node, ...props }) => <h2 {...props} />,
+                      h3: ({ node, ...props }) => <h3 {...props} />,
+                      blockquote: ({ node, ...props }) => <blockquote {...props} />,
+                      table: ({ node, ...props }) => (
+                        <div className="overflow-x-auto my-4 rounded-lg border border-line">
+                          <table className="min-w-full divide-y divide-line" {...props} />
+                        </div>
+                      ),
+                      th: ({ node, ...props }) => (
+                        <th className="px-4 py-2 bg-separator text-left text-sm font-semibold text-text-primary" {...props} />
+                      ),
+                      td: ({ node, ...props }) => (
+                        <td className="px-4 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-separator" {...props} />
+                      ),
+                      p: ({ node, ...props }) => <p {...props} />,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div
+            className={clsx(
+              'flex items-center gap-2 mt-1 h-6 transition-opacity duration-200',
+              (isThinking || isEditing) && 'opacity-0 pointer-events-none',
+            )}
+          >
+            {siblings.length > 1 && (
+              <div className="flex items-center gap-0.5 mr-1 text-text-primary select-none font-medium">
+                <button disabled={currentIndex === 0} onClick={() => handleSwitchBranch(siblings[currentIndex - 1])} className="btn-icon p-1">
+                  <Icon name="ChevronLeft" size={16} />
+                </button>
+                <span className="text-sm tabular-nums mx-0.5">
+                  {currentIndex + 1}/{siblings.length}
+                </span>
+                <button
+                  disabled={currentIndex === siblings.length - 1}
+                  onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
+                  className="btn-icon p-1"
+                >
+                  <Icon name="ChevronRight" size={16} />
+                </button>
+              </div>
+            )}
+
+            <div className="message-actions">
+              <button onClick={handleCopy} className="btn-icon p-1.5 rounded-md" title="Copy">
+                <Icon name={copied ? 'Check' : 'Copy'} size={16} />
+              </button>
+
+              <button onClick={handleBranch} className="btn-icon p-1.5 rounded-md" title="Branch">
+                <Icon name="GitFork" size={16} />
+              </button>
+
+              {isUser && !isEditing && (
+                <button
+                  onClick={() => {
+                    setEditContent(message.content);
+                    setIsEditing(true);
+                  }}
+                  className="btn-icon p-1.5 rounded-md"
+                  title="Edit"
+                >
+                  <Icon name="Pencil" size={16} />
+                </button>
+              )}
+
+              {!isUser && (
+                <button onClick={onRegenerate} className="btn-icon p-1.5 rounded-md" title="Regenerate">
+                  <Icon name="RefreshCw" size={16} />
+                </button>
+              )}
+
+              <button onClick={handleDelete} className="btn-icon p-1.5 rounded-md hover:text-danger" title="Delete">
+                <Icon name="Trash2" size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

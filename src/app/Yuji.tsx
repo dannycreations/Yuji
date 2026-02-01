@@ -1,9 +1,9 @@
 import { FetchHttpClient } from '@effect/platform';
 import { Layer, ManagedRuntime } from 'effect';
 
-import { ChatInterface } from '../components/ChatInterface';
+import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
-import { ConfirmModal } from '../components/shared/ConfirmModal';
+import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
 import { Sidebar } from '../components/Sidebar';
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
@@ -23,9 +23,9 @@ export const YujiRuntime = ManagedRuntime.make(MainLayer);
 
 export const YujiApp = () => {
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background text-zinc-100 font-sans">
+    <div className="app-container">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0 relative h-full">
+      <main className="main-layout">
         <ChatInterface />
       </main>
       <GlobalSettingModal />

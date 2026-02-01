@@ -3,8 +3,7 @@
 ## Guidelines
 
 - Bun is used as both the runtime and package manager.
-- You shall read `index.css` if you dealing with CSS related.
-- You shall read `tailwind.config.js` if you dealing with Tailwind related.
+- You shall read `index.css` if you dealing with styles related.
 
 ## Commands
 

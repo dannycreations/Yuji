@@ -1,15 +1,15 @@
-import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useEffect, useState } from 'react';
 
 import { useAction, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { StoreService } from '../../services/StoreService';
-import { SettingModal } from '../shared/SettingModal';
+import { InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
+import { SettingModal } from '../shared/modal/SettingModal';
 
 import type { FC } from 'react';
 import type { AppState } from '../../app/Schema';
-import type { SettingTabItem } from '../shared/SettingModal';
+import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 interface SessionSettingModalProps {
   readonly sessionId: string;
@@ -18,7 +18,7 @@ interface SessionSettingModalProps {
 
 const SESSION_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
-  { icon: 'Sparkles', id: 'persona', label: 'Persona' },
+  { icon: 'User', id: 'persona', label: 'Personalization' },
 ];
 
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
@@ -109,63 +109,40 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     switch (activeTab) {
       case 'general':
         return (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-8 animate-fade-in">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Chat Title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                placeholder="Enter chat title..."
-              />
+              <label className="settings-label">Chat Title</label>
+              <InputText value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Enter chat title..." />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Model</label>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700"
-                placeholder="e.g., gpt-4o"
-              />
-              <p className="text-xs text-zinc-500">Overrides the global default model for this specific chat.</p>
+              <label className="settings-label">Model Override</label>
+              <InputText value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g., gpt-4o" />
+              <p className="text-xs text-text-secondary">Overrides the global default model for this specific chat.</p>
             </div>
           </div>
         );
 
       case 'persona':
         return (
-          <div className="space-y-5 animate-fade-in">
-            <div className="flex items-center justify-between px-4 py-3.5 bg-white/5 rounded-xl border border-white/5 hover:bg-white/[0.07] transition-colors">
-              <div className="space-y-1 pr-4">
-                <label className="text-sm font-semibold text-zinc-200 block">Override Global Persona</label>
-                <p className="text-xs text-zinc-500 leading-tight">
+          <div className="space-y-8 animate-fade-in">
+            <div className="flex items-center justify-between py-2 border-b border-separator">
+              <div>
+                <div className="text-sm text-text-primary">Override Global Persona</div>
+                <div className="text-xs text-text-secondary">
                   {overrideGlobal ? 'Only use the instructions below.' : 'Combine below instructions with global persona settings.'}
-                </p>
+                </div>
               </div>
-              <button
-                onClick={() => setOverrideGlobal(!overrideGlobal)}
-                className={clsx('w-11 h-6 rounded-full transition-colors relative flex-shrink-0', overrideGlobal ? 'bg-primary' : 'bg-zinc-700')}
-              >
-                <div
-                  className={clsx(
-                    'absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm',
-                    overrideGlobal ? 'translate-x-5' : '',
-                  )}
-                />
-              </button>
+              <InputSwitch checked={overrideGlobal} onChange={setOverrideGlobal} />
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">System Instructions</label>
-              </div>
-              <textarea
+              <label className="settings-label">System Instructions</label>
+              <InputTextarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="w-full h-64 bg-black border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 outline-none focus:border-primary/50 transition-all placeholder:text-zinc-700 resize-none font-mono leading-relaxed"
+                minRows={8}
+                className="font-mono"
                 placeholder="Enter custom instructions for this specific conversation..."
               />
             </div>

@@ -2,8 +2,10 @@ import * as Lucide from 'lucide-react';
 
 import type { ElementType, FC, SVGProps } from 'react';
 
+export type IconName = keyof typeof Lucide | (string & {});
+
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {
-  readonly name: keyof typeof Lucide | (string & {});
+  readonly name: IconName;
   readonly size?: number;
 }
 

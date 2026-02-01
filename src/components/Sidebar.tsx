@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -36,7 +37,6 @@ export const Sidebar: FC = () => {
       }),
     );
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -71,9 +71,8 @@ export const Sidebar: FC = () => {
 
   const filteredSessions = useMemo(() => {
     const allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
-    if (!searchTerm.trim()) return allSessions;
-    return allSessions.filter((session) => session.title.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [sessions, searchTerm]);
+    return allSessions;
+  }, [sessions]);
 
   const groupSessions = (sessionsList: ChatSession[]) => {
     const today = new Date();
@@ -83,8 +82,8 @@ export const Sidebar: FC = () => {
     const groups: Record<string, ChatSession[]> = {
       Today: [],
       Yesterday: [],
-      Recent: [],
-      Older: [],
+      'Previous 7 Days': [],
+      'Previous 30 Days': [],
     };
 
     sessionsList.forEach((session) => {
@@ -94,9 +93,9 @@ export const Sidebar: FC = () => {
       } else if (date.toDateString() === yesterday.toDateString()) {
         groups['Yesterday'].push(session);
       } else if (today.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) {
-        groups['Recent'].push(session);
+        groups['Previous 7 Days'].push(session);
       } else {
-        groups['Older'].push(session);
+        groups['Previous 30 Days'].push(session);
       }
     });
 
@@ -105,68 +104,41 @@ export const Sidebar: FC = () => {
 
   const groupedSessions = groupSessions(filteredSessions);
 
-  if (!isSidebarOpen) {
-    return (
-      <button
-        onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-20 p-1.5 bg-surface text-zinc-400 hover:text-white rounded-lg shadow-lg border border-surface_light transition-colors"
-      >
-        <Icon name="PanelLeftOpen" size={18} />
-      </button>
-    );
-  }
+  if (!isSidebarOpen) return null;
 
   return (
-    <div className="w-80 h-screen bg-black flex flex-col border-r border-surface_light flex-shrink-0 relative z-10 transition-all duration-300">
-      <div className="p-4 flex items-center justify-between">
-        <button onClick={toggleSidebar} className="text-zinc-500 hover:text-white transition-colors p-1.5">
+    <div className="sidebar-container">
+      <div className="sidebar-header">
+        <button onClick={toggleSidebar} className="btn-icon" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />
         </button>
-        <button onClick={handleCreateSession} className="p-1.5 text-zinc-500 hover:text-white transition-colors" title="New Chat">
+        <button onClick={handleCreateSession} className="btn-icon" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </button>
       </div>
 
-      <div className="px-4 pb-5">
-        <div className="relative group">
-          <Icon
-            name="Search"
-            size={16}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-zinc-400 transition-colors"
-          />
-          <input
-            type="text"
-            placeholder="Search history..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-surface_light/30 text-sm text-zinc-200 pl-10 pr-4 py-2.5 rounded-xl border border-transparent focus:bg-surface_light/50 focus:border-zinc-800 outline-none transition-all placeholder:text-zinc-700"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-3 space-y-5">
+      <div className="sidebar-content">
         {Object.entries(groupedSessions).map(
           ([label, group]) =>
             group.length > 0 && (
-              <div key={label} className="px-1">
-                <h3 className="text-xs font-bold text-zinc-500 mb-2 px-3 uppercase tracking-widest">{label}</h3>
-                <div className="space-y-1">
+              <div key={label} className="mb-4">
+                <h3 className="label-caps px-2 py-2 mb-1">{label}</h3>
+                <div className="space-y-0.5">
                   {group.map((session) => (
                     <div
                       key={session.id}
-                      className={`group relative flex items-center rounded-xl px-3.5 py-3 text-sm transition-all cursor-pointer ${
-                        activeSessionId === session.id
-                          ? 'bg-surface_light text-white shadow-sm ring-1 ring-white/5'
-                          : 'text-zinc-400 hover:bg-surface_light/40 hover:text-zinc-200'
-                      }`}
+                      className={clsx('sidebar-session-item group', activeSessionId === session.id && 'sidebar-session-item-active')}
                       onClick={() => setActiveSession(session.id)}
                     >
-                      <span className="truncate flex-1 pr-8 font-medium leading-tight">{session.title}</span>
-                      <div className="absolute right-3 flex items-center">
+                      <div className="sidebar-session-title">
+                        <span className="block truncate">{session.title}</span>
+                        {/* Fade effect for long titles */}
+                        <div className={clsx('sidebar-session-fade', activeSessionId === session.id && 'sidebar-session-fade-active')} />
+                      </div>
+
+                      <div className="absolute right-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          className={`p-1.5 text-zinc-500 hover:text-white transition-all rounded-lg hover:bg-surface_light ${
-                            menuOpenId === session.id ? 'opacity-100 bg-surface_light text-white' : 'opacity-0 group-hover:opacity-100'
-                          }`}
+                          className="btn-icon p-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             setMenuOpenId(menuOpenId === session.id ? null : session.id);
@@ -176,13 +148,9 @@ export const Sidebar: FC = () => {
                         </button>
 
                         {menuOpenId === session.id && (
-                          <div
-                            ref={menuRef}
-                            className="absolute right-0 top-full mt-1 w-36 bg-surface border border-surface_light rounded-xl shadow-2xl z-20 py-1.5 animate-in fade-in zoom-in duration-100 origin-top-right"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          <div ref={menuRef} className="dropdown-menu right-0 top-full mt-1 w-40 py-1" onClick={(e) => e.stopPropagation()}>
                             <button
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-300 hover:bg-surface_light hover:text-white transition-colors"
+                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-primary hover:bg-surface-hover transition-colors text-left"
                               onClick={() => {
                                 setSettingsOpenId(session.id);
                                 setMenuOpenId(null);
@@ -191,13 +159,12 @@ export const Sidebar: FC = () => {
                               <Icon name="Settings" size={14} />
                               Settings
                             </button>
-                            <div className="h-px bg-surface_light mx-2 my-1" />
                             <button
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-400/10 transition-colors"
+                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-danger hover:bg-surface-hover transition-colors text-left"
                               onClick={() => {
                                 showConfirm({
-                                  title: 'Delete Chat',
-                                  message: 'Are you sure you want to delete this chat? This action cannot be undone.',
+                                  title: 'Delete chat?',
+                                  message: `This will delete **${session.title}** permanently.`,
                                   confirmLabel: 'Delete',
                                   onConfirm: () => handleDeleteSession(session.id),
                                   variant: 'danger',
@@ -219,19 +186,17 @@ export const Sidebar: FC = () => {
         )}
       </div>
 
-      <div className="p-4 border-t border-surface_light bg-black">
+      <div className="sidebar-footer">
         <button
           onClick={toggleSettings}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:bg-surface_light/50 hover:text-white transition-colors"
+          className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
         >
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-            <Icon name="User" size={18} />
+          <div className="avatar-sm bg-surface-hover">
+            {settings.userName ? settings.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>
           <div className="flex-1 text-left min-w-0">
-            <div className="text-sm font-bold truncate">{settings.userName || 'Local User'}</div>
-            <div className="text-xs text-zinc-600 uppercase tracking-wider">Personal Space</div>
+            <div className="text-sm font-medium truncate">{settings.userName || 'User'}</div>
           </div>
-          <Icon name="Settings" size={16} />
         </button>
       </div>
       {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}

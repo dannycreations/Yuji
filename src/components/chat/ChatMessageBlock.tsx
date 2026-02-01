@@ -1,9 +1,10 @@
+import clsx from 'clsx';
 import mermaid from 'mermaid';
 import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-import { Icon } from './shared/Icon';
+import { Icon } from '../shared/Icon';
 
 import type { FC } from 'react';
 
@@ -49,7 +50,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   return <div ref={containerRef} className="flex justify-center p-6 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />;
 };
 
-export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
+export const ChatMessageBlock: FC<CodeBlockProps> = ({ language, value }) => {
   const [copied, setCopied] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isMermaid = language === 'mermaid';
@@ -74,18 +75,20 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
 
   const renderHeader = () => (
     <div
-      className="flex items-center justify-between px-4 py-1.5 bg-zinc-900/50 border-b border-white/[0.05] cursor-pointer select-none group/cbheader transition-colors"
+      className={clsx(
+        'flex items-center justify-between px-4 py-1.5 bg-code-header border-b select-none group/cbheader transition-colors cursor-pointer',
+        isCollapsed ? 'border-b-transparent' : 'border-b-separator',
+      )}
       onClick={() => setIsCollapsed(!isCollapsed)}
-      style={{ borderBottomColor: isCollapsed ? 'transparent' : undefined }}
     >
       <div className="flex items-center gap-2">
         <div
-          className="p-1.5 rounded-md text-zinc-500 group-hover/cbheader:text-zinc-300 transition-colors"
+          className="p-1.5 rounded-md text-code-text-muted group-hover/cbheader:text-code-text-active transition-colors"
           title={isCollapsed ? 'Expand' : 'Collapse'}
         >
           <Icon name={isCollapsed ? 'ChevronDown' : 'ChevronUp'} size={14} />
         </div>
-        <span className="text-xs font-medium text-zinc-500 lowercase tracking-wider group-hover/cbheader:text-zinc-300 transition-colors">
+        <span className="text-xs font-medium text-code-text-muted lowercase tracking-wider group-hover/cbheader:text-code-text-active transition-colors">
           {isMermaid ? 'diagram' : language || 'code'}
         </span>
       </div>
@@ -93,7 +96,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
         {!isMermaid && (
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors"
             title="Download"
           >
             <Icon name="Download" size={14} />
@@ -101,7 +104,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
         )}
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors"
+          className="p-1.5 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors"
           title={copied ? 'Copied' : 'Copy'}
         >
           <Icon name={copied ? 'Check' : 'Copy'} size={14} className={copied ? 'text-emerald-500' : ''} />
@@ -111,7 +114,7 @@ export const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
   );
 
   return (
-    <div className="my-1 border border-white/10 rounded-xl overflow-hidden bg-[#0d0d0d] shadow-lg w-full">
+    <div className="my-1 border border-line rounded-xl overflow-hidden bg-code shadow-lg w-full">
       {renderHeader()}
       {!isCollapsed && (
         <div className="relative">
