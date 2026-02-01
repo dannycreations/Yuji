@@ -76,7 +76,7 @@ export const ConfirmModal: FC = () => {
           <button
             onClick={handleConfirm}
             className={clsx(
-              'btn-primary !rounded-full !px-5 !py-2.5 !font-semibold',
+              'btn-primary !rounded-full !px-3 !py-2 !font-semibold',
               variant === 'danger' && '!bg-danger hover:!bg-red-600 !text-white',
               variant === 'warning' && '!bg-amber-500 hover:!bg-amber-600 !text-white',
               variant === 'info' && '!bg-primary !text-black',

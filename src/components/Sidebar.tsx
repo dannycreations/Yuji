@@ -9,6 +9,7 @@ import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
+import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
 import type { AppState, ChatSession, ConfirmState } from '../app/Schema';
@@ -123,23 +124,19 @@ export const Sidebar: FC = () => {
       </div>
 
       <div className="px-3 mb-2">
-        <div className="relative flex items-center group">
-          <Icon name="Search" size={18} className="absolute left-2 text-text-tertiary group-focus-within:text-text-secondary transition-colors" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search sessions..."
-            className="w-full bg-surface/50 border border-transparent focus:border-line/30 focus:bg-surface rounded-xl py-2 pl-9 pr-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary transition-all"
-          />
-        </div>
+        <InputSearch
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search sessions..."
+          className="py-2 bg-surface/50 border-transparent focus:border-line/30 focus:bg-surface"
+        />
       </div>
 
       <div className="sidebar-content">
         {Object.entries(groupedSessions).map(
           ([label, group]) =>
             group.length > 0 && (
-              <div key={label} className="mb-4">
+              <div key={label} className="mb-3">
                 <h3 className="label-caps px-2 py-2 mb-1">{label}</h3>
                 <div className="sidebar-session-list">
                   {group.map((session) => (

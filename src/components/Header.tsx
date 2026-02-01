@@ -8,7 +8,7 @@ import { useAction, useStore } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { toTitleCase } from '../utilities/CommonUtil';
 import { Icon } from './shared/Icon';
-import { InputText } from './shared/InputArea';
+import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
 import type { AppState, Model } from '../app/Schema';
@@ -41,16 +41,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
   return (
     <div className="model-picker-dropdown">
       <div className="model-picker-header">
-        <div className="relative group">
-          <InputText
-            leftIcon="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search models..."
-            className="input-sm"
-            autoFocus
-          />
-        </div>
+        <InputSearch value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search models..." className="input-sm" autoFocus />
       </div>
 
       <div className="model-picker-list">
@@ -70,14 +61,14 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
               <span className="model-picker-item-title block">{toTitleCase(model.name)}</span>
               <div className="text-[10px] text-text-secondary leading-tight line-clamp-1 group-hover:text-text-secondary/80">{model.id}</div>
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
               {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
               {currentModel === model.id && <Icon name="Check" size={18} className="text-primary" />}
             </div>
           </button>
         ))}
-        {filtered.length === 0 && <div className="p-4 text-center text-xs text-text-secondary">No models found</div>}
+        {filtered.length === 0 && <div className="p-3 text-center text-xs text-text-secondary">No models found</div>}
       </div>
     </div>
   );

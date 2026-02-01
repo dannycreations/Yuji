@@ -202,11 +202,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
           >
             <div className="message-actions">
               {siblings.length > 1 && (
-                <div className="flex items-center gap-0.5 text-text-primary select-none font-medium">
+                <div className="flex items-center gap-1 text-text-primary select-none font-medium">
                   <button disabled={currentIndex === 0} onClick={() => handleSwitchBranch(siblings[currentIndex - 1])} className="btn-icon">
                     <Icon name="ChevronLeft" size={16} />
                   </button>
-                  <span className="text-sm tabular-nums mx-0.5">
+                  <span className="text-sm tabular-nums mx-1">
                     {currentIndex + 1}/{siblings.length}
                   </span>
                   <button

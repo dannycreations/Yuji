@@ -153,15 +153,15 @@
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-primary text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-3 py-2 bg-primary text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 text-sm font-medium text-text-primary bg-surface-hover rounded-full hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-3 py-2 text-sm font-medium text-text-primary bg-surface-hover rounded-full hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-danger {
-    @apply px-4 py-2 text-sm font-medium text-white bg-danger hover:bg-red-600 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-3 py-2 text-sm font-medium text-white bg-danger hover:bg-red-600 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .input-base {
@@ -172,7 +172,10 @@
   }
 
   .chat-input-textarea {
-    @apply bg-transparent border-none focus:border-none px-4 py-4 text-sm font-sans shadow-none outline-none;
+    @apply bg-transparent! border-none! focus:border-none! px-3 py-3 text-sm font-sans shadow-none outline-none ring-0!;
+    &:hover {
+      @apply bg-transparent!;
+    }
   }
 
   .input-switch {
@@ -205,7 +208,7 @@
   }
 
   .model-picker-list {
-    @apply overflow-y-auto max-h-[320px] p-2 space-y-0.5 overscroll-y-contain;
+    @apply overflow-y-auto max-h-[320px] p-2 space-y-1 overscroll-y-contain;
     &::-webkit-scrollbar {
       @apply w-2.5 h-2.5;
     }
@@ -247,7 +250,7 @@
   }
 
   .sidebar-session-list {
-    @apply space-y-0.5;
+    @apply space-y-1;
   }
 
   .sidebar-session-item {
@@ -259,7 +262,7 @@
   }
 
   .sidebar-session-title {
-    @apply flex-1 truncate pr-6 relative overflow-hidden;
+    @apply flex-1 truncate pr-3 relative overflow-hidden;
   }
 
   .sidebar-session-fade {
@@ -270,7 +273,7 @@
   }
 
   .chat-input-attachments {
-    @apply flex gap-2.5 px-4 pt-3.5 overflow-x-auto;
+    @apply flex gap-2 px-3 pt-3 overflow-x-auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
     &::-webkit-scrollbar {
@@ -288,7 +291,7 @@
 
   /* Modal Overlay */
   .modal-overlay {
-    @apply fixed inset-0 z-50 flex items-center justify-center bg-overlay backdrop-blur-sm p-4;
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-overlay backdrop-blur-sm p-3;
   }
 
   .modal-container {
@@ -300,11 +303,11 @@
   }
 
   .confirm-modal-content {
-    @apply px-6 pt-6 pb-4;
+    @apply px-3 pt-3 pb-3;
   }
 
   .confirm-modal-title {
-    @apply text-[20px] font-semibold text-text-primary mb-5;
+    @apply text-[20px] font-semibold text-text-primary mb-3;
   }
 
   .confirm-modal-message {
@@ -312,19 +315,19 @@
   }
 
   .confirm-modal-actions {
-    @apply flex justify-end px-6 pb-6 gap-3;
+    @apply flex justify-end px-3 pb-3 gap-3;
   }
 
   .chat-container {
-    @apply max-w-chat mx-auto w-full px-4 md:px-0;
+    @apply max-w-chat mx-auto w-full px-3 md:px-0;
   }
 
   .chat-empty-container {
-    @apply flex flex-col items-center justify-center p-6 min-h-full animate-fade-in max-w-chat mx-auto w-full px-4 md:px-0;
+    @apply flex flex-col items-center justify-center p-3 min-h-full animate-fade-in max-w-chat mx-auto w-full px-3 md:px-0;
   }
 
   .chat-empty-icon-wrapper {
-    @apply w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator mb-4;
+    @apply w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator mb-3;
   }
 
   .chat-empty-title {
@@ -348,11 +351,11 @@
   }
 
   .badge {
-    @apply px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider;
+    @apply px-1 py-1 rounded text-xs font-bold uppercase tracking-wider;
   }
 
   .badge-primary {
-    @apply px-1.5 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary;
+    @apply px-1 py-1 rounded text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary;
   }
 
   .label-caps {
@@ -370,34 +373,34 @@
   }
 
   .panel-section {
-    @apply py-4 border-b border-separator last:border-b-0;
+    @apply py-3 border-b border-separator last:border-b-0;
   }
 
   .prose-chat {
     @apply max-w-none text-text-primary text-sm font-sans w-full;
     & p {
-      @apply leading-7 mb-4 last:mb-0;
+      @apply leading-7 mb-3 last:mb-0;
     }
     & li {
       @apply leading-7;
     }
     & ul {
-      @apply list-disc pl-4 space-y-1 my-4;
+      @apply list-disc pl-3 space-y-1 my-3;
     }
     & ol {
-      @apply list-decimal pl-4 space-y-1 my-4;
+      @apply list-decimal pl-3 space-y-1 my-3;
     }
     & h1 {
-      @apply text-xl font-bold mt-6 mb-4;
+      @apply text-xl font-bold mt-3 mb-3;
     }
     & h2 {
-      @apply text-lg font-bold mt-5 mb-3;
+      @apply text-lg font-bold mt-3 mb-3;
     }
     & h3 {
-      @apply text-sm font-bold mt-4 mb-2;
+      @apply text-sm font-bold mt-3 mb-2;
     }
     & blockquote {
-      @apply border-l-2 border-highlight pl-4 my-4 text-text-secondary;
+      @apply border-l-2 border-highlight pl-3 my-3 text-text-secondary;
     }
     & a {
       @apply text-primary hover:underline;
@@ -405,7 +408,7 @@
   }
 
   .prose-table-container {
-    @apply overflow-x-auto my-4 rounded-lg border border-line;
+    @apply overflow-x-auto my-3 rounded-lg border border-line;
   }
 
   .prose-table {
@@ -413,15 +416,15 @@
   }
 
   .prose-th {
-    @apply px-4 py-2 bg-separator text-left text-sm font-semibold text-text-primary;
+    @apply px-3 py-2 bg-separator text-left text-sm font-semibold text-text-primary;
   }
 
   .prose-td {
-    @apply px-4 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-separator;
+    @apply px-3 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-separator;
   }
 
   .code-inline {
-    @apply bg-line px-1.5 py-0.5 rounded text-[0.9em] font-mono;
+    @apply bg-line px-1 py-1 rounded text-[0.9em] font-mono;
   }
 
   .code-block-container {
@@ -429,7 +432,7 @@
   }
 
   .code-block-header {
-    @apply flex items-center justify-between px-4 py-1.5 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md;
+    @apply flex items-center justify-between px-3 py-1 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md;
     &.collapsed {
       @apply border-b-transparent;
     }
@@ -446,14 +449,14 @@
   }
 
   .code-block-header-icon {
-    @apply p-1.5 rounded-md text-code-text-muted transition-colors;
+    @apply p-1 rounded-md text-code-text-muted transition-colors;
     .code-block-header:hover & {
       @apply text-code-text-active;
     }
   }
 
   .code-block-header-btn {
-    @apply p-1.5 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors;
+    @apply p-1 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors;
   }
 
   .code-block-content {
@@ -474,7 +477,7 @@
   }
 
   .header-model-button {
-    @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface transition-colors text-lg font-bold text-text-primary;
+    @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors text-lg font-bold text-text-primary;
   }
 
   /* Chat Interface */
@@ -483,11 +486,11 @@
   }
 
   .suggestion-grid {
-    @apply grid grid-cols-2 gap-4 w-full;
+    @apply grid grid-cols-2 gap-3 w-full;
   }
 
   .suggestion-item {
-    @apply flex flex-col gap-2 p-4 rounded-xl bg-surface/40 border border-separator hover:bg-surface-hover transition-all text-left;
+    @apply flex flex-col gap-2 p-3 rounded-xl bg-surface/40 border border-separator hover:bg-surface-hover transition-all text-left;
     & .suggestion-item-icon {
       @apply text-text-secondary;
     }
@@ -501,11 +504,11 @@
 
   /* Messages */
   .message-list-container {
-    @apply flex flex-col pb-4;
+    @apply flex flex-col pb-3;
   }
 
   .message-row {
-    @apply max-w-chat mx-auto w-full px-4 md:px-0 py-2 flex gap-4 md:gap-6 text-text-primary;
+    @apply max-w-chat mx-auto w-full px-3 md:px-0 py-2 flex gap-3 md:gap-3 text-text-primary;
     &.user {
       @apply justify-end;
     }
@@ -532,7 +535,7 @@
   }
 
   .message-bubble-user {
-    @apply bg-surface px-5 py-2.5 rounded-3xl break-words max-w-full;
+    @apply bg-surface px-3 py-2 rounded-3xl break-words max-w-full;
   }
 
   .message-bubble-assistant {
@@ -540,7 +543,7 @@
   }
 
   .message-thinking-container {
-    @apply flex items-center gap-1.5 py-1;
+    @apply flex items-center gap-1 py-1;
   }
 
   .message-thinking-dot {
@@ -573,7 +576,7 @@
   }
 
   .chat-input-wrapper {
-    @apply w-full max-w-chat mx-auto px-4 pb-4 pt-2 z-chat-input;
+    @apply w-full max-w-chat mx-auto px-3 pb-3 pt-2 z-chat-input;
   }
 
   .chat-input-container {
@@ -589,7 +592,7 @@
   }
 
   .chat-input-attachment-remove {
-    @apply absolute top-0.5 right-0.5 bg-overlay text-white rounded-full p-0.5 opacity-0 transition-opacity;
+    @apply absolute top-0.5 right-0.5 bg-overlay text-white rounded-full p-1 opacity-0 transition-opacity;
   }
   .chat-input-attachment-item:hover .chat-input-attachment-remove {
     @apply opacity-100;
@@ -611,16 +614,16 @@
 
   /* Select/Dropdown */
   .select-base {
-    @apply w-full appearance-none bg-surface border border-transparent rounded-xl px-4 py-3 text-sm text-text-primary outline-none focus:border-line transition-all;
+    @apply w-full appearance-none bg-surface border border-transparent rounded-xl px-3 py-3 text-sm text-text-primary outline-none focus:border-line transition-all;
   }
 
   /* Settings */
   .settings-main-content {
-    @apply flex-1 flex flex-col min-w-0 bg-background relative px-8 py-6;
+    @apply flex-1 flex flex-col min-w-0 bg-background relative px-3 py-3;
   }
 
   .settings-section-title {
-    @apply text-sm font-medium text-text-primary mb-4;
+    @apply text-sm font-medium text-text-primary mb-3;
   }
 
   .settings-label {
@@ -628,7 +631,7 @@
   }
 
   .settings-info-box {
-    @apply text-sm text-text-secondary leading-relaxed bg-surface-hover/50 p-4 rounded-xl border border-line;
+    @apply text-sm text-text-secondary leading-relaxed bg-surface-hover/50 p-3 rounded-xl border border-line;
   }
 
   .settings-history-table {
@@ -636,11 +639,11 @@
   }
 
   .settings-history-header {
-    @apply flex items-center px-4 py-3 border-b border-separator bg-line;
+    @apply flex items-center px-3 py-3 border-b border-separator bg-line;
   }
 
   .settings-history-row {
-    @apply flex items-center px-4 py-3.5 hover:bg-separator transition-colors;
+    @apply flex items-center px-3 py-3 hover:bg-separator transition-colors;
   }
 
   .settings-history-row-active {

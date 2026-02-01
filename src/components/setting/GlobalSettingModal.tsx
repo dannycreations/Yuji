@@ -11,7 +11,7 @@ import { StoreService } from '../../services/StoreService';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Icon } from '../shared/Icon';
-import { InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
+import { InputSearch, InputSelect, InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 
 import type { ChangeEvent, FC } from 'react';
@@ -271,17 +271,14 @@ export const GlobalSettingModal: FC = () => {
         return (
           <div className="space-y-3 animate-fade-in">
             <div className="space-y-2">
-              <label className="label-caps">API Provider</label>
-              <div className="relative">
-                <select className="select-base" value="openai" disabled>
-                  <option value="openai">OpenAI Compatible</option>
-                </select>
-                <Icon name="ChevronDown" size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
-              </div>
+              <label className="settings-label">API Provider</label>
+              <InputSelect value="openai" disabled>
+                <option value="openai">OpenAI Compatible</option>
+              </InputSelect>
             </div>
 
             <div className="space-y-2">
-              <label className="label-caps">Base URL</label>
+              <label className="settings-label">Base URL</label>
               <InputText
                 leftIcon="Link"
                 value={settings.baseUrl}
@@ -292,7 +289,7 @@ export const GlobalSettingModal: FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="label-caps">API Key</label>
+              <label className="settings-label">API Key</label>
               <InputText
                 type="password"
                 leftIcon="Key"
@@ -309,11 +306,11 @@ export const GlobalSettingModal: FC = () => {
           <div className="space-y-3 animate-fade-in h-full flex flex-col">
             <div className="flex-shrink-0 flex gap-2">
               <div className="flex-1">
-                <InputText leftIcon="Search" value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
+                <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
               </div>
               <button
                 onClick={handleRefreshModels}
-                className="flex items-center gap-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl badge transition-colors border border-separator cursor-pointer"
+                className="flex items-center gap-2 px-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl badge transition-colors border border-separator cursor-pointer"
                 title="Refresh Library"
               >
                 <Icon name="RefreshCw" size={14} />
@@ -336,7 +333,7 @@ export const GlobalSettingModal: FC = () => {
                     >
                       <div
                         className={clsx(
-                          'p-2.5 rounded-lg flex-shrink-0',
+                          'p-2 rounded-lg flex-shrink-0',
                           isEnabled ? clsx('bg-surface/50', model.color || 'text-text-secondary') : 'bg-surface/50 text-text-secondary/50',
                         )}
                       >
@@ -351,7 +348,7 @@ export const GlobalSettingModal: FC = () => {
                           {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                         </div>
                         <div className="text-[10px] text-text-secondary/80 font-mono leading-tight">{model.id}</div>
-                        {model.description && <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">{model.description}</p>}
+                        {model.description && <p className="text-xs text-text-secondary line-clamp-1 mt-1">{model.description}</p>}
                       </div>
 
                       <InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />
@@ -359,7 +356,7 @@ export const GlobalSettingModal: FC = () => {
                   );
                 })
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-text-secondary bg-line rounded-xl border border-dashed border-separator">
+                <div className="flex flex-col items-center justify-center py-3 text-text-secondary bg-line rounded-xl border border-dashed border-separator">
                   <Icon name="Search" size={24} className="mb-2 opacity-50" />
                   <p className="text-sm">No models match "{modelSearch}"</p>
                 </div>
@@ -372,8 +369,6 @@ export const GlobalSettingModal: FC = () => {
         return (
           <div className="space-y-3 animate-fade-in">
             <div className="space-y-3">
-              <h3 className="settings-section-title">About you</h3>
-
               <div className="space-y-2">
                 <label className="settings-label">Nickname</label>
                 <InputText
@@ -438,7 +433,7 @@ export const GlobalSettingModal: FC = () => {
                   {selectedSessionIds.size > 0 && (
                     <button
                       onClick={handleDeleteSelected}
-                      className="flex items-center gap-1.5 px-2 py-1 bg-danger/10 hover:bg-danger/20 border border-danger/20 rounded-md text-xs font-bold text-danger transition-colors uppercase tracking-wide cursor-pointer"
+                      className="flex items-center gap-1 px-2 py-1 bg-danger/10 hover:bg-danger/20 border border-danger/20 rounded-md text-xs font-bold text-danger transition-colors uppercase tracking-wide cursor-pointer"
                     >
                       <Icon name="Trash2" size={12} />
                       Delete ({selectedSessionIds.size})
@@ -446,14 +441,14 @@ export const GlobalSettingModal: FC = () => {
                   )}
                   <button
                     onClick={handleExport}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
+                    className="flex items-center gap-1 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
                   >
                     <Icon name="Upload" size={12} />
                     Export {selectedSessionIds.size > 0 ? `(${selectedSessionIds.size})` : ''}
                   </button>
                   <button
                     onClick={handleImportClick}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
+                    className="flex items-center gap-1 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
                   >
                     <Icon name="Download" size={12} />
                     Import
@@ -476,9 +471,9 @@ export const GlobalSettingModal: FC = () => {
                           <Icon name="Check" size={12} strokeWidth={4} />
                         </button>
                       </div>
-                      <div className="flex-1 min-w-0 pr-4">
+                      <div className="flex-1 min-w-0 pr-3">
                         <div className="text-sm text-text-primary font-medium truncate">{session.title}</div>
-                        <div className="text-xs text-text-secondary font-mono mt-0.5">{session.id}</div>
+                        <div className="text-xs text-text-secondary font-mono mt-1">{session.id}</div>
                       </div>
                       <div className="text-xs text-text-secondary whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
                     </div>
@@ -501,7 +496,7 @@ export const GlobalSettingModal: FC = () => {
                   <button
                     onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
                     disabled={historyPage === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <Icon name="ChevronLeft" size={12} />
                     Prev
@@ -509,7 +504,7 @@ export const GlobalSettingModal: FC = () => {
                   <button
                     onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages - 1, p + 1))}
                     disabled={historyPage >= totalHistoryPages - 1}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    className="flex items-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     Next
                     <Icon name="ChevronRight" size={12} />

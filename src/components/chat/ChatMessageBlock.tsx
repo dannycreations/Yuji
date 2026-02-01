@@ -129,9 +129,9 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   return (
     <BaseMessageBlock label="diagram" value={code}>
       {error ? (
-        <pre className="p-4 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs">{code}</pre>
+        <pre className="p-3 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs">{code}</pre>
       ) : (
-        <div ref={containerRef} className="flex justify-center p-6 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
+        <div ref={containerRef} className="flex justify-center p-3 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
       )}
     </BaseMessageBlock>
   );

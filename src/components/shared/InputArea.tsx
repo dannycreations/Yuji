@@ -24,7 +24,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(({ classNa
           className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
         />
       )}
-      <input ref={ref} className={clsx('input-base', leftIcon ? 'pl-10' : 'pl-4', rightIcon ? 'pr-10' : 'pr-4', className)} {...props} />
+      <input ref={ref} className={clsx('input-base', leftIcon ? 'pl-9' : 'pl-3', rightIcon ? 'pr-9' : 'pr-3', className)} {...props} />
       {rightIcon && (
         <Icon
           name={rightIcon}
@@ -32,6 +32,29 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(({ classNa
           className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
         />
       )}
+    </div>
+  );
+});
+
+export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>((props, ref) => {
+  return <InputText ref={ref} leftIcon="Search" {...props} />;
+});
+
+interface InputSelectProps extends ComponentProps<'select'> {
+  readonly containerClassName?: string;
+}
+
+export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ className, containerClassName, children, ...props }, ref) => {
+  return (
+    <div className={clsx('relative group', containerClassName)}>
+      <select ref={ref} className={clsx('select-base', className)} {...props}>
+        {children}
+      </select>
+      <Icon
+        name="ChevronDown"
+        size={14}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
+      />
     </div>
   );
 });
@@ -59,5 +82,5 @@ export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled 
 };
 
 export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ className, ...props }, ref) => {
-  return <TextareaAutosize ref={ref} className={clsx('input-base px-4 resize-none overflow-hidden', className)} {...props} />;
+  return <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none overflow-hidden', className)} {...props} />;
 });
