@@ -94,7 +94,6 @@ export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
 export const Settings = Schema.Struct({
   apiKey: Schema.String,
   baseUrl: Schema.String,
-  defaultSystemPrompt: Schema.String,
   defaultModel: Schema.String,
   theme: Schema.Literal('dark', 'light'),
   enterToSend: Schema.Boolean,

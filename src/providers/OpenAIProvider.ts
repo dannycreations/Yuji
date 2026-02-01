@@ -53,19 +53,14 @@ export const OpenAIProviderLive = Layer.effect(
     const client = yield* HttpClient.HttpClient;
 
     return LLMProvider.of({
-      streamCompletion: (messages, systemPrompt, settings, config, sessionPrompt, overrideGlobal) => {
-        const effectiveSystemPrompt =
-          sessionPrompt && overrideGlobal === false
-            ? `${systemPrompt}\n\nAdditional instructions for this chat:\n${sessionPrompt}`
-            : sessionPrompt || systemPrompt;
-
+      streamCompletion: (messages, settings, config, systemPrompt) => {
         const body = {
           model: config.model,
-          messages: createApiMessages(messages, effectiveSystemPrompt),
+          messages: createApiMessages(messages, systemPrompt),
           temperature: config.temperature,
-          stream: true,
           max_tokens: config.maxTokens,
           top_p: config.topP,
+          stream: true,
         };
 
         return HttpClientRequest.post(`${settings.baseUrl}/chat/completions`).pipe(
@@ -96,8 +91,8 @@ export const OpenAIProviderLive = Layer.effect(
                         const delta = data.choices[0]?.delta;
                         if (!delta) return Option.none();
 
-                        const token = (delta.content as string | undefined) || '';
-                        const reasoning = (delta.reasoning_content as string | undefined) || '';
+                        const token = delta.content || '';
+                        const reasoning = delta.reasoning_content || '';
 
                         if (reasoning) {
                           return Option.some(` <reasoning>${reasoning}</reasoning> `);

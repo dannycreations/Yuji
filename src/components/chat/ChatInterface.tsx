@@ -5,7 +5,7 @@ import { INITIAL_GREETING, SUGGESTIONS } from '../../app/Constant';
 import { LLMProviderError } from '../../app/Error';
 import { YujiRuntime } from '../../app/Yuji';
 import { useStore } from '../../hooks/useStore';
-import { LLMProvider } from '../../providers/LLMProvider';
+import { LLMProvider, synthesizeSystemPrompt } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
 import { PlatformService } from '../../services/PlatformService';
 import { StoreService } from '../../services/StoreService';
@@ -22,6 +22,7 @@ import type { AppState, Attachment, Message } from '../../app/Schema';
 export const ChatInterface: FC = () => {
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
   const sessions = useStore((s: AppState) => s.sessions, {});
+  const userName = useStore((s: AppState) => s.settings.userName, '');
 
   const [isLoading, setIsLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -137,13 +138,13 @@ export const ChatInterface: FC = () => {
       const streamEffect = Effect.gen(function* () {
         yield* chat.addMessage(sessionId, assistantMessage);
 
+        const systemPrompt = synthesizeSystemPrompt(latestSettings, session.systemPrompt, session.overrideGlobalPrompt);
+
         const stream = yield* llm.streamCompletion(
           messagesToProcess,
-          latestSettings.defaultSystemPrompt,
           latestSettings,
           session.modelConfig || { provider: 'openai', model: latestSettings.defaultModel, temperature: 0.7 },
-          session.systemPrompt,
-          session.overrideGlobalPrompt,
+          systemPrompt,
         );
 
         let fullContent = '';
@@ -266,7 +267,9 @@ export const ChatInterface: FC = () => {
               <div className="chat-empty-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
-              <h1 className="chat-empty-title">{INITIAL_GREETING}</h1>
+              <h1 className="chat-empty-title">
+                {INITIAL_GREETING.replace('{{0}}', userName.trim() ? `, ${userName.trim().split(/\s+/)[0]}` : ' today')}
+              </h1>
             </div>
 
             <div className="suggestion-grid">

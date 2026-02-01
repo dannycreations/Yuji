@@ -107,29 +107,6 @@ export const GlobalSettingModal: FC = () => {
     }
   }, [isSettingsOpen]);
 
-  useEffect(() => {
-    if (activeTab === 'persona') {
-      const parts: string[] = [];
-      parts.push('You are a helpful, intelligent, and precise AI assistant.');
-      if (settings.userName) parts.push(`The user's name is ${settings.userName}.`);
-      if (settings.userOccupation) parts.push(`The user acts as a ${settings.userOccupation}.`);
-      if (settings.assistantTraits && settings.assistantTraits.length > 0) {
-        parts.push(`You should act ${settings.assistantTraits.join(', ')}.`);
-      }
-      if (settings.additionalContext) {
-        parts.push(`\nAdditional Context:\n${settings.additionalContext}`);
-      }
-      parts.push(
-        '\nYou answer questions accurately using Markdown formatting. Support LaTeX math using $ and $$ delimiters, and Mermaid diagrams using ```mermaid blocks.',
-      );
-
-      const newSystemPrompt = parts.join(' ');
-      if (newSystemPrompt !== settings.defaultSystemPrompt) {
-        updateSettings({ defaultSystemPrompt: newSystemPrompt });
-      }
-    }
-  }, [settings.userName, settings.userOccupation, settings.assistantTraits, settings.additionalContext]);
-
   if (!isSettingsOpen) return null;
 
   const handleExport = () => {

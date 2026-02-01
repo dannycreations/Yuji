@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, SubscriptionRef } from 'effect';
 
+import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
 import { PlatformService } from './PlatformService';
 import { StoreService } from './StoreService';
@@ -42,7 +43,7 @@ export const ChatServiceLive = Layer.effect(
             messages: [],
             createdAt: now,
             updatedAt: now,
-            systemPrompt: settings.defaultSystemPrompt,
+            systemPrompt: DEFAULT_SYSTEM_PROMPT,
             modelConfig: {
               provider: 'openai',
               model: effectiveDefaultModel,
