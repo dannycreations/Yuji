@@ -123,7 +123,7 @@ export const Sidebar: FC = () => {
             group.length > 0 && (
               <div key={label} className="mb-4">
                 <h3 className="label-caps px-2 py-2 mb-1">{label}</h3>
-                <div className="space-y-0.5">
+                <div className="sidebar-session-list">
                   {group.map((session) => (
                     <div
                       key={session.id}
@@ -150,7 +150,7 @@ export const Sidebar: FC = () => {
                         {menuOpenId === session.id && (
                           <div ref={menuRef} className="dropdown-menu right-0 top-full mt-1 w-40 py-1" onClick={(e) => e.stopPropagation()}>
                             <button
-                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-text-primary hover:bg-surface-hover transition-colors text-left"
+                              className="list-item-interactive !text-text-primary hover:bg-surface-hover"
                               onClick={() => {
                                 setSettingsOpenId(session.id);
                                 setMenuOpenId(null);
@@ -160,7 +160,7 @@ export const Sidebar: FC = () => {
                               Settings
                             </button>
                             <button
-                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-danger hover:bg-surface-hover transition-colors text-left"
+                              className="list-item-interactive !text-danger hover:bg-surface-hover"
                               onClick={() => {
                                 showConfirm({
                                   title: 'Delete chat?',
@@ -197,7 +197,7 @@ export const Sidebar: FC = () => {
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.userName || 'User'}</div>
           </div>
-          <div className="text-text-tertiary">
+          <div className="text-text-tertiary flex items-center">
             <Icon name="Settings" size={16} />
           </div>
         </button>

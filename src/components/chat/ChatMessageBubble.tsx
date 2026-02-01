@@ -107,29 +107,24 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   };
 
   return (
-    <div className="group w-full text-text-primary">
-      <div className={clsx('message-row', isUser && 'message-row-user')}>
-        <div className={clsx('message-container', isUser ? 'message-container-user' : 'message-container-assistant')}>
-          <div className={clsx('flex-1 min-w-0 flex flex-col w-full', isUser ? 'items-end' : 'items-start')}>
+    <div className="group w-full">
+      <div className={clsx('message-row', isUser && 'user')}>
+        <div className={clsx('message-container', isUser ? 'user' : 'assistant')}>
+          <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
             {message.attachments && message.attachments.length > 0 && (
               <div className="message-attachment-grid">
                 {message.attachments.map((att) => (
                   <div key={att.id} className="message-attachment-item">
-                    <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                    <img src={att.url} alt={att.name} className="message-attachment-img" />
                   </div>
                 ))}
               </div>
             )}
 
             {isEditing ? (
-              <div className="w-full bg-surface border border-line rounded-xl overflow-hidden animate-fade-in my-2">
-                <InputTextarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="bg-transparent border-none focus:border-none p-4 text-sm font-sans"
-                  minRows={2}
-                />
-                <div className="flex items-center justify-end gap-2 p-3 bg-surface-hover/50">
+              <div className="chat-input-edit-container">
+                <InputTextarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="chat-input-textarea" minRows={2} />
+                <div className="chat-input-edit-actions">
                   <button onClick={() => setIsEditing(false)} className="btn-secondary">
                     Cancel
                   </button>
@@ -139,12 +134,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                 </div>
               </div>
             ) : (
-              <div className={clsx('prose-chat break-words max-w-full', isUser ? 'message-bubble-user' : 'w-full')}>
+              <div className={clsx('prose-chat', isUser ? 'message-bubble-user' : 'message-bubble-assistant')}>
                 {isThinking && !message.content ? (
-                  <div className="flex items-center gap-1.5 py-1">
-                    <div className="w-2.5 h-2.5 bg-text-primary/40 rounded-full animate-pulse" />
-                    <div className="w-2.5 h-2.5 bg-text-primary/40 rounded-full animate-pulse [animation-delay:0.2s]" />
-                    <div className="w-2.5 h-2.5 bg-text-primary/40 rounded-full animate-pulse [animation-delay:0.4s]" />
+                  <div className="message-thinking-container">
+                    <div className="message-thinking-dot" />
+                    <div className="message-thinking-dot [animation-delay:0.2s]" />
+                    <div className="message-thinking-dot [animation-delay:0.4s]" />
                   </div>
                 ) : (
                   <ReactMarkdown
@@ -183,16 +178,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                       h3: ({ node, ...props }) => <h3 {...props} />,
                       blockquote: ({ node, ...props }) => <blockquote {...props} />,
                       table: ({ node, ...props }) => (
-                        <div className="overflow-x-auto my-4 rounded-lg border border-line">
-                          <table className="min-w-full divide-y divide-line" {...props} />
+                        <div className="prose-table-container">
+                          <table className="prose-table" {...props} />
                         </div>
                       ),
-                      th: ({ node, ...props }) => (
-                        <th className="px-4 py-2 bg-separator text-left text-sm font-semibold text-text-primary" {...props} />
-                      ),
-                      td: ({ node, ...props }) => (
-                        <td className="px-4 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-separator" {...props} />
-                      ),
+                      th: ({ node, ...props }) => <th className="prose-th" {...props} />,
+                      td: ({ node, ...props }) => <td className="prose-td" {...props} />,
                       p: ({ node, ...props }) => <p {...props} />,
                     }}
                   >

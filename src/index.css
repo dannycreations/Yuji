@@ -9,6 +9,7 @@
   --color-primary: #ffffff;
   --color-text-primary: #ececec;
   --color-text-secondary: #b4b4b4;
+  --color-text-tertiary: #71717a;
   --color-danger: #ef4444;
   --color-separator: rgba(255, 255, 255, 0.05);
   --color-line: rgba(255, 255, 255, 0.1);
@@ -130,8 +131,16 @@
 }
 
 @layer components {
+  /* Common Effects */
+  .shadow-glow-primary {
+    box-shadow: 0 0 8px var(--color-primary);
+  }
+
   .btn-icon {
-    @apply p-2 text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed;
+    @apply p-2 text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center;
+    &.active {
+      @apply text-text-primary bg-surface;
+    }
   }
 
   .btn-primary {
@@ -148,6 +157,29 @@
 
   .input-base {
     @apply w-full bg-surface border border-transparent rounded-xl py-3 text-sm text-text-primary outline-none focus:border-line transition-all placeholder:text-text-secondary;
+    &.input-sm {
+      @apply py-2 text-xs;
+    }
+  }
+
+  .chat-input-textarea {
+    @apply bg-transparent border-none focus:border-none px-4 py-4 text-sm font-sans shadow-none outline-none;
+  }
+
+  .input-switch {
+    @apply w-10 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary/50;
+    &.checked {
+      @apply bg-primary;
+    }
+    &.unchecked {
+      @apply bg-surface-hover;
+    }
+    & .input-switch-thumb {
+      @apply absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm;
+      &.checked {
+        @apply translate-x-4;
+      }
+    }
   }
 
   .card-interactive {
@@ -172,10 +204,18 @@
 
   .model-picker-item {
     @apply w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover;
-  }
-
-  .model-picker-item-active {
-    @apply bg-surface-hover border-separator;
+    & .model-picker-item-title {
+      @apply text-sm font-medium truncate text-text-secondary transition-colors;
+    }
+    &:hover .model-picker-item-title {
+      @apply text-text-primary;
+    }
+    &.active {
+      @apply bg-surface-hover border-separator;
+      & .model-picker-item-title {
+        @apply text-text-primary;
+      }
+    }
   }
 
   /* Sidebar */
@@ -197,6 +237,10 @@
     }
   }
 
+  .sidebar-session-list {
+    @apply space-y-0.5;
+  }
+
   .sidebar-session-item {
     @apply relative flex items-center rounded-lg px-2 py-2 text-sm transition-colors cursor-pointer text-text-primary hover:bg-surface;
   }
@@ -210,7 +254,19 @@
   }
 
   .sidebar-session-fade {
-    @apply absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-sidebar to-transparent group-hover:from-surface pointer-events-none;
+    @apply absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-sidebar to-transparent pointer-events-none;
+  }
+  .sidebar-session-item:hover .sidebar-session-fade {
+    @apply from-surface;
+  }
+
+  .chat-input-attachments {
+    @apply flex gap-2.5 px-4 pt-3.5 overflow-x-auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .sidebar-session-fade-active {
@@ -227,19 +283,55 @@
   }
 
   .modal-container {
-    @apply bg-[#212121] rounded-2xl shadow-2xl overflow-hidden border border-line;
+    @apply bg-background rounded-2xl shadow-2xl overflow-hidden border border-line;
+  }
+
+  .confirm-modal-container {
+    @apply w-full max-w-[440px] bg-background rounded-2xl shadow-2xl overflow-hidden border border-line;
+  }
+
+  .confirm-modal-content {
+    @apply px-6 pt-6 pb-4;
+  }
+
+  .confirm-modal-title {
+    @apply text-[20px] font-semibold text-text-primary mb-5;
+  }
+
+  .confirm-modal-message {
+    @apply text-[15px] text-text-primary leading-relaxed;
+  }
+
+  .confirm-modal-actions {
+    @apply flex justify-end px-6 pb-6 gap-3;
   }
 
   .chat-container {
     @apply max-w-chat mx-auto w-full px-4 md:px-0;
   }
 
+  .chat-empty-container {
+    @apply flex flex-col items-center justify-center p-6 min-h-full animate-fade-in max-w-chat mx-auto w-full px-4 md:px-0;
+  }
+
+  .chat-empty-icon-wrapper {
+    @apply w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator mb-4;
+  }
+
+  .chat-empty-title {
+    @apply text-2xl font-semibold text-text-primary text-center;
+  }
+
   .avatar-base {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors;
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors overflow-hidden;
   }
 
   .avatar-sm {
-    @apply w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-text-primary border border-separator transition-colors;
+    @apply w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-text-primary border border-separator transition-colors overflow-hidden;
+  }
+
+  .avatar-xs {
+    @apply w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-text-primary border border-separator transition-colors overflow-hidden;
   }
 
   .dropdown-menu {
@@ -256,14 +348,16 @@
 
   .label-caps {
     @apply text-xs font-bold text-text-secondary uppercase tracking-widest;
+    &.label-sm {
+      @apply text-[10px];
+    }
   }
 
   .list-item-interactive {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-separator hover:text-text-primary;
-  }
-
-  .list-item-interactive-active {
-    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer bg-highlight text-text-primary font-medium;
+    @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-separator hover:text-text-primary border-none outline-none;
+    &.active {
+      @apply bg-highlight text-text-primary font-medium;
+    }
   }
 
   .panel-section {
@@ -301,8 +395,60 @@
     }
   }
 
+  .prose-table-container {
+    @apply overflow-x-auto my-4 rounded-lg border border-line;
+  }
+
+  .prose-table {
+    @apply min-w-full divide-y divide-line;
+  }
+
+  .prose-th {
+    @apply px-4 py-2 bg-separator text-left text-sm font-semibold text-text-primary;
+  }
+
+  .prose-td {
+    @apply px-4 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-separator;
+  }
+
   .code-inline {
     @apply bg-line px-1.5 py-0.5 rounded text-[0.9em] font-mono;
+  }
+
+  .code-block-container {
+    @apply my-1 border border-line rounded-xl bg-code shadow-lg w-full flex-shrink-0 overflow-clip;
+  }
+
+  .code-block-header {
+    @apply flex items-center justify-between px-4 py-1.5 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md;
+    &.collapsed {
+      @apply border-b-transparent;
+    }
+    &.expanded {
+      @apply border-b-separator;
+    }
+  }
+
+  .code-block-header-label {
+    @apply text-xs font-medium text-code-text-muted lowercase tracking-wider transition-colors;
+    .code-block-header:hover & {
+      @apply text-code-text-active;
+    }
+  }
+
+  .code-block-header-icon {
+    @apply p-1.5 rounded-md text-code-text-muted transition-colors;
+    .code-block-header:hover & {
+      @apply text-code-text-active;
+    }
+  }
+
+  .code-block-header-btn {
+    @apply p-1.5 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors;
+  }
+
+  .code-block-content {
+    @apply relative overflow-hidden;
   }
 
   /* Layout */
@@ -318,6 +464,10 @@
     @apply flex items-center justify-between px-3 py-2 h-14 sticky top-0 z-10 bg-background/95 backdrop-blur;
   }
 
+  .header-model-button {
+    @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface transition-colors text-lg font-bold text-text-primary;
+  }
+
   /* Chat Interface */
   .chat-scroll-area {
     @apply flex-1 min-h-0 overflow-y-auto w-full;
@@ -329,31 +479,63 @@
 
   .suggestion-item {
     @apply flex flex-col gap-2 p-4 rounded-xl bg-surface/40 border border-separator hover:bg-surface-hover transition-all text-left;
+    & .suggestion-item-icon {
+      @apply text-text-secondary;
+    }
+    & .suggestion-item-label {
+      @apply font-medium text-text-primary text-sm;
+    }
+    & .suggestion-item-prompt {
+      @apply text-text-secondary text-xs line-clamp-2;
+    }
   }
 
   /* Messages */
-  .message-row {
-    @apply max-w-chat mx-auto w-full px-4 md:px-0 py-2 flex gap-4 md:gap-6;
+  .message-list-container {
+    @apply flex flex-col pb-4;
   }
 
-  .message-row-user {
-    @apply justify-end;
+  .message-row {
+    @apply max-w-chat mx-auto w-full px-4 md:px-0 py-2 flex gap-4 md:gap-6 text-text-primary;
+    &.user {
+      @apply justify-end;
+    }
   }
 
   .message-container {
     @apply flex flex-col min-w-0 max-w-[85%] w-full;
+    &.user {
+      @apply items-end;
+    }
+    &.assistant {
+      @apply items-start;
+    }
   }
 
-  .message-container-user {
-    @apply items-end;
-  }
-
-  .message-container-assistant {
-    @apply items-start;
+  .message-content-wrapper {
+    @apply flex-1 min-w-0 flex flex-col w-full;
+    &.user {
+      @apply items-end;
+    }
+    &.assistant {
+      @apply items-start;
+    }
   }
 
   .message-bubble-user {
-    @apply bg-surface px-5 py-2.5 rounded-3xl;
+    @apply bg-surface px-5 py-2.5 rounded-3xl break-words max-w-full;
+  }
+
+  .message-bubble-assistant {
+    @apply w-full;
+  }
+
+  .message-thinking-container {
+    @apply flex items-center gap-1.5 py-1;
+  }
+
+  .message-thinking-dot {
+    @apply w-2 bg-text-primary/40 rounded-full animate-pulse aspect-square;
   }
 
   .message-actions {
@@ -368,7 +550,19 @@
     @apply relative rounded-lg overflow-hidden border border-line w-40 h-28 bg-surface;
   }
 
+  .message-attachment-img {
+    @apply w-full h-full object-cover;
+  }
+
   /* Chat Input */
+  .chat-input-edit-container {
+    @apply w-full bg-surface border border-line rounded-xl overflow-hidden animate-fade-in my-2;
+  }
+
+  .chat-input-edit-actions {
+    @apply flex items-center justify-end gap-2 p-3 bg-surface-hover/50;
+  }
+
   .chat-input-wrapper {
     @apply w-full max-w-chat mx-auto px-4 pb-4 pt-2 z-chat-input;
   }
@@ -377,12 +571,45 @@
     @apply relative flex flex-col w-full bg-surface rounded-[26px] transition-all overflow-visible border border-transparent focus-within:border-line;
   }
 
+  .chat-input-attachment-item {
+    @apply relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border border-line;
+  }
+
+  .chat-input-attachment-img {
+    @apply w-full h-full object-cover;
+  }
+
+  .chat-input-attachment-remove {
+    @apply absolute top-0.5 right-0.5 bg-overlay text-white rounded-full p-0.5 opacity-0 transition-opacity;
+  }
+  .chat-input-attachment-item:hover .chat-input-attachment-remove {
+    @apply opacity-100;
+  }
+
+  .chat-input-actions {
+    @apply flex items-center justify-between px-2 pb-2 relative;
+  }
+
+  .chat-input-submit {
+    @apply p-2 rounded-full transition-all duration-200;
+    &.active {
+      @apply bg-text-primary text-background hover:opacity-90;
+    }
+    &.inactive {
+      @apply bg-surface-hover text-text-secondary cursor-not-allowed;
+    }
+  }
+
   /* Select/Dropdown */
   .select-base {
     @apply w-full appearance-none bg-surface border border-transparent rounded-xl px-4 py-3 text-sm text-text-primary outline-none focus:border-line transition-all;
   }
 
   /* Settings */
+  .settings-main-content {
+    @apply flex-1 flex flex-col min-w-0 bg-background relative px-8 py-6;
+  }
+
   .settings-section-title {
     @apply text-sm font-medium text-text-primary mb-4;
   }
@@ -409,6 +636,24 @@
 
   .settings-history-row-active {
     @apply bg-line;
+  }
+
+  /* Checkbox/Selection */
+  .checkbox-base {
+    @apply w-4 h-4 rounded border flex items-center justify-center transition-all;
+    &.checked {
+      @apply bg-primary border-primary text-white;
+    }
+    &.unchecked {
+      @apply border-highlight bg-surface/50 text-transparent;
+    }
+  }
+
+  .checkbox-header {
+    @apply border-highlight bg-black/50 text-transparent;
+    &.checked {
+      @apply bg-primary border-primary text-white;
+    }
   }
 }
 

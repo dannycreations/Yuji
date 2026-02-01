@@ -59,30 +59,27 @@ export const ConfirmModal: FC = () => {
 
   return (
     <div className={clsx('modal-overlay z-[100]', isClosing ? 'animate-fade-out' : 'animate-fade-in')}>
-      <div ref={containerRef} className={clsx('w-full max-w-[440px] modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up')}>
-        <div className="px-6 pt-6 pb-4">
-          <h3 className="text-[20px] font-semibold text-text-primary mb-5">{title}</h3>
-          <div className="text-[15px] text-text-primary leading-relaxed">
+      <div ref={containerRef} className={clsx('confirm-modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up')}>
+        <div className="confirm-modal-content">
+          <h3 className="confirm-modal-title">{title}</h3>
+          <div className="confirm-modal-message">
             {message
               .split(/(\*\*.*?\*\*)/)
               .map((part, i) => (part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part))}
           </div>
         </div>
 
-        <div className="flex justify-end px-6 pb-6 gap-3">
-          <button
-            onClick={handleCancel}
-            className="px-5 py-2.5 text-[14px] font-semibold text-text-primary bg-[#424242] hover:bg-[#4d4d4d] rounded-full transition-colors"
-          >
+        <div className="confirm-modal-actions">
+          <button onClick={handleCancel} className="btn-secondary">
             {cancelLabel}
           </button>
           <button
             onClick={handleConfirm}
             className={clsx(
-              'px-5 py-2.5 text-[14px] font-semibold text-white rounded-full transition-colors',
-              variant === 'danger' && 'bg-[#d32f2f] hover:bg-[#e53935]',
-              variant === 'warning' && 'bg-amber-500 hover:bg-amber-600',
-              variant === 'info' && 'bg-primary text-black',
+              'btn-primary !rounded-full !px-5 !py-2.5 !font-semibold',
+              variant === 'danger' && '!bg-danger hover:!bg-red-600 !text-white',
+              variant === 'warning' && '!bg-amber-500 hover:!bg-amber-600 !text-white',
+              variant === 'info' && '!bg-primary !text-black',
             )}
           >
             {confirmLabel}

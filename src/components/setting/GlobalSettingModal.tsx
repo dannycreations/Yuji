@@ -287,7 +287,7 @@ export const GlobalSettingModal: FC = () => {
               </div>
               <button
                 onClick={handleRefreshModels}
-                className="flex items-center gap-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl badge-primary transition-colors border border-separator"
+                className="flex items-center gap-2 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl badge transition-colors border border-separator cursor-pointer"
                 title="Refresh Library"
               >
                 <Icon name="RefreshCw" size={14} />
@@ -394,10 +394,8 @@ export const GlobalSettingModal: FC = () => {
                   <button
                     onClick={toggleSelectAll}
                     className={clsx(
-                      'w-4 h-4 rounded border flex items-center justify-center transition-all',
-                      currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id))
-                        ? 'bg-primary border-primary text-white'
-                        : 'border-highlight bg-black/50 text-transparent',
+                      'checkbox-base checkbox-header',
+                      currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id)) && 'checked',
                     )}
                   >
                     <Icon name="Check" size={10} strokeWidth={4} />
@@ -407,14 +405,14 @@ export const GlobalSettingModal: FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleExport}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide"
+                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
                   >
                     <Icon name="Upload" size={12} />
                     Export
                   </button>
                   <button
                     onClick={handleImportClick}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide"
+                    className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
                   >
                     <Icon name="Download" size={12} />
                     Import
@@ -432,12 +430,7 @@ export const GlobalSettingModal: FC = () => {
                       <div className="w-8 flex-shrink-0 flex items-center justify-center">
                         <button
                           onClick={() => toggleSelectSession(session.id)}
-                          className={clsx(
-                            'w-4 h-4 rounded border flex items-center justify-center transition-all',
-                            selectedSessionIds.has(session.id)
-                              ? 'bg-primary border-primary text-white'
-                              : 'border-highlight bg-surface/50 text-transparent',
-                          )}
+                          className={clsx('checkbox-base', selectedSessionIds.has(session.id) ? 'checked' : 'unchecked')}
                         >
                           <Icon name="Check" size={10} strokeWidth={4} />
                         </button>

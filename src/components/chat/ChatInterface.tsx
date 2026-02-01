@@ -261,20 +261,20 @@ export const ChatInterface: FC = () => {
       <div className="main-layout">
         <Header />
         <div className="chat-scroll-area">
-          <div className="flex flex-col items-center justify-center p-6 min-h-full animate-fade-in chat-container">
+          <div className="chat-empty-container">
             <div className="mb-4 flex flex-col items-center">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator mb-4">
+              <div className="chat-empty-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
-              <h1 className="text-2xl font-semibold text-text-primary text-center">{INITIAL_GREETING}</h1>
+              <h1 className="chat-empty-title">{INITIAL_GREETING}</h1>
             </div>
 
             <div className="suggestion-grid">
               {SUGGESTIONS.map((suggestion, idx) => (
                 <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">
-                  <Icon name={suggestion.icon} size={20} className="text-text-secondary" />
-                  <div className="font-medium text-text-primary text-sm">{suggestion.label}</div>
-                  <div className="text-text-secondary text-xs line-clamp-2">{suggestion.prompt}</div>
+                  <Icon name={suggestion.icon} size={20} className="suggestion-item-icon" />
+                  <div className="suggestion-item-label">{suggestion.label}</div>
+                  <div className="suggestion-item-prompt">{suggestion.prompt}</div>
                 </button>
               ))}
             </div>
@@ -289,7 +289,7 @@ export const ChatInterface: FC = () => {
     <div className="main-layout">
       <Header />
       <div ref={scrollContainerRef} onScroll={handleScroll} className="chat-scroll-area">
-        <div className="flex flex-col pb-4">
+        <div className="message-list-container">
           {visibleMessages.map((message, idx) => (
             <ChatMessageVirtual key={message.id}>
               <ChatMessageBubble

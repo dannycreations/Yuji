@@ -51,11 +51,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
           </div>
           <div className="flex-1 overflow-y-auto space-y-0.5">
             {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={activeTab === tab.id ? 'w-full list-item-interactive-active' : 'w-full list-item-interactive'}
-              >
+              <button key={tab.id} onClick={() => onTabChange(tab.id)} className={clsx('list-item-interactive', activeTab === tab.id && 'active')}>
                 <Icon name={tab.icon} size={18} className={clsx(activeTab === tab.id ? 'text-text-primary' : 'text-text-secondary')} />
                 {tab.label}
               </button>
@@ -65,7 +61,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0 bg-background relative px-8 py-6">
+        <div className="settings-main-content">
           <div className="flex items-center justify-between mb-6">
             <div className="text-lg font-bold text-text-primary">{title}</div>
           </div>

@@ -51,14 +51,9 @@ export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled 
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
-      className={clsx(
-        'w-10 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary/50',
-        checked ? 'bg-primary' : 'bg-surface-hover',
-        disabled && 'opacity-50 cursor-not-allowed',
-        className,
-      )}
+      className={clsx('input-switch', checked ? 'checked' : 'unchecked', disabled && 'opacity-50 cursor-not-allowed', className)}
     >
-      <div className={clsx('absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm', checked ? 'translate-x-4' : '')} />
+      <div className={clsx('input-switch-thumb', checked && 'checked')} />
     </button>
   );
 };

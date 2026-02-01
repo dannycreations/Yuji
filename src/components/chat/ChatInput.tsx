@@ -75,14 +75,11 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
       <div className="chat-input-container">
         {attachments.length > 0 && (
-          <div className="flex gap-2.5 px-4 pt-3.5 overflow-x-auto scrollbar-hide">
+          <div className="chat-input-attachments">
             {attachments.map((att) => (
-              <div key={att.id} className="relative group w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border border-line">
-                <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
-                <button
-                  onClick={() => removeAttachment(att.id)}
-                  className="absolute top-0.5 right-0.5 bg-overlay text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
+              <div key={att.id} className="chat-input-attachment-item">
+                <img src={att.url} alt={att.name} className="chat-input-attachment-img" />
+                <button onClick={() => removeAttachment(att.id)} className="chat-input-attachment-remove">
                   <Icon name="X" size={10} />
                 </button>
               </div>
@@ -96,12 +93,12 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask anything"
-          className="bg-transparent border-none focus:border-none px-4 py-4 text-sm max-h-[200px]"
+          className="chat-input-textarea max-h-[200px]"
           minRows={1}
           maxRows={10}
         />
 
-        <div className="flex items-center justify-between px-2 pb-2 relative">
+        <div className="chat-input-actions">
           <div className="flex items-center gap-0.5">
             <button onClick={() => fileInputRef.current?.click()} className="btn-icon" title="Attach Image">
               <Icon name="Plus" size={24} />
@@ -115,12 +112,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           <button
             onClick={handleSubmit}
             disabled={!input.trim() && attachments.length === 0 && !isLoading}
-            className={clsx(
-              'p-2 rounded-full transition-all duration-200',
-              isLoading || input.trim() || attachments.length > 0
-                ? 'bg-text-primary text-background hover:opacity-90'
-                : 'bg-surface-hover text-text-secondary cursor-not-allowed',
-            )}
+            className={clsx('chat-input-submit', isLoading || input.trim() || attachments.length > 0 ? 'active' : 'inactive')}
           >
             {isLoading ? <Icon name="Square" size={16} fill="currentColor" /> : <Icon name="ArrowUp" size={20} />}
           </button>

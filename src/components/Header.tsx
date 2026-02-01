@@ -37,7 +37,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search models..."
-            className="py-2 text-xs"
+            className="input-sm"
             autoFocus
           />
         </div>
@@ -51,25 +51,18 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
               onSelect(model.id);
               onClose();
             }}
-            className={clsx('model-picker-item', currentModel === model.id && 'model-picker-item-active')}
+            className={clsx('model-picker-item group', currentModel === model.id && 'active')}
           >
             <div className={clsx('flex-shrink-0 mt-0.5', model.color)}>
               <Icon name={model.icon} size={18} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <span
-                  className={clsx(
-                    'text-sm font-medium truncate',
-                    currentModel === model.id ? 'text-text-primary' : 'text-text-secondary group-hover:text-text-primary',
-                  )}
-                >
-                  {model.name}
-                </span>
+                <span className="model-picker-item-title">{model.name}</span>
                 <div className="flex items-center gap-1.5">
                   {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                   {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
-                  {currentModel === model.id && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />}
+                  {currentModel === model.id && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-glow-primary" />}
                 </div>
               </div>
               <div className="text-xs text-text-secondary leading-relaxed line-clamp-1 mt-0.5 group-hover:text-text-secondary/80">
@@ -165,10 +158,7 @@ export const Header: FC = () => {
         )}
 
         <div className="relative" ref={pickerRef}>
-          <button
-            onClick={() => setShowModelPicker(!showModelPicker)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface transition-colors text-lg font-bold text-text-primary/90 hover:text-text-primary"
-          >
+          <button onClick={() => setShowModelPicker(!showModelPicker)} className="header-model-button">
             <span>{currentModel?.name || 'Yuji'}</span>
             <Icon name="ChevronDown" size={16} className="text-text-secondary" />
           </button>
