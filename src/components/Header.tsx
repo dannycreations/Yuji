@@ -1,11 +1,12 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useAction, useStore } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
+import { toTitleCase } from '../utilities/CommonUtil';
 import { Icon } from './shared/Icon';
 import { InputText } from './shared/InputArea';
 
@@ -19,14 +20,23 @@ interface ModelPickerProps {
 }
 
 const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) => {
-  const availableModels = useStore((s: AppState) => s.availableModels, []);
-  const disabledModels = useStore((s: AppState) => s.settings.disabledModels, []);
+  const { availableModels, disabledModels } = useStore(
+    (s) => ({
+      availableModels: s.availableModels,
+      disabledModels: s.settings.disabledModels,
+    }),
+    { availableModels: [], disabledModels: [] },
+  );
 
   const [search, setSearch] = useState('');
 
-  const filtered = availableModels
-    .filter((m) => !disabledModels.includes(m.id))
-    .filter((m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.id.toLowerCase().includes(search.toLowerCase()));
+  const filtered = useMemo(
+    () =>
+      availableModels
+        .filter((m) => !disabledModels.includes(m.id))
+        .filter((m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.id.toLowerCase().includes(search.toLowerCase())),
+    [availableModels, disabledModels, search],
+  );
 
   return (
     <div className="model-picker-dropdown">
@@ -51,23 +61,19 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
               onSelect(model.id);
               onClose();
             }}
-            className={clsx('model-picker-item group', currentModel === model.id && 'active')}
+            className={clsx('model-picker-item group items-center', currentModel === model.id && 'active')}
           >
-            <div className={clsx('flex-shrink-0 mt-0.5', model.color)}>
+            <div className={clsx('flex-shrink-0', model.color)}>
               <Icon name={model.icon} size={18} />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-2">
-                <span className="model-picker-item-title">{model.name}</span>
-                <div className="flex items-center gap-1.5">
-                  {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
-                  {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
-                  {currentModel === model.id && <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-glow-primary" />}
-                </div>
-              </div>
-              <div className="text-xs text-text-secondary leading-relaxed line-clamp-1 mt-0.5 group-hover:text-text-secondary/80">
-                {model.description}
-              </div>
+            <div className="flex-1 min-w-0 text-left">
+              <span className="model-picker-item-title block">{toTitleCase(model.name)}</span>
+              <div className="text-[10px] text-text-secondary leading-tight line-clamp-1 group-hover:text-text-secondary/80">{model.id}</div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
+              {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
+              {currentModel === model.id && <Icon name="Check" size={18} className="text-primary" />}
             </div>
           </button>
         ))}
@@ -79,15 +85,27 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
 
 export const Header: FC = () => {
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const [optimisticModelId, setOptimisticModelId] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(pickerRef, () => setShowModelPicker(false));
 
-  const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
-  const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
-  const sessions = useStore((s: AppState) => s.sessions, {});
-  const availableModels = useStore((s: AppState) => s.availableModels, []);
-  const isSidebarOpen = useStore((s: AppState) => s.isSidebarOpen, true);
+  const { settings, activeSessionId, sessions, availableModels, isSidebarOpen } = useStore(
+    (s) => ({
+      settings: s.settings,
+      activeSessionId: s.activeSessionId,
+      sessions: s.sessions,
+      availableModels: s.availableModels,
+      isSidebarOpen: s.isSidebarOpen,
+    }),
+    {
+      settings: DEFAULT_SETTINGS,
+      activeSessionId: null,
+      sessions: {},
+      availableModels: [],
+      isSidebarOpen: true,
+    },
+  );
 
   const updateStore = useAction((f: (s: AppState) => AppState) =>
     Effect.gen(function* () {
@@ -132,21 +150,38 @@ export const Header: FC = () => {
     }),
   );
 
-  const disabledModels = settings.disabledModels || [];
-  const activeModels = availableModels.filter((m) => !disabledModels.includes(m.id));
-  const effectiveDefaultModel = activeModels.find((m) => m.id === settings.defaultModel)?.id || activeModels[0]?.id || 'gpt-4o';
+  const { currentModelId, currentModelName } = useMemo(() => {
+    const disabled = settings.disabledModels || [];
+    const active = availableModels.filter((m) => !disabled.includes(m.id));
+    const effectiveDefault = active.find((m) => m.id === settings.defaultModel)?.id || active[0]?.id || 'gpt-4o';
 
-  const activeSession = activeSessionId ? sessions[activeSessionId] : null;
-  const currentModelId = activeSession?.modelConfig?.model || effectiveDefaultModel;
-  const currentModel = activeModels.find((m) => m.id === currentModelId);
+    const session = activeSessionId ? sessions[activeSessionId] : null;
+    const id = session?.modelConfig?.model || effectiveDefault;
+
+    const targetId = optimisticModelId || id;
+    const model = active.find((m) => m.id === targetId);
+    const name = model ? toTitleCase(model.name) : 'Yuji';
+
+    return { currentModelId: id, currentModelName: name };
+  }, [availableModels, settings.disabledModels, settings.defaultModel, activeSessionId, sessions, optimisticModelId]);
 
   const handleModelSelect = (modelId: string) => {
-    setGlobalModel(modelId);
-    if (activeSessionId) {
-      setSessionModel(activeSessionId, modelId);
-    }
+    // 1. Immediate UI feedback (High Priority)
+    setOptimisticModelId(modelId);
     setShowModelPicker(false);
+
+    // 2. Defer heavy store mutations (Low Priority)
+    setTimeout(() => {
+      setGlobalModel(modelId);
+      if (activeSessionId) {
+        setSessionModel(activeSessionId, modelId);
+      }
+    }, 0);
   };
+
+  if (optimisticModelId && optimisticModelId === currentModelId && optimisticModelId !== null) {
+    setOptimisticModelId(null);
+  }
 
   return (
     <div className="sticky-header">
@@ -159,7 +194,7 @@ export const Header: FC = () => {
 
         <div className="relative" ref={pickerRef}>
           <button onClick={() => setShowModelPicker(!showModelPicker)} className="header-model-button">
-            <span>{currentModel?.name || 'Yuji'}</span>
+            <span>{currentModelName}</span>
             <Icon name="ChevronDown" size={16} className="text-text-secondary" />
           </button>
 

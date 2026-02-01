@@ -8,7 +8,8 @@ import { YujiRuntime } from '../../app/Yuji';
 import { useAction, useStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { StoreService } from '../../services/StoreService';
-import { timeAgo } from '../../utilities/time';
+import { toTitleCase } from '../../utilities/CommonUtil';
+import { timeAgo } from '../../utilities/TimeUtil';
 import { Icon } from '../shared/Icon';
 import { InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
@@ -268,7 +269,7 @@ export const GlobalSettingModal: FC = () => {
 
       case 'connection':
         return (
-          <div className="space-y-5 animate-fade-in">
+          <div className="space-y-3 animate-fade-in">
             <div className="space-y-2">
               <label className="label-caps">API Provider</label>
               <div className="relative">
@@ -305,7 +306,7 @@ export const GlobalSettingModal: FC = () => {
 
       case 'models':
         return (
-          <div className="space-y-5 animate-fade-in h-full flex flex-col">
+          <div className="space-y-3 animate-fade-in h-full flex flex-col">
             <div className="flex-shrink-0 flex gap-2">
               <div className="flex-1">
                 <InputText leftIcon="Search" value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
@@ -329,7 +330,7 @@ export const GlobalSettingModal: FC = () => {
                     <div
                       key={model.id}
                       className={clsx(
-                        'flex items-center gap-3 p-3 rounded-xl border transition-all',
+                        'flex items-center gap-2 p-2 rounded-xl border transition-all',
                         isEnabled ? 'bg-line border-separator' : 'bg-surface/50 border-transparent opacity-60',
                       )}
                     >
@@ -343,12 +344,14 @@ export const GlobalSettingModal: FC = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={clsx('font-bold text-sm', isEnabled ? 'text-text-primary' : 'text-text-secondary')}>{model.name}</span>
+                          <span className={clsx('font-bold text-sm', isEnabled ? 'text-text-primary' : 'text-text-secondary')}>
+                            {toTitleCase(model.name)}
+                          </span>
                           {effectiveDefaultModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
                           {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                         </div>
-                        <p className="text-xs text-text-secondary line-clamp-1">{model.description}</p>
-                        <div className="text-xs text-text-secondary/80 font-mono mt-0.5">{model.id}</div>
+                        <div className="text-[10px] text-text-secondary/80 font-mono leading-tight">{model.id}</div>
+                        {model.description && <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">{model.description}</p>}
                       </div>
 
                       <InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />
@@ -367,8 +370,8 @@ export const GlobalSettingModal: FC = () => {
 
       case 'persona':
         return (
-          <div className="space-y-8 animate-fade-in">
-            <div className="space-y-4">
+          <div className="space-y-3 animate-fade-in">
+            <div className="space-y-3">
               <h3 className="settings-section-title">About you</h3>
 
               <div className="space-y-2">
@@ -404,10 +407,10 @@ export const GlobalSettingModal: FC = () => {
 
       case 'history':
         return (
-          <div className="space-y-5 animate-fade-in flex flex-col h-full">
+          <div className="space-y-3 animate-fade-in flex flex-col h-full">
             <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
 
-            <div className="flex flex-col gap-4 flex-shrink-0">
+            <div className="flex flex-col gap-3 flex-shrink-0">
               <p className="settings-info-box">
                 Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations.
               </p>
