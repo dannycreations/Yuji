@@ -85,9 +85,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   };
 
   const handleSaveEdit = () => {
-    if (editContent.trim() !== message.content) {
-      onEdit(editContent);
-    }
+    onEdit(editContent);
     setIsEditing(false);
   };
 
@@ -143,8 +141,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
             ) : (
               <div className={clsx('prose-chat break-words max-w-full', isUser ? 'message-bubble-user' : 'w-full')}>
                 {isThinking && !message.content ? (
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-text-primary rounded-full animate-pulse" />
+                  <div className="flex items-center gap-1.5 py-1">
+                    <div className="w-2.5 h-2.5 bg-text-primary/40 rounded-full animate-pulse" />
+                    <div className="w-2.5 h-2.5 bg-text-primary/40 rounded-full animate-pulse [animation-delay:0.2s]" />
+                    <div className="w-2.5 h-2.5 bg-text-primary/40 rounded-full animate-pulse [animation-delay:0.4s]" />
                   </div>
                 ) : (
                   <ReactMarkdown
@@ -157,16 +157,16 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                         const value = String(children).replace(/\n$/, '');
                         const isMultiline = value.includes('\n');
 
+                        if (match || isMultiline || (node && node.position?.start.column === 1)) {
+                          return <ChatMessageBlock language={language} value={value} />;
+                        }
+
                         if (!className && !isMultiline) {
                           return (
                             <code className={clsx('code-inline', className)} {...props}>
                               {children}
                             </code>
                           );
-                        }
-
-                        if (match || isMultiline) {
-                          return <ChatMessageBlock language={language} value={value} />;
                         }
 
                         return (
