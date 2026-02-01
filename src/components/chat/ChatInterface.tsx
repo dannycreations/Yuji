@@ -22,7 +22,7 @@ import type { AppState, Attachment, Message } from '../../app/Schema';
 export const ChatInterface: FC = () => {
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
   const sessions = useStore((s: AppState) => s.sessions, {});
-  const userName = useStore((s: AppState) => s.settings.userName, '');
+  const userName = useStore((s: AppState) => s.settings.personalisation.userName, '');
 
   const [isLoading, setIsLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -119,8 +119,8 @@ export const ChatInterface: FC = () => {
       const chat = yield* ChatService;
 
       const state = yield* SubscriptionRef.get(store.state);
+      const settings = state.settings;
       const session = state.sessions[sessionId];
-      const latestSettings = state.settings;
 
       if (!session) return;
 
@@ -142,12 +142,17 @@ export const ChatInterface: FC = () => {
       const streamEffect = Effect.gen(function* () {
         yield* chat.addMessage(sessionId, assistantMessage);
 
-        const systemPrompt = synthesizeSystemPrompt(latestSettings, session.systemPrompt, session.overrideGlobalPrompt);
+        const systemPrompt = synthesizeSystemPrompt(settings, session);
+        const model = session.general.overrideModel && session.general.model ? session.general.model : settings.defaultModel;
 
         const stream = yield* llm.streamCompletion(
           messagesToProcess,
-          latestSettings,
-          session.modelConfig || { provider: 'openai', model: latestSettings.defaultModel, temperature: 0.7 },
+          settings,
+          {
+            provider: 'openai',
+            model,
+            temperature: 0.7,
+          },
           systemPrompt,
         );
 

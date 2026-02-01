@@ -16,12 +16,15 @@ export const DEFAULT_SETTINGS = {
   theme: 'dark',
   enterToSend: true,
 
-  // Prompt Defaults
-  systemPrompt: DEFAULT_SYSTEM_PROMPT,
-  userName: '',
-  userOccupation: '',
-  assistantTraits: ['creative', 'cynical'],
-  additionalContext: '',
+  instruction: {
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+  },
+  personalisation: {
+    userName: '',
+    userOccupation: '',
+    assistantTraits: ['creative', 'cynical'],
+    additionalContext: '',
+  },
 
   // Model Defaults
   disabledModels: [],

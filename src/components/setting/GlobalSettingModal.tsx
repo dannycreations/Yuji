@@ -11,8 +11,9 @@ import { StoreService } from '../../services/StoreService';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Icon } from '../shared/Icon';
-import { InputSearch, InputSelect, InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
+import { InputSearch, InputSelect, InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
+import { InstructionSection, PersonalisationSection } from './SettingSection';
 
 import type { ChangeEvent, FC } from 'react';
 import type { AppState, ChatSession, Settings } from '../../app/Schema';
@@ -368,98 +369,20 @@ export const GlobalSettingModal: FC = () => {
 
       case 'instruction':
         return (
-          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            <div className="space-y-2">
-              <label className="settings-label">System Instruction</label>
-              <InputTextarea
-                value={settings.systemPrompt}
-                onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
-                placeholder="Enter system instructions..."
-                minRows={8}
-                maxRows={8}
-              />
-              <p className="text-xs text-text-secondary pl-1">This instruction will be sent as the system prompt to the AI.</p>
-            </div>
-          </div>
+          <InstructionSection
+            instruction={settings.instruction}
+            onChange={(updates) => updateSettings({ instruction: { ...settings.instruction, ...updates } })}
+            footer="This instruction will be sent as the system prompt to the AI."
+          />
         );
 
       case 'persona':
         return (
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <label className="settings-label">What should Yuji call you?</label>
-                <InputText
-                  value={settings.userName}
-                  onChange={(e) => updateSettings({ userName: e.target.value.slice(0, 50) })}
-                  placeholder="Enter your name..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="settings-label">What do you do?</label>
-                <InputText
-                  value={settings.userOccupation}
-                  onChange={(e) => updateSettings({ userOccupation: e.target.value.slice(0, 100) })}
-                  placeholder="Programmer, engineer, student..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="settings-label">What traits should Yuji have?</label>
-                <div className="relative group">
-                  <div className="flex flex-wrap gap-1 p-1 bg-surface-hover/40 border border-separator/30 rounded-xl focus-within:border-line/50 focus-within:bg-surface transition-all min-h-[46px]">
-                    {settings.assistantTraits.map((trait) => (
-                      <div
-                        key={trait}
-                        className="flex items-center gap-1 px-2 py-1 bg-white/10 text-text-primary text-xs rounded-lg animate-fade-in border border-white/5"
-                      >
-                        {trait}
-                        <button
-                          onClick={() => {
-                            const next = settings.assistantTraits.filter((t) => t !== trait);
-                            updateSettings({ assistantTraits: next });
-                          }}
-                          className="text-text-secondary hover:text-text-primary transition-colors"
-                        >
-                          <Icon name="X" size={10} />
-                        </button>
-                      </div>
-                    ))}
-                    <input
-                      className="flex-1 bg-transparent border-none outline-none py-1 px-1 text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
-                      placeholder={settings.assistantTraits.length === 0 ? 'Type a trait and press Enter or Tab...' : ''}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === 'Tab') {
-                          e.preventDefault();
-                          const val = e.currentTarget.value.trim().toLowerCase();
-                          if (val && !settings.assistantTraits.includes(val)) {
-                            updateSettings({ assistantTraits: [...settings.assistantTraits, val] });
-                            e.currentTarget.value = '';
-                          }
-                        } else if (e.key === 'Backspace' && !e.currentTarget.value && settings.assistantTraits.length > 0) {
-                          const next = [...settings.assistantTraits];
-                          next.pop();
-                          updateSettings({ assistantTraits: next });
-                        }
-                      }}
-                      maxLength={100}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="settings-label">Anything else Yuji should know about you?</label>
-                <InputTextarea
-                  value={settings.additionalContext}
-                  onChange={(e) => updateSettings({ additionalContext: e.target.value.slice(0, 3000) })}
-                  placeholder="Interests, values, or preferences to keep in mind..."
-                  minRows={5}
-                  maxRows={5}
-                />
-              </div>
-            </div>
+            <PersonalisationSection
+              personalisation={settings.personalisation}
+              onChange={(updates) => updateSettings({ personalisation: { ...settings.personalisation, ...updates } })}
+            />
           </div>
         );
 

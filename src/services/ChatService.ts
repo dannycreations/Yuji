@@ -43,11 +43,20 @@ export const ChatServiceLive = Layer.effect(
             messages: [],
             createdAt: now,
             updatedAt: now,
-            systemPrompt: DEFAULT_SYSTEM_PROMPT,
-            modelConfig: {
-              provider: 'openai',
+            general: {
               model: effectiveDefaultModel,
-              temperature: 0.7,
+              overrideModel: false,
+              overrideInstruction: false,
+              overridePersonalisation: false,
+            },
+            instruction: {
+              systemPrompt: DEFAULT_SYSTEM_PROMPT,
+            },
+            personalisation: {
+              userName: settings.personalisation.userName,
+              userOccupation: settings.personalisation.userOccupation,
+              assistantTraits: [...settings.personalisation.assistantTraits],
+              additionalContext: settings.personalisation.additionalContext,
             },
           };
 

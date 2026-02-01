@@ -119,10 +119,10 @@ export const Header: FC = () => {
             ...state.sessions,
             [sessionId]: {
               ...session,
-              modelConfig: {
-                ...(session.modelConfig || { provider: 'openai', temperature: 0.7 }),
+              general: {
+                ...session.general,
                 model,
-                provider: 'openai',
+                overrideModel: true,
               },
             },
           },
@@ -147,7 +147,7 @@ export const Header: FC = () => {
     const effectiveDefault = active.find((m) => m.id === settings.defaultModel)?.id || active[0]?.id || 'gpt-4o';
 
     const session = activeSessionId ? sessions[activeSessionId] : null;
-    const id = session?.modelConfig?.model || effectiveDefault;
+    const id = (session?.general.overrideModel && session?.general.model) || effectiveDefault;
 
     const targetId = optimisticModelId || id;
     const model = active.find((m) => m.id === targetId);

@@ -78,6 +78,19 @@ export const ModelConfig = Schema.Struct({
 });
 export type ModelConfig = Schema.Schema.Type<typeof ModelConfig>;
 
+export const InstructionSchema = Schema.Struct({
+  systemPrompt: Schema.String,
+});
+export type Instruction = Schema.Schema.Type<typeof InstructionSchema>;
+
+export const PersonalisationSchema = Schema.Struct({
+  userName: Schema.String,
+  userOccupation: Schema.String,
+  assistantTraits: Schema.Array(Schema.String),
+  additionalContext: Schema.String,
+});
+export type Personalisation = Schema.Schema.Type<typeof PersonalisationSchema>;
+
 export const ChatSession = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
@@ -85,9 +98,21 @@ export const ChatSession = Schema.Struct({
   activeMessageId: Schema.optional(Schema.String),
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
-  systemPrompt: Schema.optional(Schema.String),
-  overrideGlobalPrompt: Schema.optional(Schema.Boolean),
-  modelConfig: Schema.optional(ModelConfig),
+  general: Schema.Struct({
+    model: Schema.optional(Schema.String),
+    overrideModel: Schema.optional(Schema.Boolean),
+    overrideInstruction: Schema.optional(Schema.Boolean),
+    overridePersonalisation: Schema.optional(Schema.Boolean),
+  }),
+  instruction: Schema.Struct({
+    systemPrompt: Schema.optional(Schema.String),
+  }),
+  personalisation: Schema.Struct({
+    userName: Schema.optional(Schema.String),
+    userOccupation: Schema.optional(Schema.String),
+    assistantTraits: Schema.optional(Schema.Array(Schema.String)),
+    additionalContext: Schema.optional(Schema.String),
+  }),
 });
 export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
 
@@ -97,11 +122,8 @@ export const Settings = Schema.Struct({
   defaultModel: Schema.String,
   theme: Schema.Literal('dark', 'light'),
   enterToSend: Schema.Boolean,
-  systemPrompt: Schema.String,
-  userName: Schema.String,
-  userOccupation: Schema.String,
-  assistantTraits: Schema.Array(Schema.String),
-  additionalContext: Schema.String,
+  instruction: InstructionSchema,
+  personalisation: PersonalisationSchema,
   disabledModels: Schema.Array(Schema.String),
 });
 export type Settings = Schema.Schema.Type<typeof Settings>;

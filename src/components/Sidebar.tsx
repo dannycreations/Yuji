@@ -188,10 +188,10 @@ export const Sidebar: FC = () => {
           className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
         >
           <div className="avatar-sm bg-surface-hover">
-            {settings.userName ? settings.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
+            {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>
           <div className="flex-1 text-left min-w-0">
-            <div className="text-sm font-medium truncate">{settings.userName || 'User'}</div>
+            <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
           </div>
           <div className="text-text-tertiary flex items-center">
             <Icon name="Settings" size={16} />

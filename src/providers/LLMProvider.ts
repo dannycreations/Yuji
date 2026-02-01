@@ -3,28 +3,26 @@ import { Context, Effect, Stream } from 'effect';
 import { DEFAULT_GUIDE_PROMPT } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
 
-import type { Message, ModelConfig, Settings } from '../app/Schema';
+import type { ChatSession, Message, ModelConfig, Settings } from '../app/Schema';
 
-export const synthesizeSystemPrompt = (settings: Settings, sessionPrompt?: string, overrideGlobal?: boolean): string => {
-  const parts: string[] = [settings.systemPrompt];
+export const synthesizeSystemPrompt = (settings: Settings, session: ChatSession): string => {
+  const instruction =
+    session.general.overrideInstruction && session.instruction.systemPrompt ? session.instruction.systemPrompt : settings.instruction.systemPrompt;
 
-  if (settings.userName) parts.push(`The user's name is ${settings.userName}.`);
-  if (settings.userOccupation) parts.push(`The user acts as a ${settings.userOccupation}.`);
-  if (settings.assistantTraits && settings.assistantTraits.length > 0) {
-    parts.push(`You should act ${settings.assistantTraits.join(', ')}.`);
+  const personalisation = session.general.overridePersonalisation ? session.personalisation : settings.personalisation;
+
+  const parts: string[] = [instruction, '\n\n', DEFAULT_GUIDE_PROMPT];
+
+  if (personalisation?.userName) parts.push(`The user's name is ${personalisation.userName}.`);
+  if (personalisation?.userOccupation) parts.push(`The user acts as a ${personalisation.userOccupation}.`);
+  if (personalisation?.assistantTraits && personalisation.assistantTraits.length > 0) {
+    parts.push(`You should act ${personalisation.assistantTraits.join(', ')}.`);
   }
-  if (settings.additionalContext) {
-    parts.push(`\nAdditional Context:\n${settings.additionalContext}`);
+  if (personalisation?.additionalContext) {
+    parts.push(`\nAdditional Context:\n${personalisation.additionalContext}`);
   }
 
-  const globalSystemPrompt = parts.join(' ');
-
-  const basePrompt =
-    sessionPrompt && overrideGlobal === false
-      ? `${globalSystemPrompt}\n\nAdditional Instructions:\n${sessionPrompt}`
-      : sessionPrompt || globalSystemPrompt;
-
-  return `${basePrompt}\n\n${DEFAULT_GUIDE_PROMPT}`.trim();
+  return parts.join(' ').trim();
 };
 
 interface LLMModel {
