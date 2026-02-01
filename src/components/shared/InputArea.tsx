@@ -82,5 +82,5 @@ export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled 
 };
 
 export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ className, ...props }, ref) => {
-  return <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none overflow-hidden', className)} {...props} />;
+  return <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} {...props} />;
 });

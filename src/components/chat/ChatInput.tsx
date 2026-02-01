@@ -92,7 +92,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask anything"
+          placeholder="Type your message here..."
           className="chat-input-textarea max-h-[200px]"
           minRows={1}
           maxRows={10}

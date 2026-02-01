@@ -173,6 +173,9 @@
 
   .chat-input-textarea {
     @apply bg-transparent! border-none! focus:border-none! px-3 py-3 text-sm font-sans shadow-none outline-none ring-0!;
+    &::placeholder {
+      @apply font-medium;
+    }
     &:hover {
       @apply bg-transparent!;
     }
@@ -200,7 +203,7 @@
 
   /* Model Picker */
   .model-picker-dropdown {
-    @apply absolute bg-surface border border-separator rounded-xl shadow-xl flex flex-col overflow-hidden z-50 animate-fade-in select-none top-full left-0 mt-2 w-[340px] origin-top-left;
+    @apply absolute bg-surface border border-separator rounded-xl shadow-xl flex flex-col overflow-hidden z-50 animate-fade-in select-none top-full left-0 mt-2 w-[280px] origin-top-left;
   }
 
   .model-picker-header {
@@ -262,7 +265,7 @@
   }
 
   .sidebar-session-title {
-    @apply flex-1 truncate pr-3 relative overflow-hidden;
+    @apply flex-1 truncate relative overflow-hidden;
   }
 
   .sidebar-session-fade {
@@ -377,7 +380,7 @@
   }
 
   .prose-chat {
-    @apply max-w-none text-text-primary text-sm font-sans w-full;
+    @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col gap-2;
     & > :first-child {
       @apply mt-0! pt-0!;
     }
@@ -385,28 +388,28 @@
       @apply mb-0! pb-0!;
     }
     & p {
-      @apply leading-7 my-2 last:mb-0;
+      @apply leading-normal m-0;
     }
     & li {
       @apply leading-7;
     }
     & ul {
-      @apply list-disc pl-3 space-y-1 my-2 last:mb-0;
+      @apply list-disc pl-3 space-y-1 last:mb-0;
     }
     & ol {
-      @apply list-decimal pl-3 space-y-1 my-2 last:mb-0;
+      @apply list-decimal pl-3 space-y-1 last:mb-0;
     }
     & h1 {
-      @apply text-xl font-bold my-2 last:mb-0;
+      @apply text-xl font-bold last:mb-0;
     }
     & h2 {
-      @apply text-lg font-bold my-2 last:mb-0;
+      @apply text-lg font-bold last:mb-0;
     }
     & h3 {
-      @apply text-sm font-bold my-2 last:mb-0;
+      @apply text-sm font-bold last:mb-0;
     }
     & blockquote {
-      @apply border-l-2 border-highlight pl-3 my-2 text-text-secondary last:mb-0;
+      @apply border-l-2 border-highlight pl-3 text-text-secondary last:mb-0;
     }
     & a {
       @apply text-primary hover:underline;
@@ -414,7 +417,7 @@
   }
 
   .prose-table-container {
-    @apply overflow-x-auto my-2 rounded-lg border border-line first:mt-0 last:mb-0;
+    @apply overflow-x-auto rounded-lg border border-line;
   }
 
   .prose-table {
@@ -426,7 +429,7 @@
   }
 
   .prose-td {
-    @apply px-3 py-2 whitespace-nowrap text-sm text-text-secondary border-t border-separator;
+    @apply px-3 py-2 text-sm text-text-secondary border-t border-separator break-words;
   }
 
   .code-inline {
@@ -434,11 +437,11 @@
   }
 
   .code-block-container {
-    @apply my-1 border border-line rounded-xl bg-code shadow-lg w-full flex-shrink-0 overflow-clip first:mt-0 last:mb-0;
+    @apply border border-line rounded-xl bg-code shadow-lg w-full flex-shrink-0 overflow-clip;
   }
 
   .code-block-header {
-    @apply flex items-center justify-between px-3 py-1 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md;
+    @apply flex items-center justify-between px-2 py-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md;
     &.collapsed {
       @apply border-b-transparent;
     }
@@ -543,20 +546,20 @@
   .message-bubble-user {
     @apply bg-surface px-3 py-2 rounded-2xl break-words max-w-full;
     & > :first-child {
-      @apply mt-0!;
+      @apply mt-0! pt-0!;
     }
     & > :last-child {
-      @apply mb-0!;
+      @apply mb-0! pb-0!;
     }
   }
 
   .message-bubble-assistant {
     @apply w-full;
     & > :first-child {
-      @apply mt-0!;
+      @apply mt-0! pt-0!;
     }
     & > :last-child {
-      @apply mb-0!;
+      @apply mb-0! pb-0!;
     }
   }
 
@@ -598,7 +601,7 @@
   }
 
   .chat-input-container {
-    @apply relative flex flex-col w-full bg-surface rounded-[26px] transition-all overflow-visible border border-transparent focus-within:border-line;
+    @apply relative flex flex-col w-full bg-surface rounded-[26px] transition-all overflow-hidden border border-transparent focus-within:border-line;
   }
 
   .chat-input-attachment-item {

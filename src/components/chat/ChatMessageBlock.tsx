@@ -78,7 +78,7 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
           margin: 0,
           borderRadius: 0,
           background: 'transparent',
-          padding: '1.25rem',
+          padding: '0.75rem',
           fontSize: '12px',
           lineHeight: '1.6',
           fontFamily: '"JetBrains Mono", "Fira Code", monospace',

@@ -1,9 +1,10 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { YujiRuntime } from '../app/Yuji';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { useAction, useStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
@@ -41,17 +42,13 @@ export const Sidebar: FC = () => {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpenId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  useClickOutside(menuRef, () => {
+    setMenuOpenId(null);
+    setMenuPosition(null);
+  });
 
   const handleCreateSession = () => {
     YujiRuntime.runPromise(
@@ -110,6 +107,8 @@ export const Sidebar: FC = () => {
 
   const groupedSessions = groupSessions(filteredSessions);
 
+  const menuSession = menuOpenId ? sessions[menuOpenId] : null;
+
   if (!isSidebarOpen) return null;
 
   return (
@@ -151,47 +150,21 @@ export const Sidebar: FC = () => {
                         <div className={clsx('sidebar-session-fade', activeSessionId === session.id && 'sidebar-session-fade-active')} />
                       </div>
 
-                      <div className="absolute right-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="relative flex items-center">
                         <button
-                          className="btn-icon"
+                          className={clsx(
+                            'btn-icon !p-1 transition-opacity',
+                            menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                          )}
                           onClick={(e) => {
                             e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setMenuPosition({ top: rect.top + 36, left: rect.right - 36 });
                             setMenuOpenId(menuOpenId === session.id ? null : session.id);
                           }}
                         >
                           <Icon name="MoreHorizontal" size={16} />
                         </button>
-
-                        {menuOpenId === session.id && (
-                          <div ref={menuRef} className="dropdown-menu right-0 top-full mt-1 w-40 py-1" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className="list-item-interactive !text-text-primary hover:bg-surface-hover"
-                              onClick={() => {
-                                setSettingsOpenId(session.id);
-                                setMenuOpenId(null);
-                              }}
-                            >
-                              <Icon name="Settings" size={14} />
-                              Settings
-                            </button>
-                            <button
-                              className="list-item-interactive !text-danger hover:bg-surface-hover"
-                              onClick={() => {
-                                showConfirm({
-                                  title: 'Delete chat?',
-                                  message: `This will delete **${session.title}** permanently.`,
-                                  confirmLabel: 'Delete',
-                                  onConfirm: () => handleDeleteSession(session.id),
-                                  variant: 'danger',
-                                });
-                                setMenuOpenId(null);
-                              }}
-                            >
-                              <Icon name="Trash2" size={14} />
-                              Delete
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -218,6 +191,47 @@ export const Sidebar: FC = () => {
         </button>
       </div>
       {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
+
+      {menuOpenId && menuPosition && menuSession && (
+        <div
+          ref={menuRef}
+          className="dropdown-menu fixed w-44 py-1.5 z-[100] animate-fade-in"
+          style={{
+            top: `${menuPosition.top}px`,
+            left: `${menuPosition.left}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            className="list-item-interactive !text-text-primary mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
+            onClick={() => {
+              setSettingsOpenId(menuOpenId);
+              setMenuOpenId(null);
+              setMenuPosition(null);
+            }}
+          >
+            <Icon name="Settings" size={16} className="text-text-secondary" />
+            <span className="flex-1 text-left">Settings</span>
+          </button>
+          <button
+            className="list-item-interactive !text-danger mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
+            onClick={() => {
+              showConfirm({
+                title: 'Delete chat?',
+                message: `This will delete **${menuSession.title}** permanently.`,
+                confirmLabel: 'Delete',
+                onConfirm: () => handleDeleteSession(menuOpenId),
+                variant: 'danger',
+              });
+              setMenuOpenId(null);
+              setMenuPosition(null);
+            }}
+          >
+            <Icon name="Trash2" size={16} />
+            <span className="flex-1 text-left">Delete</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
