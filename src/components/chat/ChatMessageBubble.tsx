@@ -85,7 +85,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   };
 
   const handleSaveEdit = () => {
-    onEdit(editContent);
+    if (editContent.trim() !== message.content.trim()) {
+      onEdit(editContent);
+    }
     setIsEditing(false);
   };
 
@@ -129,7 +131,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                     Cancel
                   </button>
                   <button onClick={handleSaveEdit} className="btn-primary">
-                    Send
+                    Save
                   </button>
                 </div>
               </div>
@@ -194,63 +196,58 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
             )}
           </div>
 
-          <div
-            className={clsx(
-              'flex items-center mt-2 h-6 transition-opacity duration-200',
-              (isThinking || isEditing) && 'opacity-0 pointer-events-none',
-            )}
-          >
-            <div className="message-actions">
-              {siblings.length > 1 && (
-                <div className="flex items-center gap-1 text-text-primary select-none font-medium">
-                  <button disabled={currentIndex === 0} onClick={() => handleSwitchBranch(siblings[currentIndex - 1])} className="btn-icon">
-                    <Icon name="ChevronLeft" size={16} />
-                  </button>
-                  <span className="text-sm tabular-nums mx-1">
-                    {currentIndex + 1}/{siblings.length}
-                  </span>
-                  <button
-                    disabled={currentIndex === siblings.length - 1}
-                    onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
-                    className="btn-icon"
-                  >
-                    <Icon name="ChevronRight" size={16} />
-                  </button>
-                </div>
-              )}
+          {!isEditing && (
+            <div className={clsx('flex items-center mt-2 h-6 transition-opacity duration-200', isThinking && 'opacity-0 pointer-events-none')}>
+              <div className="message-actions">
+                {siblings.length > 1 && (
+                  <div className="flex items-center gap-1 text-text-primary select-none font-medium">
+                    <button disabled={currentIndex === 0} onClick={() => handleSwitchBranch(siblings[currentIndex - 1])} className="btn-icon">
+                      <Icon name="ChevronLeft" size={16} />
+                    </button>
+                    <span className="text-sm tabular-nums mx-1">
+                      {currentIndex + 1}/{siblings.length}
+                    </span>
+                    <button
+                      disabled={currentIndex === siblings.length - 1}
+                      onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
+                      className="btn-icon"
+                    >
+                      <Icon name="ChevronRight" size={16} />
+                    </button>
+                  </div>
+                )}
 
-              <button onClick={handleCopy} className="btn-icon" title="Copy">
-                <Icon name={copied ? 'Check' : 'Copy'} size={16} />
-              </button>
-
-              <button onClick={handleBranch} className="btn-icon" title="Branch">
-                <Icon name="GitFork" size={16} />
-              </button>
-
-              {isUser && !isEditing && (
-                <button
-                  onClick={() => {
-                    setEditContent(message.content);
-                    setIsEditing(true);
-                  }}
-                  className="btn-icon"
-                  title="Edit"
-                >
-                  <Icon name="Pencil" size={16} />
+                <button onClick={handleBranch} className="btn-icon" title="Branch">
+                  <Icon name="GitFork" size={16} />
                 </button>
-              )}
 
-              {!isUser && (
                 <button onClick={onRegenerate} className="btn-icon" title="Regenerate">
                   <Icon name="RefreshCw" size={16} />
                 </button>
-              )}
 
-              <button onClick={handleDelete} className="btn-icon hover:text-danger" title="Delete">
-                <Icon name="Trash2" size={16} />
-              </button>
+                <button onClick={handleCopy} className="btn-icon" title="Copy">
+                  <Icon name={copied ? 'Check' : 'Copy'} size={16} />
+                </button>
+
+                {!isEditing && (
+                  <button
+                    onClick={() => {
+                      setEditContent(message.content);
+                      setIsEditing(true);
+                    }}
+                    className="btn-icon"
+                    title="Edit"
+                  >
+                    <Icon name="Pencil" size={16} />
+                  </button>
+                )}
+
+                <button onClick={handleDelete} className="btn-icon hover:text-danger" title="Delete">
+                  <Icon name="Trash2" size={16} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -202,9 +202,14 @@ export const ChatInterface: FC = () => {
       if (!session) return;
 
       const originalMessage = session.messages.find((m) => m.id === messageId);
-      if (!originalMessage || originalMessage.role !== 'assistant') return;
+      if (!originalMessage) return;
 
-      const history = originalMessage.parentId ? yield* chat.getSessionPath(activeSessionId, originalMessage.parentId) : [];
+      const history =
+        originalMessage.role === 'assistant'
+          ? originalMessage.parentId
+            ? yield* chat.getSessionPath(activeSessionId, originalMessage.parentId)
+            : []
+          : yield* chat.getSessionPath(activeSessionId, messageId);
 
       yield* generateResponse(activeSessionId, history);
     }).pipe(
@@ -232,25 +237,7 @@ export const ChatInterface: FC = () => {
 
     const editEffect = Effect.gen(function* () {
       const chat = yield* ChatService;
-      const platform = yield* PlatformService;
-      const originalMessage = activeSession.messages.find((m) => m.id === messageId);
-      if (!originalMessage) return;
-
-      const userMessageId = yield* platform.nextId;
-      const now = yield* platform.now;
-      const userMessage: Message = {
-        id: userMessageId,
-        role: 'user',
-        content: newContent,
-        attachments: originalMessage.attachments,
-        timestamp: now,
-        parentId: originalMessage.parentId,
-      };
-
-      yield* chat.addMessage(activeSession.id, userMessage);
-      const history = yield* chat.getSessionPath(activeSession.id, userMessageId);
-
-      yield* generateResponse(activeSession.id, history);
+      yield* chat.updateMessage(activeSession.id, messageId, newContent);
     });
 
     YujiRuntime.runFork(
