@@ -29,7 +29,7 @@ export const Sidebar: FC = () => {
 
   const setActiveSession = (id: string | null) => updateStore((s) => ({ ...s, activeSessionId: id }));
   const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
-  const toggleSettings = () => updateStore((s) => ({ ...s, isSettingsOpen: !s.isSettingsOpen }));
+  const toggleSetting = () => updateStore((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
   const showConfirm = (config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
     YujiRuntime.runPromise(
       Effect.gen(function* () {
@@ -203,7 +203,7 @@ export const Sidebar: FC = () => {
 
       <div className="sidebar-footer">
         <button
-          onClick={toggleSettings}
+          onClick={toggleSetting}
           className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
         >
           <div className="avatar-sm bg-surface-hover">

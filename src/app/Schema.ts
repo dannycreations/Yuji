@@ -129,14 +129,14 @@ export const AppStoreState = Schema.Struct({
   activeSessionId: Schema.NullOr(Schema.String),
   settings: Settings,
   availableModels: Schema.Array(ModelSchema),
-  isSidebarOpen: Schema.Boolean,
-  isSettingsOpen: Schema.Boolean,
 });
 export type AppStoreState = Schema.Schema.Type<typeof AppStoreState>;
 
 export const AppState = Schema.extend(
   AppStoreState,
   Schema.Struct({
+    isSidebarOpen: Schema.Boolean,
+    isSettingOpen: Schema.Boolean,
     confirm: ConfirmState,
     notifications: Schema.Array(Notification),
   }),

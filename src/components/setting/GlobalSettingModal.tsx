@@ -29,7 +29,7 @@ const GLOBAL_SETTING_TABS: SettingTabItem[] = [
 ];
 
 export const GlobalSettingModal: FC = () => {
-  const isSettingsOpen = useStore((s: AppState) => s.isSettingsOpen, false);
+  const isSettingOpen = useStore((s: AppState) => s.isSettingOpen, false);
   const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
   const sessions = useStore((s: AppState) => s.sessions, {});
   const availableModels = useStore((s: AppState) => s.availableModels, []);
@@ -37,7 +37,7 @@ export const GlobalSettingModal: FC = () => {
   const toggleSettings = useAction(() =>
     Effect.gen(function* () {
       const store = yield* StoreService;
-      yield* store.update((s) => ({ ...s, isSettingsOpen: !s.isSettingsOpen }));
+      yield* store.update((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
     }),
   );
 
@@ -117,11 +117,11 @@ export const GlobalSettingModal: FC = () => {
   };
 
   useEffect(() => {
-    if (isSettingsOpen) {
+    if (isSettingOpen) {
       setHistoryPage(0);
       setSelectedSessionIds(new Set());
     }
-  }, [isSettingsOpen]);
+  }, [isSettingOpen]);
 
   const handleExport = () => {
     let dataToExport = sessions;
@@ -155,7 +155,7 @@ export const GlobalSettingModal: FC = () => {
       }),
   );
 
-  if (!isSettingsOpen) return null;
+  if (!isSettingOpen) return null;
 
   const handleDeleteSelected = () => {
     if (selectedSessionIds.size === 0) return;

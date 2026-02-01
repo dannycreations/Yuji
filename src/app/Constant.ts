@@ -6,14 +6,14 @@ export const DEFAULT_GUIDE_PROMPT = `
 
 - Mandate the use of Markdown formatting in responses where appropriate.
 - Prohibit all phatic communication, social pleasantries, conversational fillers, and subjective prose (e.g., "Great", "Certainly", "I have done this").
-- Support LaTeX math using $ and $$ delimiters, and Mermaid diagrams using \`\`\`mermaid blocks.
+- Use LaTeX math ($ and $$) and Mermaid diagrams (\`\`\`mermaid) only when explicitly requested or technically essential for clarity.
 `.trim();
 
 export const DEFAULT_SETTINGS = {
   apiKey: '',
   baseUrl: 'http://localhost:11434/v1',
   defaultModel: 'gpt-4o',
-  theme: 'dark' as const,
+  theme: 'dark',
   enterToSend: true,
 
   // Persona Defaults
@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS = {
 
 export const INITIAL_GREETING = 'How can I help you{{0}}?';
 
-export const SUGGESTIONS = [
+export const INITIAL_SUGGESTIONS = [
   { icon: 'Sparkles', label: 'Create', prompt: 'Write a creative story about a detective in a cyberpunk city.' },
   { icon: 'Compass', label: 'Explore', prompt: 'Explain the concept of quantum entanglement and include the Schrödinger equation using LaTeX.' },
   { icon: 'Code', label: 'Code', prompt: 'Write a React component for a responsive navigation bar using Tailwind CSS.' },

@@ -1,7 +1,7 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { INITIAL_GREETING, SUGGESTIONS } from '../../app/Constant';
+import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { LLMProviderError } from '../../app/Error';
 import { YujiRuntime } from '../../app/Yuji';
 import { useStore } from '../../hooks/useStore';
@@ -301,7 +301,7 @@ export const ChatInterface: FC = () => {
             </div>
 
             <div className="suggestion-grid">
-              {SUGGESTIONS.map((suggestion, idx) => (
+              {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
                 <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">
                   <Icon name={suggestion.icon} size={20} className="suggestion-item-icon" />
                   <div className="suggestion-item-label">{suggestion.label}</div>

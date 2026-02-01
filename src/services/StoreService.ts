@@ -28,7 +28,7 @@ const INITIAL_STATE: AppState = {
   settings: DEFAULT_SETTINGS,
   availableModels: MODELS,
   isSidebarOpen: true,
-  isSettingsOpen: false,
+  isSettingOpen: false,
   confirm: {
     isOpen: false,
     title: '',
