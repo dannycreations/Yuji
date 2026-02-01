@@ -97,6 +97,7 @@ export const Settings = Schema.Struct({
   defaultModel: Schema.String,
   theme: Schema.Literal('dark', 'light'),
   enterToSend: Schema.Boolean,
+  systemPrompt: Schema.String,
   userName: Schema.String,
   userOccupation: Schema.String,
   assistantTraits: Schema.Array(Schema.String),

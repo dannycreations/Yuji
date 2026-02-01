@@ -203,7 +203,7 @@ export const Sidebar: FC = () => {
       {menuOpenId && menuPosition && menuSession && (
         <div
           ref={menuRef}
-          className="dropdown-menu fixed w-44 py-1.5 z-[100] animate-fade-in"
+          className="dropdown-menu fixed w-44 py-1 z-[100] animate-fade-in"
           style={{
             top: `${menuPosition.top}px`,
             left: `${menuPosition.left}px`,

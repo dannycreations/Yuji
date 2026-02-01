@@ -141,9 +141,9 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
               <InputTextarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                minRows={8}
-                className="font-mono"
                 placeholder="Enter custom instructions for this specific conversation..."
+                minRows={8}
+                maxRows={8}
               />
             </div>
           </div>

@@ -16,10 +16,11 @@ export const DEFAULT_SETTINGS = {
   theme: 'dark',
   enterToSend: true,
 
-  // Persona Defaults
+  // Prompt Defaults
+  systemPrompt: DEFAULT_SYSTEM_PROMPT,
   userName: '',
   userOccupation: '',
-  assistantTraits: ['helpful', 'precise'],
+  assistantTraits: ['creative', 'cynical'],
   additionalContext: '',
 
   // Model Defaults

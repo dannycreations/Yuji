@@ -1,12 +1,12 @@
 import { Context, Effect, Stream } from 'effect';
 
-import { DEFAULT_GUIDE_PROMPT, DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
+import { DEFAULT_GUIDE_PROMPT } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
 
 import type { Message, ModelConfig, Settings } from '../app/Schema';
 
 export const synthesizeSystemPrompt = (settings: Settings, sessionPrompt?: string, overrideGlobal?: boolean): string => {
-  const parts: string[] = [DEFAULT_SYSTEM_PROMPT];
+  const parts: string[] = [settings.systemPrompt];
 
   if (settings.userName) parts.push(`The user's name is ${settings.userName}.`);
   if (settings.userOccupation) parts.push(`The user acts as a ${settings.userOccupation}.`);

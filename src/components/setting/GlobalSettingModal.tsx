@@ -18,12 +18,13 @@ import type { ChangeEvent, FC } from 'react';
 import type { AppState, ChatSession, Settings } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
-type GlobalSettingTab = 'general' | 'connection' | 'models' | 'persona' | 'history';
+type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history';
 
 const GLOBAL_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
   { icon: 'Link', id: 'connection', label: 'Connection' },
   { icon: 'Cpu', id: 'models', label: 'Models' },
+  { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
   { icon: 'User', id: 'persona', label: 'Personalization' },
   { icon: 'History', id: 'history', label: 'History & Sync' },
 ];
@@ -365,35 +366,97 @@ export const GlobalSettingModal: FC = () => {
           </div>
         );
 
+      case 'instruction':
+        return (
+          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
+            <div className="space-y-2">
+              <label className="settings-label">System Instruction</label>
+              <InputTextarea
+                value={settings.systemPrompt}
+                onChange={(e) => updateSettings({ systemPrompt: e.target.value })}
+                placeholder="Enter system instructions..."
+                minRows={8}
+                maxRows={8}
+              />
+              <p className="text-xs text-text-secondary pl-1">This instruction will be sent as the system prompt to the AI.</p>
+            </div>
+          </div>
+        );
+
       case 'persona':
         return (
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <div className="space-y-3">
               <div className="space-y-2">
-                <label className="settings-label">Nickname</label>
+                <label className="settings-label">What should Yuji call you?</label>
                 <InputText
                   value={settings.userName}
                   onChange={(e) => updateSettings({ userName: e.target.value.slice(0, 50) })}
-                  placeholder="What would you like Yuji to call you?"
+                  placeholder="Enter your name..."
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="settings-label">Occupation</label>
+                <label className="settings-label">What do you do?</label>
                 <InputText
                   value={settings.userOccupation}
                   onChange={(e) => updateSettings({ userOccupation: e.target.value.slice(0, 100) })}
-                  placeholder="What do you do?"
+                  placeholder="Programmer, engineer, student..."
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="settings-label">More about you</label>
+                <label className="settings-label">What traits should Yuji have?</label>
+                <div className="relative group">
+                  <div className="flex flex-wrap gap-1 p-1 bg-surface-hover/40 border border-separator/30 rounded-xl focus-within:border-line/50 focus-within:bg-surface transition-all min-h-[46px]">
+                    {settings.assistantTraits.map((trait) => (
+                      <div
+                        key={trait}
+                        className="flex items-center gap-1 px-2 py-1 bg-white/10 text-text-primary text-xs rounded-lg animate-fade-in border border-white/5"
+                      >
+                        {trait}
+                        <button
+                          onClick={() => {
+                            const next = settings.assistantTraits.filter((t) => t !== trait);
+                            updateSettings({ assistantTraits: next });
+                          }}
+                          className="text-text-secondary hover:text-text-primary transition-colors"
+                        >
+                          <Icon name="X" size={10} />
+                        </button>
+                      </div>
+                    ))}
+                    <input
+                      className="flex-1 bg-transparent border-none outline-none py-1 px-1 text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
+                      placeholder={settings.assistantTraits.length === 0 ? 'Type a trait and press Enter or Tab...' : ''}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === 'Tab') {
+                          e.preventDefault();
+                          const val = e.currentTarget.value.trim().toLowerCase();
+                          if (val && !settings.assistantTraits.includes(val)) {
+                            updateSettings({ assistantTraits: [...settings.assistantTraits, val] });
+                            e.currentTarget.value = '';
+                          }
+                        } else if (e.key === 'Backspace' && !e.currentTarget.value && settings.assistantTraits.length > 0) {
+                          const next = [...settings.assistantTraits];
+                          next.pop();
+                          updateSettings({ assistantTraits: next });
+                        }
+                      }}
+                      maxLength={100}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="settings-label">Anything else Yuji should know about you?</label>
                 <InputTextarea
                   value={settings.additionalContext}
                   onChange={(e) => updateSettings({ additionalContext: e.target.value.slice(0, 3000) })}
-                  minRows={4}
-                  placeholder="What would you like Yuji to know about you to provide better responses?"
+                  placeholder="Interests, values, or preferences to keep in mind..."
+                  minRows={5}
+                  maxRows={5}
                 />
               </div>
             </div>
