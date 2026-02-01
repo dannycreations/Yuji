@@ -114,7 +114,7 @@ export const ChatMessageBlock: FC<CodeBlockProps> = ({ language, value }) => {
   );
 
   return (
-    <div className="my-1 border border-line rounded-xl overflow-hidden bg-code shadow-lg w-full">
+    <div className="my-1 border border-line rounded-xl overflow-hidden bg-code shadow-lg w-full flex-shrink-0">
       {renderHeader()}
       {!isCollapsed && (
         <div className="relative">

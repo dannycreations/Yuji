@@ -138,7 +138,7 @@ export const Sidebar: FC = () => {
 
                       <div className="absolute right-2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          className="btn-icon p-1"
+                          className="btn-icon"
                           onClick={(e) => {
                             e.stopPropagation();
                             setMenuOpenId(menuOpenId === session.id ? null : session.id);
@@ -196,6 +196,9 @@ export const Sidebar: FC = () => {
           </div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.userName || 'User'}</div>
+          </div>
+          <div className="text-text-tertiary">
+            <Icon name="Settings" size={16} />
           </div>
         </button>
       </div>

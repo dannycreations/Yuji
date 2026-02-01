@@ -1,8 +1,9 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { useAction, useStore } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { Icon } from './shared/Icon';
@@ -33,7 +34,6 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
         <div className="relative group">
           <InputText
             leftIcon="Search"
-            rightIcon="Filter"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search models..."
@@ -86,6 +86,9 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
 
 export const Header: FC = () => {
   const [showModelPicker, setShowModelPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(pickerRef, () => setShowModelPicker(false));
 
   const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
@@ -161,7 +164,7 @@ export const Header: FC = () => {
           </button>
         )}
 
-        <div className="relative">
+        <div className="relative" ref={pickerRef}>
           <button
             onClick={() => setShowModelPicker(!showModelPicker)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface transition-colors text-lg font-bold text-text-primary/90 hover:text-text-primary"
@@ -170,12 +173,7 @@ export const Header: FC = () => {
             <Icon name="ChevronDown" size={16} className="text-text-secondary" />
           </button>
 
-          {showModelPicker && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowModelPicker(false)} />
-              <ModelPicker currentModel={currentModelId} onSelect={handleModelSelect} onClose={() => setShowModelPicker(false)} />
-            </>
-          )}
+          {showModelPicker && <ModelPicker currentModel={currentModelId} onSelect={handleModelSelect} onClose={() => setShowModelPicker(false)} />}
         </div>
       </div>
     </div>

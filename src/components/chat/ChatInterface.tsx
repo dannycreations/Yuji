@@ -1,7 +1,7 @@
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { SUGGESTIONS } from '../../app/Constant';
+import { INITIAL_GREETING, SUGGESTIONS } from '../../app/Constant';
 import { LLMProviderError } from '../../app/Error';
 import { YujiRuntime } from '../../app/Yuji';
 import { useStore } from '../../hooks/useStore';
@@ -262,10 +262,11 @@ export const ChatInterface: FC = () => {
         <Header />
         <div className="chat-scroll-area">
           <div className="flex flex-col items-center justify-center p-6 min-h-full animate-fade-in chat-container">
-            <div className="mb-8">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator">
+            <div className="mb-4 flex flex-col items-center">
+              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator mb-4">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
+              <h1 className="text-2xl font-semibold text-text-primary text-center">{INITIAL_GREETING}</h1>
             </div>
 
             <div className="suggestion-grid">

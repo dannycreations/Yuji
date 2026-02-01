@@ -103,11 +103,11 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
         <div className="flex items-center justify-between px-2 pb-2 relative">
           <div className="flex items-center gap-0.5">
-            <button onClick={() => fileInputRef.current?.click()} className="btn-icon rounded-full" title="Attach Image">
+            <button onClick={() => fileInputRef.current?.click()} className="btn-icon" title="Attach Image">
               <Icon name="Plus" size={24} />
             </button>
 
-            <button className="btn-icon rounded-full" title="Search">
+            <button className="btn-icon" title="Search">
               <Icon name="Globe" size={20} />
             </button>
           </div>

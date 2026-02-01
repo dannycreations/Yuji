@@ -328,7 +328,7 @@
   }
 
   .suggestion-item {
-    @apply flex flex-col gap-2 p-4 rounded-2xl bg-transparent border border-line hover:bg-surface transition-colors text-left rounded-xl border border-transparent transition-all hover:bg-surface-hover;
+    @apply flex flex-col gap-2 p-4 rounded-xl bg-surface/40 border border-separator hover:bg-surface-hover transition-all text-left;
   }
 
   /* Messages */
@@ -349,7 +349,7 @@
   }
 
   .message-container-assistant {
-    @apply items-start;
+    @apply items-start w-full;
   }
 
   .message-bubble-user {
@@ -357,7 +357,7 @@
   }
 
   .message-actions {
-    @apply flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity;
+    @apply flex items-center gap-1;
   }
 
   .message-attachment-grid {

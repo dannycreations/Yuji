@@ -45,7 +45,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
         {/* Sidebar */}
         <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-3 px-2 border-r border-separator">
           <div className="flex justify-between items-center px-2 mb-2">
-            <button onClick={handleClose} className="btn-icon p-1 rounded-md">
+            <button onClick={handleClose} className="btn-icon">
               <Icon name="X" size={18} />
             </button>
           </div>
