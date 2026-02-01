@@ -116,6 +116,14 @@ export const ConfirmState = Schema.Struct({
 });
 export type ConfirmState = Schema.Schema.Type<typeof ConfirmState>;
 
+export const Notification = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal('error', 'warning', 'info', 'success'),
+  message: Schema.String,
+  timestamp: Schema.Number,
+});
+export type Notification = Schema.Schema.Type<typeof Notification>;
+
 export const AppStoreState = Schema.Struct({
   sessions: Schema.Record({ key: Schema.String, value: ChatSession }),
   activeSessionId: Schema.NullOr(Schema.String),
@@ -130,6 +138,7 @@ export const AppState = Schema.extend(
   AppStoreState,
   Schema.Struct({
     confirm: ConfirmState,
+    notifications: Schema.Array(Notification),
   }),
 );
 export type AppState = Schema.Schema.Type<typeof AppState>;

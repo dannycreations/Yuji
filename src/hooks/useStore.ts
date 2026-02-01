@@ -43,10 +43,23 @@ export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T):
 };
 
 export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {
+  const effectFnRef = useRef(effectFn);
+  effectFnRef.current = effectFn;
+
   return useMemo(
     () =>
       (...args: A) =>
-        YujiRuntime.runPromise(effectFn(...args)),
-    [effectFn],
+        YujiRuntime.runPromise(
+          effectFnRef.current(...args).pipe(
+            Effect.catchAll((err) =>
+              Effect.gen(function* () {
+                const store = yield* StoreService;
+                const message = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err);
+                yield* store.notify('error', message);
+              }),
+            ),
+          ),
+        ),
+    [],
   );
 };

@@ -4,6 +4,7 @@ import { Layer, ManagedRuntime } from 'effect';
 import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
 import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
+import { NotificationToast } from '../components/shared/NotificationToast';
 import { Sidebar } from '../components/Sidebar';
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
@@ -30,6 +31,7 @@ export const YujiApp = () => {
       </main>
       <GlobalSettingModal />
       <ConfirmModal />
+      <NotificationToast />
     </div>
   );
 };

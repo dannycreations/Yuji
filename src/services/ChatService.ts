@@ -75,44 +75,53 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const now = yield* platform.now;
 
-          yield* store.update((state) => {
-            const currentSession = state.sessions[sessionId];
-            if (!currentSession) return state;
+          yield* store
+            .update((state) => {
+              const currentSession = state.sessions[sessionId];
+              if (!currentSession) return state;
 
-            const messages = [...currentSession.messages];
+              const messages = [...currentSession.messages];
 
-            if (message.parentId) {
-              const parentIndex = messages.findIndex((m) => m.id === message.parentId);
-              if (parentIndex !== -1) {
-                const parent = messages[parentIndex];
-                messages[parentIndex] = {
-                  ...parent,
-                  childrenIds: [...(parent.childrenIds || []), message.id],
-                };
+              if (message.parentId) {
+                const parentIndex = messages.findIndex((m) => m.id === message.parentId);
+                if (parentIndex !== -1) {
+                  const parent = messages[parentIndex];
+                  messages[parentIndex] = {
+                    ...parent,
+                    childrenIds: [...(parent.childrenIds || []), message.id],
+                  };
+                }
               }
-            }
 
-            messages.push(message);
+              messages.push(message);
 
-            const title =
-              currentSession.messages.length === 0 && message.role === 'user' && message.content
-                ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
-                : currentSession.title;
+              const title =
+                currentSession.messages.length === 0 && message.role === 'user' && message.content
+                  ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
+                  : currentSession.title;
 
-            return {
-              ...state,
-              sessions: {
-                ...state.sessions,
-                [sessionId]: {
-                  ...currentSession,
-                  messages,
-                  activeMessageId: message.id,
-                  title,
-                  updatedAt: now,
+              return {
+                ...state,
+                sessions: {
+                  ...state.sessions,
+                  [sessionId]: {
+                    ...currentSession,
+                    messages,
+                    activeMessageId: message.id,
+                    title,
+                    updatedAt: now,
+                  },
                 },
-              },
-            };
-          });
+              };
+            })
+            .pipe(
+              Effect.catchAll((err) =>
+                Effect.gen(function* () {
+                  yield* store.notify('error', `Failed to add message: ${err}`);
+                  return yield* Effect.fail(err);
+                }),
+              ),
+            );
 
           const { sessions } = yield* SubscriptionRef.get(store.state);
           if (!sessions[sessionId]) {
@@ -124,24 +133,33 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const now = yield* platform.now;
 
-          yield* store.update((state) => {
-            const currentSession = state.sessions[sessionId];
-            if (!currentSession) return state;
+          yield* store
+            .update((state) => {
+              const currentSession = state.sessions[sessionId];
+              if (!currentSession) return state;
 
-            const updatedMessages = currentSession.messages.map((m) => (m.id === messageId ? { ...m, content } : m));
+              const updatedMessages = currentSession.messages.map((m) => (m.id === messageId ? { ...m, content } : m));
 
-            return {
-              ...state,
-              sessions: {
-                ...state.sessions,
-                [sessionId]: {
-                  ...currentSession,
-                  messages: updatedMessages,
-                  updatedAt: now,
+              return {
+                ...state,
+                sessions: {
+                  ...state.sessions,
+                  [sessionId]: {
+                    ...currentSession,
+                    messages: updatedMessages,
+                    updatedAt: now,
+                  },
                 },
-              },
-            };
-          });
+              };
+            })
+            .pipe(
+              Effect.catchAll((err) =>
+                Effect.gen(function* () {
+                  yield* store.notify('error', `Failed to update message: ${err}`);
+                  return yield* Effect.fail(err);
+                }),
+              ),
+            );
 
           const { sessions } = yield* SubscriptionRef.get(store.state);
           const session = sessions[sessionId];
@@ -157,47 +175,56 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const now = yield* platform.now;
 
-          yield* store.update((state) => {
-            const session = state.sessions[sessionId];
-            if (!session) return state;
+          yield* store
+            .update((state) => {
+              const session = state.sessions[sessionId];
+              if (!session) return state;
 
-            const messageToDelete = session.messages.find((m) => m.id === messageId);
-            if (!messageToDelete) return state;
+              const messageToDelete = session.messages.find((m) => m.id === messageId);
+              if (!messageToDelete) return state;
 
-            // Remove message from messages array
-            const newMessages = session.messages.filter((m) => m.id !== messageId);
+              // Remove message from messages array
+              const newMessages = session.messages.filter((m) => m.id !== messageId);
 
-            // Update parent's childrenIds if applicable
-            if (messageToDelete.parentId) {
-              const parentIndex = newMessages.findIndex((m) => m.id === messageToDelete.parentId);
-              if (parentIndex !== -1) {
-                const parent = newMessages[parentIndex];
-                newMessages[parentIndex] = {
-                  ...parent,
-                  childrenIds: parent.childrenIds?.filter((id) => id !== messageId),
-                };
+              // Update parent's childrenIds if applicable
+              if (messageToDelete.parentId) {
+                const parentIndex = newMessages.findIndex((m) => m.id === messageToDelete.parentId);
+                if (parentIndex !== -1) {
+                  const parent = newMessages[parentIndex];
+                  newMessages[parentIndex] = {
+                    ...parent,
+                    childrenIds: parent.childrenIds?.filter((id) => id !== messageId),
+                  };
+                }
               }
-            }
 
-            // Update activeMessageId if it was the one deleted
-            let activeMessageId = session.activeMessageId;
-            if (activeMessageId === messageId) {
-              activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
-            }
+              // Update activeMessageId if it was the one deleted
+              let activeMessageId = session.activeMessageId;
+              if (activeMessageId === messageId) {
+                activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
+              }
 
-            return {
-              ...state,
-              sessions: {
-                ...state.sessions,
-                [sessionId]: {
-                  ...session,
-                  messages: newMessages,
-                  activeMessageId,
-                  updatedAt: now,
+              return {
+                ...state,
+                sessions: {
+                  ...state.sessions,
+                  [sessionId]: {
+                    ...session,
+                    messages: newMessages,
+                    activeMessageId,
+                    updatedAt: now,
+                  },
                 },
-              },
-            };
-          });
+              };
+            })
+            .pipe(
+              Effect.catchAll((err) =>
+                Effect.gen(function* () {
+                  yield* store.notify('error', `Failed to delete message: ${err}`);
+                  return yield* Effect.fail(err);
+                }),
+              ),
+            );
 
           const { sessions } = yield* SubscriptionRef.get(store.state);
           const session = sessions[sessionId];
@@ -211,22 +238,31 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const now = yield* platform.now;
 
-          yield* store.update((state) => {
-            const session = state.sessions[sessionId];
-            if (!session) return state;
+          yield* store
+            .update((state) => {
+              const session = state.sessions[sessionId];
+              if (!session) return state;
 
-            return {
-              ...state,
-              sessions: {
-                ...state.sessions,
-                [sessionId]: {
-                  ...session,
-                  title,
-                  updatedAt: now,
+              return {
+                ...state,
+                sessions: {
+                  ...state.sessions,
+                  [sessionId]: {
+                    ...session,
+                    title,
+                    updatedAt: now,
+                  },
                 },
-              },
-            };
-          });
+              };
+            })
+            .pipe(
+              Effect.catchAll((err) =>
+                Effect.gen(function* () {
+                  yield* store.notify('error', `Failed to rename session: ${err}`);
+                  return yield* Effect.fail(err);
+                }),
+              ),
+            );
 
           const { sessions } = yield* SubscriptionRef.get(store.state);
           if (!sessions[sessionId]) {

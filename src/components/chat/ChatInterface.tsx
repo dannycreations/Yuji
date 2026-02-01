@@ -160,6 +160,7 @@ export const ChatInterface: FC = () => {
             const msg = err instanceof LLMProviderError ? err.message : 'Unknown error';
             console.error(err);
             yield* chat.updateMessage(sessionId, assistantMessageId, `*[Error: ${msg}]*`);
+            yield* store.notify('error', `Chat error: ${msg}`);
           }),
         ),
         Effect.ensuring(Effect.sync(() => setIsLoading(false))),
@@ -197,7 +198,16 @@ export const ChatInterface: FC = () => {
       yield* generateResponse(currentSessionId, history);
     });
 
-    YujiRuntime.runFork(sendEffect);
+    YujiRuntime.runFork(
+      sendEffect.pipe(
+        Effect.catchAll((err) =>
+          Effect.gen(function* () {
+            const store = yield* StoreService;
+            yield* store.notify('error', `Failed to send message: ${err}`);
+          }),
+        ),
+      ),
+    );
   };
 
   const handleRegenerate = (messageId: string) => {
@@ -225,7 +235,16 @@ export const ChatInterface: FC = () => {
       ),
     );
 
-    YujiRuntime.runFork(regenerateEffect);
+    YujiRuntime.runFork(
+      regenerateEffect.pipe(
+        Effect.catchAll((err) =>
+          Effect.gen(function* () {
+            const store = yield* StoreService;
+            yield* store.notify('error', `Failed to regenerate: ${err}`);
+          }),
+        ),
+      ),
+    );
   };
 
   const handleEdit = (messageId: string, newContent: string) => {
@@ -254,7 +273,16 @@ export const ChatInterface: FC = () => {
       yield* generateResponse(activeSession.id, history);
     });
 
-    YujiRuntime.runFork(editEffect);
+    YujiRuntime.runFork(
+      editEffect.pipe(
+        Effect.catchAll((err) =>
+          Effect.gen(function* () {
+            const store = yield* StoreService;
+            yield* store.notify('error', `Failed to edit message: ${err}`);
+          }),
+        ),
+      ),
+    );
   };
 
   if (!activeSession || activeSession.messages.length === 0) {

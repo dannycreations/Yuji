@@ -14,6 +14,8 @@ export interface StoreService {
   ) => Effect.Effect<void>;
   readonly getOnConfirm: (id: string) => Effect.Effect<(() => void) | undefined>;
   readonly clearConfirm: (id: string) => Effect.Effect<void>;
+  readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
+  readonly clearNotification: (id: string) => Effect.Effect<void>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -32,6 +34,7 @@ const INITIAL_STATE: AppState = {
     title: '',
     message: '',
   },
+  notifications: [],
 };
 
 const OnConfirmStore = new Map<string, () => void>();
@@ -61,7 +64,27 @@ export const StoreServiceLive = Layer.effect(
         Stream.runForEach((s) =>
           Schema.encode(Schema.parseJson(AppStoreState))(s).pipe(
             Effect.flatMap((json) => storage.setItem(STORAGE_KEY, json)),
-            Effect.ignore,
+            Effect.catchAll((err) =>
+              SubscriptionRef.update(state, (curr) => {
+                const message = `Failed to save state: ${err}`;
+                const type = 'error' as const;
+                const existing = curr.notifications.find((n) => n.message === message && n.type === type);
+                const filtered = existing ? curr.notifications.filter((n) => n.id !== existing.id) : curr.notifications;
+
+                return {
+                  ...curr,
+                  notifications: [
+                    {
+                      id: Math.random().toString(36).substring(7),
+                      type,
+                      message,
+                      timestamp: Date.now(),
+                    },
+                    ...filtered,
+                  ],
+                };
+              }),
+            ),
           ),
         ),
       ),
@@ -86,6 +109,29 @@ export const StoreServiceLive = Layer.effect(
         }),
       getOnConfirm: (id) => Effect.sync(() => OnConfirmStore.get(id)),
       clearConfirm: (id) => Effect.sync(() => OnConfirmStore.delete(id)),
+      notify: (type, message) =>
+        SubscriptionRef.update(state, (s) => {
+          const existing = s.notifications.find((n) => n.message === message && n.type === type);
+          const filtered = existing ? s.notifications.filter((n) => n.id !== existing.id) : s.notifications;
+
+          return {
+            ...s,
+            notifications: [
+              {
+                id: Math.random().toString(36).substring(7),
+                type,
+                message,
+                timestamp: Date.now(),
+              },
+              ...filtered,
+            ],
+          };
+        }),
+      clearNotification: (id) =>
+        SubscriptionRef.update(state, (s) => ({
+          ...s,
+          notifications: s.notifications.filter((n) => n.id !== id),
+        })),
     });
   }),
 );
