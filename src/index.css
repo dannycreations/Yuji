@@ -378,29 +378,35 @@
 
   .prose-chat {
     @apply max-w-none text-text-primary text-sm font-sans w-full;
+    & > :first-child {
+      @apply mt-0! pt-0!;
+    }
+    & > :last-child {
+      @apply mb-0! pb-0!;
+    }
     & p {
-      @apply leading-7 mb-3 last:mb-0;
+      @apply leading-7 my-2 last:mb-0;
     }
     & li {
       @apply leading-7;
     }
     & ul {
-      @apply list-disc pl-3 space-y-1 my-3;
+      @apply list-disc pl-3 space-y-1 my-2 last:mb-0;
     }
     & ol {
-      @apply list-decimal pl-3 space-y-1 my-3;
+      @apply list-decimal pl-3 space-y-1 my-2 last:mb-0;
     }
     & h1 {
-      @apply text-xl font-bold mt-3 mb-3;
+      @apply text-xl font-bold my-2 last:mb-0;
     }
     & h2 {
-      @apply text-lg font-bold mt-3 mb-3;
+      @apply text-lg font-bold my-2 last:mb-0;
     }
     & h3 {
-      @apply text-sm font-bold mt-3 mb-2;
+      @apply text-sm font-bold my-2 last:mb-0;
     }
     & blockquote {
-      @apply border-l-2 border-highlight pl-3 my-3 text-text-secondary;
+      @apply border-l-2 border-highlight pl-3 my-2 text-text-secondary last:mb-0;
     }
     & a {
       @apply text-primary hover:underline;
@@ -408,7 +414,7 @@
   }
 
   .prose-table-container {
-    @apply overflow-x-auto my-3 rounded-lg border border-line;
+    @apply overflow-x-auto my-2 rounded-lg border border-line first:mt-0 last:mb-0;
   }
 
   .prose-table {
@@ -428,7 +434,7 @@
   }
 
   .code-block-container {
-    @apply my-1 border border-line rounded-xl bg-code shadow-lg w-full flex-shrink-0 overflow-clip;
+    @apply my-1 border border-line rounded-xl bg-code shadow-lg w-full flex-shrink-0 overflow-clip first:mt-0 last:mb-0;
   }
 
   .code-block-header {
@@ -482,7 +488,7 @@
 
   /* Chat Interface */
   .chat-scroll-area {
-    @apply flex-1 min-h-0 overflow-y-auto w-full;
+    @apply flex-1 min-h-0 overflow-y-auto w-full flex flex-col-reverse;
   }
 
   .suggestion-grid {
@@ -535,11 +541,23 @@
   }
 
   .message-bubble-user {
-    @apply bg-surface px-3 py-2 rounded-3xl break-words max-w-full;
+    @apply bg-surface px-3 py-2 rounded-2xl break-words max-w-full;
+    & > :first-child {
+      @apply mt-0!;
+    }
+    & > :last-child {
+      @apply mb-0!;
+    }
   }
 
   .message-bubble-assistant {
     @apply w-full;
+    & > :first-child {
+      @apply mt-0!;
+    }
+    & > :last-child {
+      @apply mb-0!;
+    }
   }
 
   .message-thinking-container {
@@ -555,7 +573,7 @@
   }
 
   .message-attachment-grid {
-    @apply flex flex-wrap gap-2 mb-3;
+    @apply flex flex-wrap gap-2 mb-3 last:mb-0;
   }
 
   .message-attachment-item {

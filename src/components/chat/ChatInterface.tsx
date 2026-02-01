@@ -64,26 +64,6 @@ export const ChatInterface: FC = () => {
     isAutoScrolling.current = atBottom;
   };
 
-  // Handle session change: instant scroll to bottom
-  useEffect(() => {
-    if (activeSessionId && visibleMessages.length > 0) {
-      isAutoScrolling.current = true;
-      // Small delay to ensure DOM is ready and VirtualBlocks have registered their sizes
-      const timer = setTimeout(() => {
-        scrollToBottom('auto');
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [activeSessionId]);
-
-  // Handle new messages: smooth scroll
-  useEffect(() => {
-    if (visibleMessages.length > 0) {
-      scrollToBottom('smooth');
-      isAutoScrolling.current = true;
-    }
-  }, [visibleMessages.length]);
-
   // Handle streaming content updates: pinning to bottom
   const lastMessageContent = visibleMessages[visibleMessages.length - 1]?.content;
   useEffect(() => {
