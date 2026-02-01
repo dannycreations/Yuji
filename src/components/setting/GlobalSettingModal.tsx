@@ -54,6 +54,21 @@ export const GlobalSettingModal: FC = () => {
     }),
   );
 
+  const deleteSessions = useAction((ids: Set<string>) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s) => {
+        const nextSessions = { ...s.sessions };
+        ids.forEach((id) => delete nextSessions[id]);
+        return {
+          ...s,
+          sessions: nextSessions,
+          activeSessionId: ids.has(s.activeSessionId || '') ? null : s.activeSessionId,
+        };
+      });
+    }),
+  );
+
   const setAvailableModels = useAction((models: ReadonlyArray<Model>) =>
     Effect.gen(function* () {
       const store = yield* StoreService;
@@ -107,10 +122,14 @@ export const GlobalSettingModal: FC = () => {
     }
   }, [isSettingsOpen]);
 
-  if (!isSettingsOpen) return null;
-
   const handleExport = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sessions));
+    let dataToExport = sessions;
+
+    if (selectedSessionIds.size > 0) {
+      dataToExport = Object.fromEntries(Object.entries(sessions).filter(([id]) => selectedSessionIds.has(id)));
+    }
+
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dataToExport));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute('href', dataStr);
     downloadAnchorNode.setAttribute('download', `yuji-history-${new Date().toISOString().split('T')[0]}.json`);
@@ -121,6 +140,35 @@ export const GlobalSettingModal: FC = () => {
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const setConfirm = useAction(
+    (
+      options: Omit<Parameters<StoreService['setConfirm']>[0], 'id' | 'isOpen'> & {
+        readonly onConfirm: () => void;
+      },
+    ) =>
+      Effect.gen(function* () {
+        const store = yield* StoreService;
+        yield* store.setConfirm(options);
+      }),
+  );
+
+  if (!isSettingsOpen) return null;
+
+  const handleDeleteSelected = () => {
+    if (selectedSessionIds.size === 0) return;
+
+    setConfirm({
+      title: 'Delete History',
+      message: `Are you sure you want to delete **${selectedSessionIds.size}** selected session${selectedSessionIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: () => {
+        deleteSessions(selectedSessionIds);
+        setSelectedSessionIds(new Set());
+      },
+    });
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -371,21 +419,34 @@ export const GlobalSettingModal: FC = () => {
                   <button
                     onClick={toggleSelectAll}
                     className={clsx(
-                      'checkbox-base checkbox-header',
-                      currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id)) && 'checked',
+                      'checkbox-base',
+                      currentHistoryItems.length > 0 && currentHistoryItems.some((s) => selectedSessionIds.has(s.id)) && 'checked',
                     )}
                   >
-                    <Icon name="Check" size={10} strokeWidth={4} />
+                    {currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id)) ? (
+                      <Icon name="Check" size={12} strokeWidth={4} />
+                    ) : (
+                      <Icon name="Minus" size={12} strokeWidth={4} />
+                    )}
                   </button>
                 </div>
                 <div className="flex-1 label-caps text-text-primary">Title</div>
                 <div className="flex items-center gap-2">
+                  {selectedSessionIds.size > 0 && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      className="flex items-center gap-1.5 px-2 py-1 bg-danger/10 hover:bg-danger/20 border border-danger/20 rounded-md text-xs font-bold text-danger transition-colors uppercase tracking-wide cursor-pointer"
+                    >
+                      <Icon name="Trash2" size={12} />
+                      Delete ({selectedSessionIds.size})
+                    </button>
+                  )}
                   <button
                     onClick={handleExport}
                     className="flex items-center gap-1.5 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
                   >
                     <Icon name="Upload" size={12} />
-                    Export
+                    Export {selectedSessionIds.size > 0 ? `(${selectedSessionIds.size})` : ''}
                   </button>
                   <button
                     onClick={handleImportClick}
@@ -407,9 +468,9 @@ export const GlobalSettingModal: FC = () => {
                       <div className="w-8 flex-shrink-0 flex items-center justify-center">
                         <button
                           onClick={() => toggleSelectSession(session.id)}
-                          className={clsx('checkbox-base', selectedSessionIds.has(session.id) ? 'checked' : 'unchecked')}
+                          className={clsx('checkbox-base', selectedSessionIds.has(session.id) && 'checked')}
                         >
-                          <Icon name="Check" size={10} strokeWidth={4} />
+                          <Icon name="Check" size={12} strokeWidth={4} />
                         </button>
                       </div>
                       <div className="flex-1 min-w-0 pr-4">

@@ -39,6 +39,7 @@ export const Sidebar: FC = () => {
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,9 +71,13 @@ export const Sidebar: FC = () => {
   };
 
   const filteredSessions = useMemo(() => {
-    const allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
+    let allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      allSessions = allSessions.filter((s) => s.title.toLowerCase().includes(query));
+    }
     return allSessions;
-  }, [sessions]);
+  }, [sessions, searchQuery]);
 
   const groupSessions = (sessionsList: ChatSession[]) => {
     const today = new Date();
@@ -82,8 +87,8 @@ export const Sidebar: FC = () => {
     const groups: Record<string, ChatSession[]> = {
       Today: [],
       Yesterday: [],
-      'Previous 7 Days': [],
-      'Previous 30 Days': [],
+      'Last 7 Days': [],
+      'Last 30 Days': [],
     };
 
     sessionsList.forEach((session) => {
@@ -93,9 +98,9 @@ export const Sidebar: FC = () => {
       } else if (date.toDateString() === yesterday.toDateString()) {
         groups['Yesterday'].push(session);
       } else if (today.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) {
-        groups['Previous 7 Days'].push(session);
+        groups['Last 7 Days'].push(session);
       } else {
-        groups['Previous 30 Days'].push(session);
+        groups['Last 30 Days'].push(session);
       }
     });
 
@@ -115,6 +120,19 @@ export const Sidebar: FC = () => {
         <button onClick={handleCreateSession} className="btn-icon" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </button>
+      </div>
+
+      <div className="px-3 mb-2">
+        <div className="relative flex items-center group">
+          <Icon name="Search" size={18} className="absolute left-2 text-text-tertiary group-focus-within:text-text-secondary transition-colors" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search sessions..."
+            className="w-full bg-surface/50 border border-transparent focus:border-line/30 focus:bg-surface rounded-xl py-2 pl-9 pr-2 text-sm text-text-primary outline-none placeholder:text-text-tertiary transition-all"
+          />
+        </div>
       </div>
 
       <div className="sidebar-content">

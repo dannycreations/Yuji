@@ -156,7 +156,7 @@
   }
 
   .input-base {
-    @apply w-full bg-surface border border-transparent rounded-xl py-3 text-sm text-text-primary outline-none focus:border-line transition-all placeholder:text-text-secondary;
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl py-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-all placeholder:text-text-tertiary;
     &.input-sm {
       @apply py-2 text-xs;
     }
@@ -167,7 +167,7 @@
   }
 
   .input-switch {
-    @apply w-10 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary/50;
+    @apply w-10 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-primary/50;
     &.checked {
       @apply bg-primary;
     }
@@ -175,9 +175,9 @@
       @apply bg-surface-hover;
     }
     & .input-switch-thumb {
-      @apply absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm;
+      @apply absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-all shadow-sm;
       &.checked {
-        @apply translate-x-4;
+        @apply translate-x-4 bg-surface-hover;
       }
     }
   }
@@ -640,19 +640,15 @@
 
   /* Checkbox/Selection */
   .checkbox-base {
-    @apply w-4 h-4 rounded border flex items-center justify-center transition-all;
-    &.checked {
-      @apply bg-primary border-primary text-white;
-    }
-    &.unchecked {
-      @apply border-highlight bg-surface/50 text-transparent;
-    }
-  }
+    @apply w-4 h-4 rounded border flex items-center justify-center transition-all cursor-pointer;
+    @apply border-highlight bg-black/20 text-transparent;
 
-  .checkbox-header {
-    @apply border-highlight bg-black/50 text-transparent;
     &.checked {
-      @apply bg-primary border-primary text-white;
+      @apply bg-primary border-primary text-background;
+    }
+
+    &:hover:not(.checked) {
+      @apply border-highlight bg-black/40;
     }
   }
 }
