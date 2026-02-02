@@ -10,6 +10,8 @@ import type { AppState, ConfirmState } from '../app/Schema';
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppState>;
   readonly update: (f: (state: AppState) => AppState) => Effect.Effect<void>;
+  readonly toggleSidebar: () => Effect.Effect<void>;
+  readonly toggleSetting: () => Effect.Effect<void>;
   readonly setConfirm: (
     options: Omit<Schema.Schema.Type<typeof ConfirmState>, 'isOpen' | 'id'> & { readonly onConfirm: () => void },
   ) => Effect.Effect<void>;
@@ -96,15 +98,19 @@ export const StoreServiceLive = Layer.effect(
       ),
     );
 
+    const update = (f: (state: AppState) => AppState) => SubscriptionRef.update(state, f);
+
     return StoreService.of({
       state,
-      update: (f) => SubscriptionRef.update(state, f),
+      update,
+      toggleSidebar: () => update((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen })),
+      toggleSetting: () => update((s) => ({ ...s, isSettingOpen: !s.isSettingOpen })),
       setConfirm: (options) =>
         Effect.gen(function* () {
           const { onConfirm, ...rest } = options;
           const id = randomString(8);
           OnConfirmStore.set(id, onConfirm);
-          yield* SubscriptionRef.update(state, (s) => ({
+          yield* update((s) => ({
             ...s,
             confirm: {
               ...rest,
@@ -116,12 +122,12 @@ export const StoreServiceLive = Layer.effect(
       getOnConfirm: (id) => Effect.sync(() => OnConfirmStore.get(id)),
       clearConfirm: (id) => Effect.sync(() => OnConfirmStore.delete(id)),
       notify: (type, message) =>
-        SubscriptionRef.update(state, (s) => ({
+        update((s) => ({
           ...s,
           notifications: createNotification(type, message, s.notifications),
         })),
       clearNotification: (id) =>
-        SubscriptionRef.update(state, (s) => ({
+        update((s) => ({
           ...s,
           notifications: s.notifications.filter((n) => n.id !== id),
         })),

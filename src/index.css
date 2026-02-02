@@ -277,13 +277,6 @@
     @apply flex-1 truncate relative overflow-hidden;
   }
 
-  .sidebar-session-fade {
-    @apply absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-sidebar to-transparent pointer-events-none;
-  }
-  .sidebar-session-item:hover .sidebar-session-fade {
-    @apply from-surface;
-  }
-
   .chat-input-attachments {
     @apply flex gap-2 px-3 pt-3 overflow-x-auto;
     -ms-overflow-style: none;
@@ -291,10 +284,6 @@
     &::-webkit-scrollbar {
       display: none;
     }
-  }
-
-  .sidebar-session-fade-active {
-    @apply from-surface;
   }
 
   .sidebar-footer {

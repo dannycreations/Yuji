@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { groupSessions } from '../helpers/SessionHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useConfirm, useStore, useUpdateStore } from '../hooks/useStore';
+import { useAction, useConfirm, useStore, useToggleSetting, useToggleSidebar, useUpdateStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
@@ -23,8 +23,8 @@ export const Sidebar: FC = () => {
   const updateStore = useUpdateStore();
 
   const setActiveSession = (id: string | null) => updateStore((s) => ({ ...s, activeSessionId: id }));
-  const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
-  const toggleSetting = () => updateStore((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
+  const toggleSidebar = useToggleSidebar();
+  const toggleSetting = useToggleSetting();
 
   const showConfirm = useConfirm();
 
@@ -114,8 +114,6 @@ export const Sidebar: FC = () => {
                     >
                       <div className="sidebar-session-title">
                         <span className="block truncate">{session.title}</span>
-                        {/* Fade effect for long titles */}
-                        <div className={clsx('sidebar-session-fade', activeSessionId === session.id && 'sidebar-session-fade-active')} />
                       </div>
 
                       <div className="relative flex items-center">

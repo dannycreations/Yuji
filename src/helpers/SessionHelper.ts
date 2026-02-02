@@ -10,10 +10,13 @@ export const getMessagePath = (session: ChatSession, messageId: string): Readonl
   return findPath(messageId);
 };
 
-export const groupSessions = (sessionsList: ChatSession[]) => {
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+export const groupSessions = (sessionsList: ReadonlyArray<ChatSession>): Record<string, ReadonlyArray<ChatSession>> => {
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const todayStart = new Date(now).setHours(0, 0, 0, 0);
+  const yesterdayStart = todayStart - dayMs;
+  const last7DaysStart = todayStart - 7 * dayMs;
 
   const groups: Record<string, ChatSession[]> = {
     Today: [],
@@ -23,12 +26,12 @@ export const groupSessions = (sessionsList: ChatSession[]) => {
   };
 
   sessionsList.forEach((session) => {
-    const date = new Date(session.updatedAt);
-    if (date.toDateString() === today.toDateString()) {
+    const time = session.updatedAt;
+    if (time >= todayStart) {
       groups['Today'].push(session);
-    } else if (date.toDateString() === yesterday.toDateString()) {
+    } else if (time >= yesterdayStart) {
       groups['Yesterday'].push(session);
-    } else if (today.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) {
+    } else if (time >= last7DaysStart) {
       groups['Last 7 Days'].push(session);
     } else {
       groups['Last 30 Days'].push(session);

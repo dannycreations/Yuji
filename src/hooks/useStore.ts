@@ -79,15 +79,19 @@ export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => E
 };
 
 export const useUpdateStore = () => {
-  const storeService = useStoreService();
-  return useMemo(() => (f: (state: AppState) => AppState) => YujiRuntime.runPromise(storeService.update(f)), [storeService]);
+  return useAction((f: (state: AppState) => AppState) => Effect.flatMap(StoreService, (s) => s.update(f)));
+};
+
+export const useToggleSidebar = () => {
+  return useAction(() => Effect.flatMap(StoreService, (s) => s.toggleSidebar()));
+};
+
+export const useToggleSetting = () => {
+  return useAction(() => Effect.flatMap(StoreService, (s) => s.toggleSetting()));
 };
 
 export const useConfirm = () => {
   return useAction((config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.setConfirm(config);
-    }),
+    Effect.flatMap(StoreService, (s) => s.setConfirm(config)),
   );
 };

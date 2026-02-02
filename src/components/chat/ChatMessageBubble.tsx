@@ -156,14 +156,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                           return <ChatMessageBlock language={language} value={value} />;
                         }
 
-                        if (!className && !isMultiline) {
-                          return (
-                            <code className={clsx('code-inline', className)} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-
                         return (
                           <code className={clsx('code-inline', className)} {...props}>
                             {children}

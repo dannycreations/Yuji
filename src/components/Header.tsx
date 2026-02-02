@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { getEffectiveModelId, getEffectiveModelName, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useStore, useUpdateStore } from '../hooks/useStore';
+import { useAction, useStore, useToggleSidebar } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { toTitleCase } from '../utilities/CommonUtil';
 import { Icon } from './shared/Icon';
@@ -94,9 +94,7 @@ export const Header: FC = () => {
     },
   );
 
-  const updateStore = useUpdateStore();
-
-  const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
+  const toggleSidebar = useToggleSidebar();
 
   const setSessionModel = useAction((sessionId: string, model: string) =>
     Effect.gen(function* () {

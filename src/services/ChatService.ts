@@ -29,23 +29,22 @@ export const ChatServiceLive = Layer.effect(
     const updateSession = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession) =>
       Effect.gen(function* () {
         const now = Date.now();
-        const result = yield* store.update((state) => {
+        yield* store.update((state) => {
           const session = state.sessions[sessionId];
           if (!session) return state;
           return {
             ...state,
             sessions: {
               ...state.sessions,
-              [sessionId]: f(session, now),
+              [sessionId]: { ...f(session, now), updatedAt: now },
             },
           };
         });
 
         const { sessions } = yield* SubscriptionRef.get(store.state);
         if (!sessions[sessionId]) {
-          return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+          yield* Effect.fail(new SessionNotFoundError({ sessionId }));
         }
-        return result;
       }).pipe(
         Effect.catchAll((err) => {
           if (err instanceof SessionNotFoundError) return Effect.fail(err);
@@ -140,10 +139,15 @@ export const ChatServiceLive = Layer.effect(
 
       updateMessage: (sessionId, messageId, content) =>
         Effect.gen(function* () {
-          yield* updateSession(sessionId, (session) => ({
-            ...session,
-            messages: session.messages.map((m) => (m.id === messageId ? { ...m, content } : m)),
-          }));
+          yield* updateSession(sessionId, (session) => {
+            if (!session.messages.some((m) => m.id === messageId)) {
+              return session;
+            }
+            return {
+              ...session,
+              messages: session.messages.map((m) => (m.id === messageId ? { ...m, content } : m)),
+            };
+          });
 
           const { sessions } = yield* SubscriptionRef.get(store.state);
           if (!sessions[sessionId]?.messages.find((m) => m.id === messageId)) {

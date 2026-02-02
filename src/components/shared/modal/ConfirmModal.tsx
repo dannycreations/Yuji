@@ -47,7 +47,7 @@ export const ConfirmModal: FC = () => {
 
   const handleCancel = () => {
     setIsClosing(true);
-    setTimeout(onCancel, 200);
+    setTimeout(() => onCancel(), 200);
   };
 
   const handleConfirm = () => {

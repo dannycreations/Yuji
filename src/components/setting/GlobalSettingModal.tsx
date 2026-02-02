@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { Model } from '../../app/Schema';
-import { useAction, useConfirm, useStore, useUpdateStore } from '../../hooks/useStore';
+import { useAction, useConfirm, useStore, useToggleSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
@@ -34,9 +34,8 @@ export const GlobalSettingModal: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
   const availableModels = useStore((s: AppState) => s.availableModels, []);
 
+  const toggleSetting = useToggleSetting();
   const updateStore = useUpdateStore();
-
-  const toggleSettings = () => updateStore((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
 
   const updateSettings = (newSettings: Partial<Settings>) => updateStore((s) => ({ ...s, settings: { ...s.settings, ...newSettings } }));
 
@@ -465,7 +464,7 @@ export const GlobalSettingModal: FC = () => {
   if (!isSettingOpen) return null;
 
   return (
-    <SettingModal tabs={GLOBAL_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={toggleSettings} title={activeTabLabel}>
+    <SettingModal tabs={GLOBAL_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={toggleSetting} title={activeTabLabel}>
       {renderContent()}
     </SettingModal>
   );
