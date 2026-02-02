@@ -1,10 +1,10 @@
 import clsx from 'clsx';
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
 import { Icon } from './Icon';
 
-import type { ComponentProps, FC } from 'react';
+import type { ChangeEvent, ComponentProps, FC } from 'react';
 import type { TextareaAutosizeProps } from 'react-textarea-autosize';
 import type { IconName } from './Icon';
 
@@ -14,27 +14,46 @@ interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
   readonly containerClassName?: string;
 }
 
-export const InputText = forwardRef<HTMLInputElement, InputTextProps>(({ className, containerClassName, leftIcon, rightIcon, ...props }, ref) => {
-  return (
-    <div className={clsx('relative group', containerClassName)}>
-      {leftIcon && (
-        <Icon
-          name={leftIcon}
-          size={14}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
+export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
+  ({ className, containerClassName, leftIcon, rightIcon, value, onChange, ...props }, ref) => {
+    const [localValue, setLocalValue] = useState(value ?? '');
+
+    useEffect(() => {
+      setLocalValue(value ?? '');
+    }, [value]);
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+      setLocalValue(e.target.value);
+      onChange?.(e);
+    };
+
+    return (
+      <div className={clsx('relative group', containerClassName)}>
+        {leftIcon && (
+          <Icon
+            name={leftIcon}
+            size={14}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
+          />
+        )}
+        <input
+          ref={ref}
+          className={clsx('input-base', leftIcon ? 'pl-9' : 'pl-3', rightIcon ? 'pr-9' : 'pr-3', className)}
+          value={localValue}
+          onChange={handleChange}
+          {...props}
         />
-      )}
-      <input ref={ref} className={clsx('input-base', leftIcon ? 'pl-9' : 'pl-3', rightIcon ? 'pr-9' : 'pr-3', className)} {...props} />
-      {rightIcon && (
-        <Icon
-          name={rightIcon}
-          size={14}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
-        />
-      )}
-    </div>
-  );
-});
+        {rightIcon && (
+          <Icon
+            name={rightIcon}
+            size={14}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
+          />
+        )}
+      </div>
+    );
+  },
+);
 
 export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>((props, ref) => {
   return <InputText ref={ref} leftIcon="Search" {...props} />;
@@ -81,6 +100,19 @@ export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled 
   );
 };
 
-export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ className, ...props }, ref) => {
-  return <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} {...props} />;
+export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ className, value, onChange, ...props }, ref) => {
+  const [localValue, setLocalValue] = useState(value ?? '');
+
+  useEffect(() => {
+    setLocalValue(value ?? '');
+  }, [value]);
+
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setLocalValue(e.target.value);
+    onChange?.(e);
+  };
+
+  return (
+    <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
+  );
 });
