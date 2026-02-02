@@ -66,6 +66,7 @@ export const Message = Schema.Struct({
   timestamp: Schema.Number,
   parentId: Schema.optional(Schema.String),
   childrenIds: Schema.optional(Schema.Array(Schema.String)),
+  isError: Schema.optional(Schema.Boolean),
 });
 export type Message = Schema.Schema.Type<typeof Message>;
 

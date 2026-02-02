@@ -107,7 +107,7 @@ export const ChatInterface: FC = () => {
           Effect.gen(function* () {
             const msg = err instanceof LLMProviderError ? err.message : 'Unknown error';
             console.error(err);
-            yield* chat.updateMessage(sessionId, id, `*[Error: ${msg}]*`);
+            yield* chat.updateMessage(sessionId, id, `*[Error: ${msg}]*`, true);
             yield* store.notify('error', `Chat error: ${msg}`);
           }),
         ),

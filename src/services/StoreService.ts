@@ -84,8 +84,30 @@ export const StoreServiceLive = Layer.effect(
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
-        Stream.runForEach((s) =>
-          Schema.encode(Schema.parseJson(AppStoreState))(s).pipe(
+        Stream.runForEach((s) => {
+          const sanitizedSessions = Object.fromEntries(
+            Object.entries(s.sessions).map(([id, session]) => {
+              const validMessages = session.messages.filter((m) => !m.isError);
+              const validIds = new Set(validMessages.map((m) => m.id));
+
+              const cleanedMessages = validMessages.map((m) => ({
+                ...m,
+                childrenIds: m.childrenIds?.filter((childId) => validIds.has(childId)),
+              }));
+
+              return [
+                id,
+                {
+                  ...session,
+                  messages: cleanedMessages,
+                  activeMessageId: session.activeMessageId && validIds.has(session.activeMessageId) ? session.activeMessageId : undefined,
+                },
+              ];
+            }),
+          );
+
+          const sanitizedState = { ...s, sessions: sanitizedSessions };
+          return Schema.encode(Schema.parseJson(AppStoreState))(sanitizedState).pipe(
             Effect.flatMap((json) => storage.setItem(STORAGE_KEY, json)),
             Effect.catchAll((err) =>
               SubscriptionRef.update(state, (curr) => ({
@@ -93,8 +115,8 @@ export const StoreServiceLive = Layer.effect(
                 notifications: createNotification('error', `Failed to save state: ${err}`, curr.notifications),
               })),
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
 

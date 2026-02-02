@@ -12,7 +12,12 @@ export interface ChatService {
   readonly createSession: () => Effect.Effect<ChatSession>;
   readonly deleteSession: (id: string) => Effect.Effect<void>;
   readonly addMessage: (sessionId: string, message: Message) => Effect.Effect<void, SessionNotFoundError>;
-  readonly updateMessage: (sessionId: string, messageId: string, content: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
+  readonly updateMessage: (
+    sessionId: string,
+    messageId: string,
+    content: string,
+    isError?: boolean,
+  ) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (sessionId: string, messageId: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
   readonly getSessionPath: (sessionId: string, messageId: string) => Effect.Effect<ReadonlyArray<Message>, SessionNotFoundError>;
@@ -136,7 +141,7 @@ export const ChatServiceLive = Layer.effect(
           };
         }),
 
-      updateMessage: (sessionId, messageId, content) =>
+      updateMessage: (sessionId, messageId, content, isError) =>
         Effect.gen(function* () {
           yield* updateSession(sessionId, (session) => {
             if (!session.messages.some((m) => m.id === messageId)) {
@@ -144,7 +149,7 @@ export const ChatServiceLive = Layer.effect(
             }
             return {
               ...session,
-              messages: session.messages.map((m) => (m.id === messageId ? { ...m, content } : m)),
+              messages: session.messages.map((m) => (m.id === messageId ? { ...m, content, isError } : m)),
             };
           });
 
