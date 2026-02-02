@@ -1,21 +1,17 @@
-import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Effect } from 'effect';
+import { useMemo } from 'react';
 
 import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
-import { LLMProviderError } from '../../app/Error';
-import { YujiRuntime } from '../../app/Yuji';
 import { getMessagePath } from '../../helpers/SessionHelper';
 import { useAction, useStore } from '../../hooks/useStore';
-import { LLMProvider, synthesizeSystemPrompt } from '../../providers/LLMProvider';
+import { useStream } from '../../hooks/useStream';
 import { ChatService } from '../../services/ChatService';
-import { StoreService } from '../../services/StoreService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
 
 import type { FC } from 'react';
-import type { MessageNotFoundError, SessionNotFoundError } from '../../app/Error';
 import type { AppState, Attachment, Message } from '../../app/Schema';
 
 export const ChatInterface: FC = () => {
@@ -23,8 +19,7 @@ export const ChatInterface: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
   const userName = useStore((s: AppState) => s.settings.personalisation.userName, '');
 
-  const [isLoading, setIsLoading] = useState(false);
-  const fiberRef = useRef<Fiber.Fiber<void, SessionNotFoundError | MessageNotFoundError>>(null);
+  const { isLoading, generate, stop: handleStop } = useStream();
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
 
@@ -34,88 +29,6 @@ export const ChatInterface: FC = () => {
 
     return getMessagePath(activeSession, activeSession.activeMessageId);
   }, [activeSession]);
-
-  const handleStop = () => {
-    if (fiberRef.current) {
-      YujiRuntime.runFork(Fiber.interrupt(fiberRef.current));
-      fiberRef.current = null;
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (fiberRef.current) {
-        YujiRuntime.runFork(Fiber.interrupt(fiberRef.current));
-      }
-    };
-  }, []);
-
-  const generateResponse = (sessionId: string, messagesToProcess: ReadonlyArray<Message>) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      const llm = yield* LLMProvider;
-      const chat = yield* ChatService;
-
-      const state = yield* SubscriptionRef.get(store.state);
-      const settings = state.settings;
-      const session = state.sessions[sessionId];
-
-      if (!session) return;
-
-      if (fiberRef.current) {
-        yield* Fiber.interrupt(fiberRef.current);
-      }
-
-      setIsLoading(true);
-
-      const id = crypto.randomUUID();
-      const assistantMessage: Message = {
-        id,
-        role: 'assistant',
-        content: '',
-        timestamp: Date.now(),
-        parentId: messagesToProcess[messagesToProcess.length - 1]?.id,
-      };
-
-      const streamEffect = Effect.gen(function* () {
-        yield* chat.addMessage(sessionId, assistantMessage);
-
-        const systemPrompt = synthesizeSystemPrompt(settings, session);
-        const model = session.general.model || settings.model;
-
-        const stream = yield* llm.streamCompletion(
-          messagesToProcess,
-          settings,
-          {
-            provider: 'openai',
-            model,
-            temperature: 0.7,
-          },
-          systemPrompt,
-        );
-
-        let fullContent = '';
-        yield* Stream.runForEach(stream, (token) =>
-          Effect.gen(function* () {
-            fullContent += token;
-            yield* chat.updateMessage(sessionId, id, fullContent);
-          }),
-        );
-      }).pipe(
-        Effect.catchAll((err) =>
-          Effect.gen(function* () {
-            const msg = err instanceof LLMProviderError ? err.message : 'Unknown error';
-            console.error(err);
-            yield* chat.updateMessage(sessionId, id, `*[Error: ${msg}]*`, true);
-            yield* store.notify('error', `Chat error: ${msg}`);
-          }),
-        ),
-        Effect.ensuring(Effect.sync(() => setIsLoading(false))),
-      );
-
-      fiberRef.current = yield* Effect.forkDaemon(streamEffect);
-    });
 
   const handleSend = useAction((content: string, attachments: Attachment[] = []) =>
     Effect.gen(function* () {
@@ -139,7 +52,7 @@ export const ChatInterface: FC = () => {
       yield* chat.addMessage(currentSessionId, userMessage);
       const history = yield* chat.getSessionPath(currentSessionId, userMessage.id);
 
-      yield* generateResponse(currentSessionId, history);
+      yield* generate(currentSessionId, history);
     }),
   );
 
@@ -147,10 +60,8 @@ export const ChatInterface: FC = () => {
     Effect.gen(function* () {
       if (!activeSessionId) return;
       const chat = yield* ChatService;
-      const store = yield* StoreService;
-      const state = yield* SubscriptionRef.get(store.state);
-      const session = state.sessions[activeSessionId];
 
+      const session = sessions[activeSessionId];
       if (!session) return;
 
       const originalMessage = session.messages.find((m) => m.id === messageId);
@@ -163,7 +74,7 @@ export const ChatInterface: FC = () => {
             : []
           : yield* chat.getSessionPath(activeSessionId, messageId);
 
-      yield* generateResponse(activeSessionId, history);
+      yield* generate(activeSessionId, history);
     }),
   );
 

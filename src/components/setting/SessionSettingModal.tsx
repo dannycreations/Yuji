@@ -3,13 +3,12 @@ import { useState } from 'react';
 
 import { useAction, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
-import { Icon } from '../shared/Icon';
-import { InputText } from '../shared/InputArea';
+import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection } from './SettingSection';
 
 import type { FC } from 'react';
-import type { AppState, ChatSession } from '../../app/Schema';
+import type { ChatSession } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 interface SessionSettingModalProps {
@@ -17,23 +16,19 @@ interface SessionSettingModalProps {
   readonly onClose: () => void;
 }
 
-const SESSION_SETTING_TABS: SettingTabItem[] = [
+const SESSION_SETTING_TABS: ReadonlyArray<SettingTabItem> = [
   { icon: 'Settings', id: 'general', label: 'General' },
   { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
   { icon: 'User', id: 'persona', label: 'Personalization' },
 ];
 
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
-  const sessions = useStore((s: AppState) => s.sessions, {});
+  const sessions = useStore((s) => s.sessions, {});
+  const session = sessions[sessionId];
 
   const updateSessionEffect = useAction((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.updateSession(sessionId, f);
-    }),
+    Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f)),
   );
-
-  const session = sessions[sessionId];
 
   const [activeTab, setActiveTab] = useState('general');
 
@@ -47,14 +42,6 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     updateSession({ general: { ...session.general, ...updates } });
   };
 
-  const updateInstruction = (updates: Partial<ChatSession['instruction']>) => {
-    updateSession({ instruction: { ...session.instruction, ...updates } });
-  };
-
-  const updatePersonalisation = (updates: Partial<ChatSession['personalisation']>) => {
-    updateSession({ personalisation: { ...session.personalisation, ...updates } });
-  };
-
   const renderContent = () => {
     switch (activeTab) {
       case 'general':
@@ -65,63 +52,68 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
               <InputText value={session.title} onChange={(e) => updateSession({ title: e.target.value })} placeholder="Enter chat title..." />
             </div>
 
-            <OverrideSection
-              title="Override Instruction"
-              description="Ignore global system prompt."
-              checked={!!session.general.overrideInstruction}
-              onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
-            />
+            <div className="py-2 border-t border-separator mt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-text-primary">Override Instruction</div>
+                  <div className="text-xs text-text-secondary">Ignore global system prompt.</div>
+                </div>
+                <InputSwitch
+                  checked={!!session.general.overrideInstruction}
+                  onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
+                />
+              </div>
+            </div>
 
-            <OverrideSection
-              title="Override Personalization"
-              description="Ignore global user persona."
-              checked={!!session.general.overridePersonalisation}
-              onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
-            />
+            <div className="py-2 border-t border-separator">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-text-primary">Override Personalization</div>
+                  <div className="text-xs text-text-secondary">Ignore global user persona.</div>
+                </div>
+                <InputSwitch
+                  checked={!!session.general.overridePersonalisation}
+                  onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
+                />
+              </div>
+            </div>
           </div>
         );
 
       case 'instruction':
         return (
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            {session.general.overrideInstruction ? (
+            <OverrideSection
+              title="Session Instruction"
+              description="System prompt for this specific chat."
+              lockDescription="Instruction is following global settings."
+              checked={!!session.general.overrideInstruction}
+              onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
+            >
               <InstructionSection
                 instruction={session.instruction}
-                onChange={updateInstruction}
+                onChange={(updates) => updateSession({ instruction: { ...session.instruction, ...updates } })}
                 footer="This will completely replace the global system prompt."
               />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
-                <Icon name="Lock" size={24} className="mb-2 opacity-50" />
-                <p className="text-sm">Instruction is following global settings.</p>
-                <button
-                  onClick={() => updateGeneral({ overrideInstruction: true })}
-                  className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest"
-                >
-                  Enable Override
-                </button>
-              </div>
-            )}
+            </OverrideSection>
           </div>
         );
 
       case 'persona':
         return (
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            {session.general.overridePersonalisation ? (
-              <PersonalisationSection personalisation={session.personalisation} onChange={updatePersonalisation} />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
-                <Icon name="Lock" size={24} className="mb-2 opacity-50" />
-                <p className="text-sm">Personalization is following global settings.</p>
-                <button
-                  onClick={() => updateGeneral({ overridePersonalisation: true })}
-                  className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest"
-                >
-                  Enable Override
-                </button>
-              </div>
-            )}
+            <OverrideSection
+              title="Session Personalization"
+              description="User persona for this specific chat."
+              lockDescription="Personalization is following global settings."
+              checked={!!session.general.overridePersonalisation}
+              onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
+            >
+              <PersonalisationSection
+                personalisation={session.personalisation}
+                onChange={(updates) => updateSession({ personalisation: { ...session.personalisation, ...updates } })}
+              />
+            </OverrideSection>
           </div>
         );
     }
