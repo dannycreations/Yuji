@@ -16,6 +16,7 @@ import { InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
+import type { Components } from 'react-markdown';
 import type { AppState, Message } from '../../app/Schema';
 
 interface ChatMessageBubbleProps {
@@ -106,6 +107,43 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     });
   };
 
+  const markdownComponents = useMemo<Components>(
+    () => ({
+      code({ node, className, children, ...props }) {
+        const match = /language-(\w+)/.exec(className || '');
+        const language = match ? match[1] : '';
+        const value = String(children).replace(/\n$/, '');
+        const isMultiline = value.includes('\n');
+
+        if (match || isMultiline || (node && node.position?.start.column === 1)) {
+          return <ChatMessageBlock language={language} value={value} />;
+        }
+
+        return (
+          <code className={clsx('code-inline', className)} {...props}>
+            {children}
+          </code>
+        );
+      },
+      a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />,
+      ul: ({ node, ...props }) => <ul {...props} />,
+      ol: ({ node, ...props }) => <ol {...props} />,
+      h1: ({ node, ...props }) => <h1 {...props} />,
+      h2: ({ node, ...props }) => <h2 {...props} />,
+      h3: ({ node, ...props }) => <h3 {...props} />,
+      blockquote: ({ node, ...props }) => <blockquote {...props} />,
+      table: ({ node, ...props }) => (
+        <div className="prose-table-container">
+          <table className="prose-table" {...props} />
+        </div>
+      ),
+      th: ({ node, ...props }) => <th className="prose-th" {...props} />,
+      td: ({ node, ...props }) => <td className="prose-td" {...props} />,
+      p: ({ node, ...props }) => <div className="prose-p" {...props} />,
+    }),
+    [],
+  );
+
   return (
     <div className="group w-full">
       <div className={clsx('message-row', isUser && 'user')}>
@@ -142,43 +180,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                     <div className="message-thinking-dot [animation-delay:0.4s]" />
                   </div>
                 ) : (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      code({ node, className, children, ...props }) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const language = match ? match[1] : '';
-                        const value = String(children).replace(/\n$/, '');
-                        const isMultiline = value.includes('\n');
-
-                        if (match || isMultiline || (node && node.position?.start.column === 1)) {
-                          return <ChatMessageBlock language={language} value={value} />;
-                        }
-
-                        return (
-                          <code className={clsx('code-inline', className)} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />,
-                      ul: ({ node, ...props }) => <ul {...props} />,
-                      ol: ({ node, ...props }) => <ol {...props} />,
-                      h1: ({ node, ...props }) => <h1 {...props} />,
-                      h2: ({ node, ...props }) => <h2 {...props} />,
-                      h3: ({ node, ...props }) => <h3 {...props} />,
-                      blockquote: ({ node, ...props }) => <blockquote {...props} />,
-                      table: ({ node, ...props }) => (
-                        <div className="prose-table-container">
-                          <table className="prose-table" {...props} />
-                        </div>
-                      ),
-                      th: ({ node, ...props }) => <th className="prose-th" {...props} />,
-                      td: ({ node, ...props }) => <td className="prose-td" {...props} />,
-                      p: ({ node, ...props }) => <div className="prose-p" {...props} />,
-                    }}
-                  >
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={markdownComponents}>
                     {message.content}
                   </ReactMarkdown>
                 )}
