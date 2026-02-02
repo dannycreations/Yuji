@@ -115,20 +115,9 @@ export const ChatServiceLive = Layer.effect(
 
       addMessage: (sessionId, message) =>
         updateSession(sessionId, (session) => {
-          const messages = [...session.messages];
-
-          if (message.parentId) {
-            const parentIndex = messages.findIndex((m) => m.id === message.parentId);
-            if (parentIndex !== -1) {
-              const parent = messages[parentIndex];
-              messages[parentIndex] = {
-                ...parent,
-                childrenIds: [...(parent.childrenIds || []), message.id],
-              };
-            }
-          }
-
-          messages.push(message);
+          const messages = session.messages.map((m) =>
+            m.id === message.parentId ? { ...m, childrenIds: [...(m.childrenIds || []), message.id] } : m,
+          );
 
           const title =
             session.messages.length === 0 && message.role === 'user' && message.content
@@ -137,7 +126,7 @@ export const ChatServiceLive = Layer.effect(
 
           return {
             ...session,
-            messages,
+            messages: [...messages, message],
             activeMessageId: message.id,
             title,
           };
@@ -166,29 +155,16 @@ export const ChatServiceLive = Layer.effect(
           const messageToDelete = session.messages.find((m) => m.id === messageId);
           if (!messageToDelete) return session;
 
-          const newMessages = session.messages.filter((m) => m.id !== messageId);
-
-          if (messageToDelete.parentId) {
-            const parentIndex = newMessages.findIndex((m) => m.id === messageToDelete.parentId);
-            if (parentIndex !== -1) {
-              const parent = newMessages[parentIndex];
-              newMessages[parentIndex] = {
-                ...parent,
-                childrenIds: parent.childrenIds?.filter((id) => id !== messageId),
-              };
-            }
-          }
+          const newMessages = session.messages
+            .filter((m) => m.id !== messageId)
+            .map((m) => (m.id === messageToDelete.parentId ? { ...m, childrenIds: m.childrenIds?.filter((id) => id !== messageId) } : m));
 
           let activeMessageId = session.activeMessageId;
           if (activeMessageId === messageId) {
             activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
           }
 
-          return {
-            ...session,
-            messages: newMessages,
-            activeMessageId,
-          };
+          return { ...session, messages: newMessages, activeMessageId };
         }),
 
       renameSession: (sessionId, title) => updateSession(sessionId, (session) => ({ ...session, title })),

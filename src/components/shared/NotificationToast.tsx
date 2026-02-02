@@ -82,7 +82,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
 
 export const NotificationToast = () => {
   const notifications = useStore((s: AppState) => s.notifications, []);
-  const clearNotification = useAction((id: string) => StoreService.pipe(Effect.flatMap((s) => s.clearNotification(id))));
+  const clearNotification = useAction((id: string) => Effect.flatMap(StoreService, (s) => s.clearNotification(id)));
 
   return (
     <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">

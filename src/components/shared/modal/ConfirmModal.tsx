@@ -25,9 +25,7 @@ export const ConfirmModal: FC = () => {
   const onCancel = useAction(() =>
     Effect.gen(function* () {
       const store = yield* StoreService;
-      if (id) {
-        yield* store.clearConfirm(id);
-      }
+      if (id) yield* store.clearConfirm(id);
       yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
       setIsClosing(false);
     }),

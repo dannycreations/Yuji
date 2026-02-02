@@ -18,9 +18,8 @@ export const getEffectiveModelId = (
   sessions: AppState['sessions'],
   sessionId: string | null,
 ): string => {
-  const effectiveDefault = getModelId(settings, availableModels);
   const session = sessionId ? sessions[sessionId] : null;
-  return session?.general.model || effectiveDefault;
+  return session?.general.model || getModelId(settings, availableModels);
 };
 
 export const getEffectiveModelName = (
@@ -29,6 +28,5 @@ export const getEffectiveModelName = (
   sessions: AppState['sessions'],
   sessionId: string | null,
 ): string => {
-  const id = getEffectiveModelId(settings, availableModels, sessions, sessionId);
-  return getModelName(availableModels, id);
+  return getModelName(availableModels, getEffectiveModelId(settings, availableModels, sessions, sessionId));
 };

@@ -23,12 +23,10 @@ export const ChatInterface: FC = () => {
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
 
-  const visibleMessages = useMemo(() => {
-    if (!activeSession) return [];
-    if (!activeSession.activeMessageId) return activeSession.messages;
-
-    return getMessagePath(activeSession, activeSession.activeMessageId);
-  }, [activeSession]);
+  const visibleMessages = useMemo(
+    () => (activeSession?.activeMessageId ? getMessagePath(activeSession, activeSession.activeMessageId) : activeSession?.messages || []),
+    [activeSession],
+  );
 
   const handleSend = useAction((content: string, attachments: Attachment[] = []) =>
     Effect.gen(function* () {

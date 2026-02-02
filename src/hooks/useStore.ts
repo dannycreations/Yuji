@@ -78,24 +78,16 @@ export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => E
   );
 };
 
-export const useUpdateStore = () => {
-  return useAction((f: (state: AppState) => AppState) => Effect.flatMap(StoreService, (s) => s.update(f)));
+const useStoreAction = <A extends unknown[], R, E>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, any>) => {
+  return useAction((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
 };
 
-export const useToggleSidebar = () => {
-  return useAction(() => Effect.flatMap(StoreService, (s) => s.toggleSidebar()));
-};
+export const useUpdateStore = () => useStoreAction((s, f: (state: AppState) => AppState) => s.update(f));
 
-export const useToggleSetting = () => {
-  return useAction(() => Effect.flatMap(StoreService, (s) => s.toggleSetting()));
-};
+export const useToggleSidebar = () => useStoreAction((s) => s.toggleSidebar());
 
-export const useUpdateSetting = () => {
-  return useAction((updates: Partial<AppState['settings']>) => Effect.flatMap(StoreService, (s) => s.updateSetting(updates)));
-};
+export const useToggleSetting = () => useStoreAction((s) => s.toggleSetting());
 
-export const useConfirm = () => {
-  return useAction((config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
-    Effect.flatMap(StoreService, (s) => s.setConfirm(config)),
-  );
-};
+export const useUpdateSetting = () => useStoreAction((s, updates: Partial<AppState['settings']>) => s.updateSetting(updates));
+
+export const useConfirm = () => useStoreAction((s, config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) => s.setConfirm(config));

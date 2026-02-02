@@ -34,13 +34,8 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
   if (!session) return null;
 
-  const updateSession = (updates: Partial<ChatSession>) => {
-    updateSessionEffect(sessionId, (s: ChatSession) => ({ ...s, ...updates }));
-  };
-
-  const updateGeneral = (updates: Partial<ChatSession['general']>) => {
-    updateSession({ general: { ...session.general, ...updates } });
-  };
+  const updateSession = (updates: Partial<ChatSession>) => updateSessionEffect(sessionId, (s) => ({ ...s, ...updates }));
+  const updateGeneral = (updates: Partial<ChatSession['general']>) => updateSession({ general: { ...session.general, ...updates } });
 
   const renderContent = () => {
     switch (activeTab) {

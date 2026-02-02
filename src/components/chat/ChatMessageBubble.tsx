@@ -59,9 +59,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     switchBranch(sessionId, newId);
   };
 
-  const handleCopy = () => {
-    setCopy(message.content);
-  };
+  const handleCopy = () => setCopy(message.content);
 
   const handleBranch = useAction(() =>
     Effect.gen(function* () {
@@ -71,9 +69,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   );
 
   const handleSaveEdit = () => {
-    if (editContent.trim() !== message.content.trim()) {
-      onEdit(editContent);
-    }
+    if (editContent.trim() !== message.content.trim()) onEdit(editContent);
     setIsEditing(false);
   };
 

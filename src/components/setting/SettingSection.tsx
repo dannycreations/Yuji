@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { Model } from '../../app/Schema';
+import { getModelId } from '../../helpers/ModelHelper';
 import { useAction, useConfirm, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { toTitleCase } from '../../utilities/CommonUtil';
@@ -105,19 +106,13 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
   );
 
   const filteredModels = useMemo(() => {
+    const query = modelSearch.toLowerCase();
     return availableModels
-      .filter(
-        (m: Model) =>
-          m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
-          m.id.toLowerCase().includes(modelSearch.toLowerCase()) ||
-          m.provider.toLowerCase().includes(modelSearch.toLowerCase()),
-      )
+      .filter((m: Model) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query) || m.provider.toLowerCase().includes(query))
       .sort((a, b) => {
-        const aDisabled = settings.disabledModels.includes(a.id);
-        const bDisabled = settings.disabledModels.includes(b.id);
-        if (aDisabled && !bDisabled) return 1;
-        if (!aDisabled && bDisabled) return -1;
-        return 0;
+        const aDisabled = settings.disabledModels.includes(a.id) ? 1 : 0;
+        const bDisabled = settings.disabledModels.includes(b.id) ? 1 : 0;
+        return aDisabled - bDisabled;
       });
   }, [availableModels, modelSearch, settings.disabledModels]);
 
@@ -127,7 +122,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
     updateSetting({ disabledModels: newDisabledModels });
   };
 
-  const effectiveModelId = availableModels.filter((m) => !settings.disabledModels.includes(m.id)).find((m: Model) => m.id === settings.model)?.id;
+  const effectiveModelId = getModelId(settings, availableModels);
 
   return (
     <div className="space-y-3 animate-fade-in h-full flex flex-col">

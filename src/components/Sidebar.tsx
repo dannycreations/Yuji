@@ -54,12 +54,9 @@ export const Sidebar: FC = () => {
   });
 
   const filteredSessions = useMemo(() => {
-    let allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      allSessions = allSessions.filter((s) => s.title.toLowerCase().includes(query));
-    }
-    return allSessions;
+    const allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
+    const query = searchQuery.trim().toLowerCase();
+    return query ? allSessions.filter((s) => s.title.toLowerCase().includes(query)) : allSessions;
   }, [sessions, searchQuery]);
 
   const groupedSessions = groupSessions(filteredSessions);
