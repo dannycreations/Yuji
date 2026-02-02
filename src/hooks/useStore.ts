@@ -16,21 +16,14 @@ export const useStoreService = (): StoreService => {
   return service;
 };
 
-export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T): T => {
+export const useStore = <T>(selector: (state: AppState) => T): T => {
   const storeService = useStoreService();
-  const lastSnapshotRef = useRef<T>(initialValue as T);
+  const lastSnapshotRef = useRef<T>(null as T);
   const lastStateRef = useRef<AppState | null>(null);
 
   const subscribe = useMemo(() => {
-    if (!storeService) return () => () => {};
     return (callback: () => void) => {
-      const fiber = YujiRuntime.runFork(
-        Stream.runForEach(storeService.state.changes, () =>
-          Effect.sync(() => {
-            callback();
-          }),
-        ),
-      );
+      const fiber = YujiRuntime.runFork(Stream.runForEach(storeService.state.changes, () => Effect.sync(callback)));
       return () => {
         YujiRuntime.runFork(Fiber.interrupt(fiber));
       };
@@ -38,7 +31,6 @@ export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T):
   }, [storeService]);
 
   const getSnapshot = () => {
-    if (!storeService) return initialValue as T;
     const state = YujiRuntime.runSync(SubscriptionRef.get(storeService.state));
 
     if (state === lastStateRef.current) {
@@ -51,12 +43,10 @@ export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T):
     return nextSnapshot;
   };
 
-  const getServerSnapshot = () => initialValue as T;
-
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };
 
-export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {
+export const useStoreEffect = <A extends unknown[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {
   const effectFnRef = useRef(effectFn);
   effectFnRef.current = effectFn;
 
@@ -79,7 +69,7 @@ export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => E
 };
 
 const useStoreAction = <A extends unknown[], R, E>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, any>) => {
-  return useAction((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
+  return useStoreEffect((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
 };
 
 export const useUpdateStore = () => useStoreAction((s, f: (state: AppState) => AppState) => s.update(f));

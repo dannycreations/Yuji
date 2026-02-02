@@ -3,18 +3,13 @@ import { Effect } from 'effect';
 import { useRef, useState } from 'react';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
-import { useAction, useStore } from '../../../hooks/useStore';
+import { useStore, useStoreEffect } from '../../../hooks/useStore';
 import { StoreService } from '../../../services/StoreService';
 
 import type { FC } from 'react';
-import type { AppState } from '../../../app/Schema';
 
 export const ConfirmModal: FC = () => {
-  const confirm = useStore((s: AppState) => s.confirm, {
-    isOpen: false,
-    title: '',
-    message: '',
-  });
+  const confirm = useStore((s) => s.confirm);
 
   const [isClosing, setIsClosing] = useState(false);
 
@@ -22,7 +17,7 @@ export const ConfirmModal: FC = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const onCancel = useAction(() =>
+  const onCancel = useStoreEffect(() =>
     Effect.gen(function* () {
       const store = yield* StoreService;
       if (id) yield* store.clearConfirm(id);
@@ -31,7 +26,7 @@ export const ConfirmModal: FC = () => {
     }),
   );
 
-  const onConfirm = useAction(() =>
+  const onConfirm = useStoreEffect(() =>
     Effect.gen(function* () {
       const store = yield* StoreService;
       if (id) {

@@ -1,22 +1,20 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
-import { YujiRuntime } from '../../app/Yuji';
+import { useChatAction } from '../../hooks/useChatAction';
 import { useCopy } from '../../hooks/useCopy';
-import { useAction, useConfirm, useStore } from '../../hooks/useStore';
-import { ChatService } from '../../services/ChatService';
+import { useConfirm, useStore } from '../../hooks/useStore';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
 import type { Components } from 'react-markdown';
-import type { AppState, Message } from '../../app/Schema';
+import type { Message } from '../../app/Schema';
 
 interface ChatMessageBubbleProps {
   readonly message: Message;
@@ -29,10 +27,12 @@ interface ChatMessageBubbleProps {
 
 export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit, isThinking }) => {
   const isUser = message.role === 'user';
-  const sessions = useStore((s: AppState) => s.sessions, {});
+  const sessions = useStore((s) => s.sessions);
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+
+  const { handleBranch, handleSwitchBranch, handleDeleteMessage } = useChatAction();
 
   const session = sessions[sessionId];
 
@@ -45,28 +45,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
 
   const currentIndex = siblings.indexOf(message.id);
 
-  const switchBranch = useAction((sessionId: string, messageId: string) =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.updateSession(sessionId, (session) => ({
-        ...session,
-        activeMessageId: messageId,
-      }));
-    }),
-  );
-
-  const handleSwitchBranch = (newId: string) => {
-    switchBranch(sessionId, newId);
+  const handleSwitch = (newId: string) => {
+    handleSwitchBranch(sessionId, newId);
   };
 
   const handleCopy = () => setCopy(message.content);
-
-  const handleBranch = useAction(() =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.branchChat(sessionId, message.id);
-    }),
-  );
 
   const handleSaveEdit = () => {
     if (editContent.trim() !== message.content.trim()) onEdit(editContent);
@@ -81,13 +64,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
       message: 'Are you sure you want to delete this message?',
       confirmLabel: 'Delete',
       variant: 'danger',
-      onConfirm: () =>
-        YujiRuntime.runFork(
-          Effect.gen(function* () {
-            const chat = yield* ChatService;
-            yield* chat.deleteMessage(sessionId, message.id);
-          }),
-        ),
+      onConfirm: () => handleDeleteMessage(sessionId, message.id),
     });
   };
 
@@ -177,7 +154,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
               <div className="message-actions">
                 {siblings.length > 1 && (
                   <div className="flex items-center gap-1 text-text-primary select-none font-medium">
-                    <button disabled={currentIndex === 0} onClick={() => handleSwitchBranch(siblings[currentIndex - 1])} className="btn-icon">
+                    <button disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} className="btn-icon">
                       <Icon name="ChevronLeft" size={16} />
                     </button>
                     <span className="text-sm tabular-nums mx-1">
@@ -185,7 +162,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                     </span>
                     <button
                       disabled={currentIndex === siblings.length - 1}
-                      onClick={() => handleSwitchBranch(siblings[currentIndex + 1])}
+                      onClick={() => handleSwitch(siblings[currentIndex + 1])}
                       className="btn-icon"
                     >
                       <Icon name="ChevronRight" size={16} />
@@ -193,7 +170,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                   </div>
                 )}
 
-                <button onClick={handleBranch} className="btn-icon" title="Branch">
+                <button onClick={() => handleBranch(sessionId, message.id)} className="btn-icon" title="Branch">
                   <Icon name="GitFork" size={16} />
                 </button>
 

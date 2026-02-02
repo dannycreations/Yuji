@@ -1,24 +1,22 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { DEFAULT_SETTINGS } from '../app/Constant';
 import { groupSessions } from '../helpers/SessionHelper';
+import { useChatAction } from '../hooks/useChatAction';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useConfirm, useStore, useToggleSetting, useToggleSidebar, useUpdateStore } from '../hooks/useStore';
-import { ChatService } from '../services/ChatService';
+import { useConfirm, useStore, useToggleSetting, useToggleSidebar, useUpdateStore } from '../hooks/useStore';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { AppState, ChatSession } from '../app/Schema';
+import type { ChatSession } from '../app/Schema';
 
 export const Sidebar: FC = () => {
-  const sessions = useStore((s: AppState) => s.sessions, {});
-  const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
-  const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
-  const isSidebarOpen = useStore((s: AppState) => s.isSidebarOpen, true);
+  const sessions = useStore((s) => s.sessions);
+  const settings = useStore((s) => s.settings);
+  const activeSessionId = useStore((s) => s.activeSessionId);
+  const isSidebarOpen = useStore((s) => s.isSidebarOpen);
 
   const updateStore = useUpdateStore();
 
@@ -28,19 +26,7 @@ export const Sidebar: FC = () => {
 
   const showConfirm = useConfirm();
 
-  const handleCreateSession = useAction(() =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.createSession();
-    }),
-  );
-
-  const handleDeleteSession = useAction((id: string) =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.deleteSession(id);
-    }),
-  );
+  const { handleCreateSession, handleDeleteSession } = useChatAction();
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);

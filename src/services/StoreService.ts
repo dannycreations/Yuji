@@ -96,12 +96,19 @@ export const StoreServiceLive = Layer.effect(
                 childrenIds: m.childrenIds?.filter((childId) => validIds.has(childId)),
               }));
 
+              const activeMessageId =
+                session.activeMessageId && validIds.has(session.activeMessageId)
+                  ? session.activeMessageId
+                  : cleanedMessages.length > 0
+                    ? cleanedMessages[cleanedMessages.length - 1].id
+                    : undefined;
+
               return [
                 id,
                 {
                   ...session,
                   messages: cleanedMessages,
-                  activeMessageId: session.activeMessageId && validIds.has(session.activeMessageId) ? session.activeMessageId : undefined,
+                  activeMessageId,
                 },
               ];
             }),

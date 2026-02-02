@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 
 import { Model } from '../../app/Schema';
 import { getModelId } from '../../helpers/ModelHelper';
-import { useAction, useConfirm, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
+import { useConfirm, useStoreEffect, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
@@ -14,54 +14,74 @@ import { InputSearch, InputSelect, InputSwitch, InputText, InputTextarea } from 
 import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { ChatSession, Instruction, Personalisation, Settings } from '../../app/Schema';
 
+export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
+  <div className={clsx('animate-fade-in flex flex-col h-full overflow-y-auto pr-2', className)}>{children}</div>
+);
+
+export const SettingItem: FC<{ label: string; description?: string; children: ReactNode; className?: string }> = ({
+  label,
+  description,
+  children,
+  className,
+}) => (
+  <div className={clsx('panel-section flex items-center justify-between gap-4', className)}>
+    <div className="flex-1 min-w-0">
+      <div className="text-sm text-text-primary">{label}</div>
+      {description && <div className="text-xs text-text-secondary mt-0.5">{description}</div>}
+    </div>
+    <div className="flex-shrink-0">{children}</div>
+  </div>
+);
+
+export const SettingField: FC<{ label: string; children: ReactNode; className?: string }> = ({ label, children, className }) => (
+  <div className={clsx('space-y-2', className)}>
+    <label className="settings-label">{label}</label>
+    {children}
+  </div>
+);
+
 export const GeneralSection: FC<{ settings: Settings }> = ({ settings }) => {
   const updateSetting = useUpdateSetting();
   return (
-    <div className="animate-fade-in flex flex-col h-full overflow-y-auto pr-2">
-      <div className="panel-section flex items-center justify-between">
-        <div className="text-sm text-text-primary">Appearance</div>
+    <SectionWrapper>
+      <SettingItem label="Appearance">
         <button className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
           Dark
           <Icon name="ChevronDown" size={16} />
         </button>
-      </div>
+      </SettingItem>
 
-      <div className="panel-section flex items-center justify-between">
-        <div className="text-sm text-text-primary">Enter to send</div>
+      <SettingItem label="Enter to send">
         <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSetting({ enterToSend: checked })} />
-      </div>
+      </SettingItem>
 
-      <div className="panel-section flex items-center justify-between">
-        <div className="text-sm text-text-primary">Expand code blocks</div>
+      <SettingItem label="Expand code blocks">
         <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => updateSetting({ expandCodeblock: checked })} />
-      </div>
-    </div>
+      </SettingItem>
+    </SectionWrapper>
   );
 };
 
 export const ConnectionSection: FC<{ settings: Settings }> = ({ settings }) => {
   const updateSetting = useUpdateSetting();
   return (
-    <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-      <div className="space-y-2">
-        <label className="settings-label">API Provider</label>
+    <SectionWrapper className="space-y-3">
+      <SettingField label="API Provider">
         <InputSelect value="openai" disabled>
           <option value="openai">OpenAI Compatible</option>
         </InputSelect>
-      </div>
+      </SettingField>
 
-      <div className="space-y-2">
-        <label className="settings-label">Base URL</label>
+      <SettingField label="Base URL">
         <InputText
           leftIcon="Link"
           value={settings.baseUrl}
           onChange={(e) => updateSetting({ baseUrl: e.target.value })}
           placeholder="http://localhost:11434/v1"
         />
-      </div>
+      </SettingField>
 
-      <div className="space-y-2">
-        <label className="settings-label">API Key</label>
+      <SettingField label="API Key">
         <InputText
           type="password"
           leftIcon="Key"
@@ -69,8 +89,8 @@ export const ConnectionSection: FC<{ settings: Settings }> = ({ settings }) => {
           onChange={(e) => updateSetting({ apiKey: e.target.value })}
           placeholder="sk-..."
         />
-      </div>
-    </div>
+      </SettingField>
+    </SectionWrapper>
   );
 };
 
@@ -81,7 +101,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
 
   const setAvailableModels = (models: ReadonlyArray<Model>) => updateStore((s) => ({ ...s, availableModels: models }));
 
-  const handleRefreshModels = useAction(() =>
+  const handleRefreshModels = useStoreEffect(() =>
     Effect.gen(function* () {
       const llm = yield* LLMProvider;
       const result = yield* llm.fetchModels(settings);
@@ -390,9 +410,8 @@ interface InstructionSectionProps {
 }
 
 export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, onChange, footer }) => (
-  <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-    <div className="space-y-2">
-      <label className="settings-label">System Instruction</label>
+  <SectionWrapper className="space-y-3">
+    <SettingField label="System Instruction">
       <InputTextarea
         value={instruction.systemPrompt || ''}
         onChange={(e) => onChange({ systemPrompt: e.target.value })}
@@ -401,8 +420,8 @@ export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, o
         maxRows={8}
       />
       {footer && <p className="text-xs text-text-secondary pl-1">{footer}</p>}
-    </div>
-  </div>
+    </SettingField>
+  </SectionWrapper>
 );
 
 interface PersonalisationSectionProps {
@@ -412,24 +431,21 @@ interface PersonalisationSectionProps {
 
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
   <div className="space-y-3 animate-fade-in">
-    <div className="space-y-2">
-      <label className="settings-label">What should Yuji call you?</label>
+    <SettingField label="What should Yuji call you?">
       <InputText
         value={personalisation.userName || ''}
         onChange={(e) => onChange({ userName: e.target.value.slice(0, 50) })}
         placeholder="Enter your name..."
       />
-    </div>
-    <div className="space-y-2">
-      <label className="settings-label">What do you do?</label>
+    </SettingField>
+    <SettingField label="What do you do?">
       <InputText
         value={personalisation.userOccupation || ''}
         onChange={(e) => onChange({ userOccupation: e.target.value.slice(0, 100) })}
         placeholder="Programmer, engineer, student..."
       />
-    </div>
-    <div className="space-y-2">
-      <label className="settings-label">What traits should Yuji have?</label>
+    </SettingField>
+    <SettingField label="What traits should Yuji have?">
       <div className="relative group">
         <div className="flex flex-wrap gap-1 p-1 bg-surface-hover/40 border border-separator/30 rounded-xl focus-within:border-line/50 focus-within:bg-surface transition-all min-h-[46px]">
           {(personalisation.assistantTraits || []).map((trait) => (
@@ -470,9 +486,8 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
           />
         </div>
       </div>
-    </div>
-    <div className="space-y-2">
-      <label className="settings-label">Anything else Yuji should know about you?</label>
+    </SettingField>
+    <SettingField label="Anything else Yuji should know about you?">
       <InputTextarea
         value={personalisation.additionalContext || ''}
         onChange={(e) => onChange({ additionalContext: e.target.value.slice(0, 3000) })}
@@ -480,7 +495,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         minRows={5}
         maxRows={5}
       />
-    </div>
+    </SettingField>
   </div>
 );
 

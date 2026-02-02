@@ -2,10 +2,9 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { DEFAULT_SETTINGS } from '../app/Constant';
 import { getEffectiveModelId, getEffectiveModelName, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useStore, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
+import { useStore, useStoreEffect, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { toTitleCase } from '../utilities/CommonUtil';
 import { Icon } from './shared/Icon';
@@ -21,8 +20,9 @@ interface ModelPickerProps {
 }
 
 const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) => {
-  const availableModels = useStore((s) => s.availableModels, []);
-  const disabledModels = useStore((s) => s.settings.disabledModels, []);
+  const availableModels = useStore((s) => s.availableModels);
+  const settings = useStore((s) => s.settings);
+  const disabledModels = settings.disabledModels;
 
   const [search, setSearch] = useState('');
 
@@ -77,28 +77,16 @@ export const Header: FC = () => {
 
   useClickOutside(pickerRef, () => setShowModelPicker(false));
 
-  const { settings, activeSessionId, sessions, availableModels, isSidebarOpen } = useStore(
-    (s) => ({
-      settings: s.settings,
-      activeSessionId: s.activeSessionId,
-      sessions: s.sessions,
-      availableModels: s.availableModels,
-      isSidebarOpen: s.isSidebarOpen,
-    }),
-    {
-      settings: DEFAULT_SETTINGS,
-      activeSessionId: null,
-      sessions: {},
-      availableModels: [],
-      isSidebarOpen: true,
-    },
-  );
+  const settings = useStore((s) => s.settings);
+  const activeSessionId = useStore((s) => s.activeSessionId);
+  const sessions = useStore((s) => s.sessions);
+  const availableModels = useStore((s) => s.availableModels);
+  const isSidebarOpen = useStore((s) => s.isSidebarOpen);
 
   const toggleSidebar = useToggleSidebar();
-
   const updateSetting = useUpdateSetting();
 
-  const setSessionModel = useAction((sessionId: string, model: string) =>
+  const setSessionModel = useStoreEffect((sessionId: string, model: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
       yield* chat.updateSession(sessionId, (s: ChatSession) => ({

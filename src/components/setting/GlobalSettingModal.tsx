@@ -19,10 +19,10 @@ const GLOBAL_SETTING_TABS: ReadonlyArray<SettingTabItem> = [
 ];
 
 export const GlobalSettingModal: FC = () => {
-  const isSettingOpen = useStore((s) => s.isSettingOpen, false);
+  const isSettingOpen = useStore((s) => s.isSettingOpen);
   const settings = useStore((s) => s.settings);
-  const sessions = useStore((s) => s.sessions, {});
-  const availableModels = useStore((s) => s.availableModels, []);
+  const sessions = useStore((s) => s.sessions);
+  const availableModels = useStore((s) => s.availableModels);
 
   const toggleSetting = useToggleSetting();
   const updateSetting = useUpdateSetting();

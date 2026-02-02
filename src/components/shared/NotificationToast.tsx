@@ -1,11 +1,11 @@
 import { Effect } from 'effect';
 import { useEffect } from 'react';
 
-import { useAction, useStore } from '../../hooks/useStore';
+import { useStore, useStoreEffect } from '../../hooks/useStore';
 import { StoreService } from '../../services/StoreService';
 import { Icon } from './Icon';
 
-import type { AppState, Notification } from '../../app/Schema';
+import type { Notification } from '../../app/Schema';
 
 const TOAST_VARIANTS = {
   error: {
@@ -81,8 +81,8 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
 };
 
 export const NotificationToast = () => {
-  const notifications = useStore((s: AppState) => s.notifications, []);
-  const clearNotification = useAction((id: string) => Effect.flatMap(StoreService, (s) => s.clearNotification(id)));
+  const notifications = useStore((s) => s.notifications);
+  const clearNotification = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.clearNotification(id)));
 
   return (
     <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">

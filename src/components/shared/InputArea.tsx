@@ -9,6 +9,28 @@ import type { ComponentProps, FC } from 'react';
 import type { TextareaAutosizeProps } from 'react-textarea-autosize';
 import type { IconName } from './Icon';
 
+interface InputWrapperProps {
+  readonly leftIcon?: IconName;
+  readonly rightIcon?: IconName;
+  readonly containerClassName?: string;
+  readonly children: React.ReactNode;
+  readonly disabled?: boolean;
+}
+
+const InputWrapper: FC<InputWrapperProps> = ({ leftIcon, rightIcon, containerClassName, children, disabled }) => {
+  const iconClass = clsx(
+    'absolute top-1/2 -translate-y-1/2 text-text-secondary transition-colors pointer-events-none',
+    !disabled && 'group-focus-within:text-primary',
+  );
+  return (
+    <div className={clsx('relative group', containerClassName, disabled && 'opacity-50 cursor-not-allowed')}>
+      {leftIcon && <Icon name={leftIcon} size={14} className={clsx('absolute left-4', iconClass)} />}
+      {children}
+      {rightIcon && <Icon name={rightIcon} size={14} className={clsx('absolute right-4', iconClass)} />}
+    </div>
+  );
+};
+
 interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
   readonly leftIcon?: IconName;
   readonly rightIcon?: IconName;
@@ -20,14 +42,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
     const [localValue, handleChange] = useLocalValue(value, onChange);
 
     return (
-      <div className={clsx('relative group', containerClassName)}>
-        {leftIcon && (
-          <Icon
-            name={leftIcon}
-            size={14}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
-          />
-        )}
+      <InputWrapper leftIcon={leftIcon} rightIcon={rightIcon} containerClassName={containerClassName}>
         <input
           ref={ref}
           className={clsx('input-base', leftIcon ? 'pl-9' : 'pl-3', rightIcon ? 'pr-9' : 'pr-3', className)}
@@ -35,14 +50,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
           onChange={handleChange}
           {...props}
         />
-        {rightIcon && (
-          <Icon
-            name={rightIcon}
-            size={14}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
-          />
-        )}
-      </div>
+      </InputWrapper>
     );
   },
 );
@@ -55,18 +63,13 @@ interface InputSelectProps extends ComponentProps<'select'> {
   readonly containerClassName?: string;
 }
 
-export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ className, containerClassName, children, ...props }, ref) => {
+export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ className, containerClassName, children, disabled, ...props }, ref) => {
   return (
-    <div className={clsx('relative group', containerClassName)}>
-      <select ref={ref} className={clsx('select-base', className)} {...props}>
+    <InputWrapper rightIcon="ChevronDown" containerClassName={containerClassName} disabled={disabled}>
+      <select ref={ref} className={clsx('select-base', className)} disabled={disabled} {...props}>
         {children}
       </select>
-      <Icon
-        name="ChevronDown"
-        size={14}
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary transition-colors pointer-events-none"
-      />
-    </div>
+    </InputWrapper>
   );
 });
 

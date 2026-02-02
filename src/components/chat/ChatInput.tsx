@@ -1,13 +1,12 @@
 import clsx from 'clsx';
 import { useRef, useState } from 'react';
 
-import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { useStore } from '../../hooks/useStore';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
 
 import type { ChangeEvent, FC, KeyboardEvent } from 'react';
-import type { AppState, Attachment } from '../../app/Schema';
+import type { Attachment } from '../../app/Schema';
 
 interface ChatInputProps {
   readonly onSend: (text: string, attachments: Attachment[]) => void;
@@ -19,7 +18,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
 
-  const settings = useStore((s: AppState) => s.settings, DEFAULT_SETTINGS);
+  const settings = useStore((s) => s.settings);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

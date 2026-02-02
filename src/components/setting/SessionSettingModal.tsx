@@ -1,11 +1,11 @@
 import { Effect } from 'effect';
 import { useState } from 'react';
 
-import { useAction, useStore } from '../../hooks/useStore';
+import { useStore, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
-import { InstructionSection, OverrideSection, PersonalisationSection } from './SettingSection';
+import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
 
 import type { FC } from 'react';
 import type { ChatSession } from '../../app/Schema';
@@ -23,10 +23,10 @@ const SESSION_SETTING_TABS: ReadonlyArray<SettingTabItem> = [
 ];
 
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
-  const sessions = useStore((s) => s.sessions, {});
+  const sessions = useStore((s) => s.sessions);
   const session = sessions[sessionId];
 
-  const updateSessionEffect = useAction((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
+  const updateSessionEffect = useStoreEffect((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
     Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f)),
   );
 
@@ -41,43 +41,27 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     switch (activeTab) {
       case 'general':
         return (
-          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            <div className="space-y-2">
-              <label className="settings-label">Chat Title</label>
+          <SectionWrapper className="space-y-3">
+            <SettingField label="Chat Title">
               <InputText value={session.title} onChange={(e) => updateSession({ title: e.target.value })} placeholder="Enter chat title..." />
-            </div>
+            </SettingField>
 
-            <div className="py-2 border-t border-separator mt-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-text-primary">Override Instruction</div>
-                  <div className="text-xs text-text-secondary">Ignore global system prompt.</div>
-                </div>
-                <InputSwitch
-                  checked={!!session.general.overrideInstruction}
-                  onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
-                />
-              </div>
-            </div>
+            <SettingItem label="Override Instruction" description="Ignore global system prompt." className="border-t border-separator mt-2 pt-2">
+              <InputSwitch checked={!!session.general.overrideInstruction} onChange={(checked) => updateGeneral({ overrideInstruction: checked })} />
+            </SettingItem>
 
-            <div className="py-2 border-t border-separator">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-text-primary">Override Personalization</div>
-                  <div className="text-xs text-text-secondary">Ignore global user persona.</div>
-                </div>
-                <InputSwitch
-                  checked={!!session.general.overridePersonalisation}
-                  onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
-                />
-              </div>
-            </div>
-          </div>
+            <SettingItem label="Override Personalization" description="Ignore global user persona." className="border-t border-separator pt-2">
+              <InputSwitch
+                checked={!!session.general.overridePersonalisation}
+                onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
+              />
+            </SettingItem>
+          </SectionWrapper>
         );
 
       case 'instruction':
         return (
-          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
+          <SectionWrapper>
             <OverrideSection
               title="Session Instruction"
               description="System prompt for this specific chat."
@@ -91,12 +75,12 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
                 footer="This will completely replace the global system prompt."
               />
             </OverrideSection>
-          </div>
+          </SectionWrapper>
         );
 
       case 'persona':
         return (
-          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
+          <SectionWrapper>
             <OverrideSection
               title="Session Personalization"
               description="User persona for this specific chat."
@@ -109,7 +93,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
                 onChange={(updates) => updateSession({ personalisation: { ...session.personalisation, ...updates } })}
               />
             </OverrideSection>
-          </div>
+          </SectionWrapper>
         );
     }
   };

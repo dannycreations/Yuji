@@ -35,9 +35,11 @@ export const ChatServiceLive = Layer.effect(
     const updateSession = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession) =>
       Effect.gen(function* () {
         const now = Date.now();
+        let sessionFound = false;
         yield* store.update((state) => {
           const session = state.sessions[sessionId];
           if (!session) return state;
+          sessionFound = true;
           return {
             ...state,
             sessions: {
@@ -47,8 +49,7 @@ export const ChatServiceLive = Layer.effect(
           };
         });
 
-        const { sessions } = yield* SubscriptionRef.get(store.state);
-        if (!sessions[sessionId]) {
+        if (!sessionFound) {
           yield* Effect.fail(new SessionNotFoundError({ sessionId }));
         }
       }).pipe(
@@ -134,18 +135,19 @@ export const ChatServiceLive = Layer.effect(
 
       updateMessage: (sessionId, messageId, content, isError) =>
         Effect.gen(function* () {
+          let messageFound = false;
           yield* updateSession(sessionId, (session) => {
             if (!session.messages.some((m) => m.id === messageId)) {
               return session;
             }
+            messageFound = true;
             return {
               ...session,
               messages: session.messages.map((m) => (m.id === messageId ? { ...m, content, isError } : m)),
             };
           });
 
-          const { sessions } = yield* SubscriptionRef.get(store.state);
-          if (!sessions[sessionId]?.messages.find((m) => m.id === messageId)) {
+          if (!messageFound) {
             yield* Effect.fail(new MessageNotFoundError({ messageId }));
           }
         }),
