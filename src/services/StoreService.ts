@@ -22,6 +22,25 @@ export const StoreService = Context.GenericTag<StoreService>('@services/StoreSer
 
 const STORAGE_KEY = 'yuji-storage';
 
+const createNotification = (
+  type: 'error' | 'warning' | 'info' | 'success',
+  message: string,
+  existingNotifications: ReadonlyArray<AppState['notifications'][number]>,
+): AppState['notifications'] => {
+  const existing = existingNotifications.find((n) => n.message === message && n.type === type);
+  const filtered = existing ? existingNotifications.filter((n) => n.id !== existing.id) : existingNotifications;
+
+  return [
+    {
+      id: Math.random().toString(36).substring(7),
+      type,
+      message,
+      timestamp: Date.now(),
+    },
+    ...filtered,
+  ];
+};
+
 const INITIAL_STATE: AppState = {
   sessions: {},
   activeSessionId: null,
@@ -66,25 +85,10 @@ export const StoreServiceLive = Layer.effect(
           Schema.encode(Schema.parseJson(AppStoreState))(s).pipe(
             Effect.flatMap((json) => storage.setItem(STORAGE_KEY, json)),
             Effect.catchAll((err) =>
-              SubscriptionRef.update(state, (curr) => {
-                const message = `Failed to save state: ${err}`;
-                const type = 'error' as const;
-                const existing = curr.notifications.find((n) => n.message === message && n.type === type);
-                const filtered = existing ? curr.notifications.filter((n) => n.id !== existing.id) : curr.notifications;
-
-                return {
-                  ...curr,
-                  notifications: [
-                    {
-                      id: Math.random().toString(36).substring(7),
-                      type,
-                      message,
-                      timestamp: Date.now(),
-                    },
-                    ...filtered,
-                  ],
-                };
-              }),
+              SubscriptionRef.update(state, (curr) => ({
+                ...curr,
+                notifications: createNotification('error', `Failed to save state: ${err}`, curr.notifications),
+              })),
             ),
           ),
         ),
@@ -111,23 +115,10 @@ export const StoreServiceLive = Layer.effect(
       getOnConfirm: (id) => Effect.sync(() => OnConfirmStore.get(id)),
       clearConfirm: (id) => Effect.sync(() => OnConfirmStore.delete(id)),
       notify: (type, message) =>
-        SubscriptionRef.update(state, (s) => {
-          const existing = s.notifications.find((n) => n.message === message && n.type === type);
-          const filtered = existing ? s.notifications.filter((n) => n.id !== existing.id) : s.notifications;
-
-          return {
-            ...s,
-            notifications: [
-              {
-                id: Math.random().toString(36).substring(7),
-                type,
-                message,
-                timestamp: Date.now(),
-              },
-              ...filtered,
-            ],
-          };
-        }),
+        SubscriptionRef.update(state, (s) => ({
+          ...s,
+          notifications: createNotification(type, message, s.notifications),
+        })),
       clearNotification: (id) =>
         SubscriptionRef.update(state, (s) => ({
           ...s,

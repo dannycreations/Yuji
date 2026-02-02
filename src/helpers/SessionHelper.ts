@@ -1,4 +1,14 @@
-import type { ChatSession } from '../app/Schema';
+import type { ChatSession, Message } from '../app/Schema';
+
+export const getMessagePath = (session: ChatSession, messageId: string): ReadonlyArray<Message> => {
+  const findPath = (currId: string): ReadonlyArray<Message> => {
+    const msg = session.messages.find((m) => m.id === currId);
+    if (!msg) return [];
+    return msg.parentId ? [...findPath(msg.parentId), msg] : [msg];
+  };
+
+  return findPath(messageId);
+};
 
 export const groupSessions = (sessionsList: ChatSession[]) => {
   const today = new Date();

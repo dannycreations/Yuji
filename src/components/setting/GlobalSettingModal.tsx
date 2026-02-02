@@ -1,12 +1,11 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { Model } from '../../app/Schema';
-import { useAction, useStore, useUpdateStore } from '../../hooks/useStore';
+import { useAction, useConfirm, useStore, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
-import { StoreService } from '../../services/StoreService';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Icon } from '../shared/Icon';
@@ -115,17 +114,7 @@ export const GlobalSettingModal: FC = () => {
     fileInputRef.current?.click();
   };
 
-  const setConfirm = useAction(
-    (
-      options: Omit<Parameters<StoreService['setConfirm']>[0], 'id' | 'isOpen'> & {
-        readonly onConfirm: () => void;
-      },
-    ) =>
-      Effect.gen(function* () {
-        const store = yield* StoreService;
-        yield* store.setConfirm(options);
-      }),
-  );
+  const setConfirm = useConfirm();
 
   if (!isSettingOpen) return null;
 
@@ -165,20 +154,22 @@ export const GlobalSettingModal: FC = () => {
     e.target.value = ''; // Reset
   };
 
-  const filteredModels = (availableModels as ReadonlyArray<Model>)
-    .filter(
-      (m: Model) =>
-        m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
-        m.id.toLowerCase().includes(modelSearch.toLowerCase()) ||
-        m.provider.toLowerCase().includes(modelSearch.toLowerCase()),
-    )
-    .sort((a, b) => {
-      const aDisabled = (settings.disabledModels || []).includes(a.id);
-      const bDisabled = (settings.disabledModels || []).includes(b.id);
-      if (aDisabled && !bDisabled) return 1;
-      if (!aDisabled && bDisabled) return -1;
-      return 0;
-    });
+  const filteredModels = useMemo(() => {
+    return availableModels
+      .filter(
+        (m: Model) =>
+          m.name.toLowerCase().includes(modelSearch.toLowerCase()) ||
+          m.id.toLowerCase().includes(modelSearch.toLowerCase()) ||
+          m.provider.toLowerCase().includes(modelSearch.toLowerCase()),
+      )
+      .sort((a, b) => {
+        const aDisabled = settings.disabledModels.includes(a.id);
+        const bDisabled = settings.disabledModels.includes(b.id);
+        if (aDisabled && !bDisabled) return 1;
+        if (!aDisabled && bDisabled) return -1;
+        return 0;
+      });
+  }, [availableModels, modelSearch, settings.disabledModels]);
 
   // History Pagination Logic
   const sortedSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
@@ -203,19 +194,18 @@ export const GlobalSettingModal: FC = () => {
     setSelectedSessionIds(next);
   };
 
-  const disabledModels = settings.disabledModels || [];
-  const activeModels = (availableModels as ReadonlyArray<Model>).filter((m) => !disabledModels.includes(m.id));
-  const effectiveDefaultModelId = activeModels.find((m) => m.id === settings.defaultModel)?.id || activeModels[0]?.id;
+  const activeModels = useMemo(
+    () => availableModels.filter((m) => !settings.disabledModels.includes(m.id)),
+    [availableModels, settings.disabledModels],
+  );
+  const effectiveDefaultModelId = useMemo(
+    () => activeModels.find((m: Model) => m.id === settings.defaultModel)?.id || activeModels[0]?.id,
+    [activeModels, settings.defaultModel],
+  );
 
   const toggleModel = (modelId: string) => {
-    const isDisabled = disabledModels.includes(modelId);
-    let newDisabledModels = [...disabledModels];
-
-    if (isDisabled) {
-      newDisabledModels = newDisabledModels.filter((id) => id !== modelId);
-    } else {
-      newDisabledModels.push(modelId);
-    }
+    const isDisabled = settings.disabledModels.includes(modelId);
+    const newDisabledModels = isDisabled ? settings.disabledModels.filter((id) => id !== modelId) : [...settings.disabledModels, modelId];
     updateSettings({ disabledModels: newDisabledModels });
   };
 
@@ -293,8 +283,7 @@ export const GlobalSettingModal: FC = () => {
             <div className="flex-1 overflow-y-auto pr-2 min-h-0 space-y-2">
               {filteredModels.length > 0 ? (
                 filteredModels.map((model: Model) => {
-                  const isDisabled = disabledModels.includes(model.id);
-                  const isEnabled = !isDisabled;
+                  const isEnabled = !settings.disabledModels.includes(model.id);
                   return (
                     <div
                       key={model.id}

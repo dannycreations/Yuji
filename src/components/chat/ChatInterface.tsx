@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { LLMProviderError } from '../../app/Error';
 import { YujiRuntime } from '../../app/Yuji';
+import { getMessagePath } from '../../helpers/SessionHelper';
 import { useAction, useStore } from '../../hooks/useStore';
 import { LLMProvider, synthesizeSystemPrompt } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
@@ -36,19 +37,7 @@ export const ChatInterface: FC = () => {
     if (!activeSession) return [];
     if (!activeSession.activeMessageId) return activeSession.messages;
 
-    const path: Message[] = [];
-    let currentId: string | undefined = activeSession.activeMessageId;
-
-    while (currentId) {
-      const msg: Message | undefined = activeSession.messages.find((m) => m.id === currentId);
-      if (msg) {
-        path.unshift(msg);
-        currentId = msg.parentId;
-      } else {
-        currentId = undefined;
-      }
-    }
-    return path;
+    return getMessagePath(activeSession, activeSession.activeMessageId);
   }, [activeSession]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+import { useCopy } from '../../hooks/useCopy';
 import { Icon } from '../shared/Icon';
 
 import type { FC } from 'react';
@@ -21,13 +22,11 @@ interface BaseMessageBlockProps {
 }
 
 const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, onDownload }) => {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopy] = useCopy();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopy(value);
   };
 
   return (

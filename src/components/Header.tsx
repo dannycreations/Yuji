@@ -3,11 +3,11 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
+import { getEffectiveModelId, getEffectiveModelName, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useAction, useStore, useUpdateStore } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { toTitleCase } from '../utilities/CommonUtil';
-import { getEffectiveModelId, getModelName } from '../utilities/ModelUtil';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
@@ -21,13 +21,8 @@ interface ModelPickerProps {
 }
 
 const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) => {
-  const { availableModels, disabledModels } = useStore(
-    (s) => ({
-      availableModels: s.availableModels,
-      disabledModels: s.settings.disabledModels,
-    }),
-    { availableModels: [], disabledModels: [] },
-  );
+  const availableModels = useStore((s) => s.availableModels, []);
+  const disabledModels = useStore((s) => s.settings.disabledModels, []);
 
   const [search, setSearch] = useState('');
 
@@ -139,7 +134,9 @@ export const Header: FC = () => {
 
   const { currentModelId, currentModelName } = useMemo(() => {
     const id = getEffectiveModelId(settings, availableModels, sessions, activeSessionId);
-    const name = getModelName(availableModels, optimisticModelId || id);
+    const name = optimisticModelId
+      ? getModelName(availableModels, optimisticModelId)
+      : getEffectiveModelName(settings, availableModels, sessions, activeSessionId);
 
     return { currentModelId: id, currentModelName: name };
   }, [availableModels, settings, activeSessionId, sessions, optimisticModelId]);

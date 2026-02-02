@@ -7,7 +7,8 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { YujiRuntime } from '../../app/Yuji';
-import { useAction, useStore } from '../../hooks/useStore';
+import { useCopy } from '../../hooks/useCopy';
+import { useAction, useConfirm, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { StoreService } from '../../services/StoreService';
 import { Icon } from '../shared/Icon';
@@ -29,7 +30,7 @@ interface ChatMessageBubbleProps {
 export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit, isThinking }) => {
   const isUser = message.role === 'user';
   const sessions = useStore((s: AppState) => s.sessions, {});
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
 
@@ -70,9 +71,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopy(message.content);
   };
 
   const handleBranch = useAction(() =>
@@ -89,20 +88,23 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     setIsEditing(false);
   };
 
-  const handleDelete = useAction(() =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      const chat = yield* ChatService;
+  const showConfirm = useConfirm();
 
-      yield* store.setConfirm({
-        title: 'Delete Message',
-        message: 'Are you sure you want to delete this message?',
-        confirmLabel: 'Delete',
-        variant: 'danger',
-        onConfirm: () => YujiRuntime.runFork(chat.deleteMessage(sessionId, message.id)),
-      });
-    }),
-  );
+  const handleDelete = () => {
+    showConfirm({
+      title: 'Delete Message',
+      message: 'Are you sure you want to delete this message?',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: () =>
+        YujiRuntime.runFork(
+          Effect.gen(function* () {
+            const chat = yield* ChatService;
+            yield* chat.deleteMessage(sessionId, message.id);
+          }),
+        ),
+    });
+  };
 
   return (
     <div className="group w-full">

@@ -2,7 +2,8 @@ import { Context, Effect, Layer, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
-import { getDefaultModelId } from '../utilities/ModelUtil';
+import { getDefaultModelId } from '../helpers/ModelHelper';
+import { getMessagePath } from '../helpers/SessionHelper';
 import { PlatformService } from './PlatformService';
 import { StoreService } from './StoreService';
 
@@ -26,6 +27,36 @@ export const ChatServiceLive = Layer.effect(
   Effect.gen(function* () {
     const platform = yield* PlatformService;
     const store = yield* StoreService;
+
+    const updateSession = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession) =>
+      Effect.gen(function* () {
+        const now = yield* platform.now;
+        const result = yield* store.update((state) => {
+          const session = state.sessions[sessionId];
+          if (!session) return state;
+          return {
+            ...state,
+            sessions: {
+              ...state.sessions,
+              [sessionId]: f(session, now),
+            },
+          };
+        });
+
+        const { sessions } = yield* SubscriptionRef.get(store.state);
+        if (!sessions[sessionId]) {
+          return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+        }
+        return result;
+      }).pipe(
+        Effect.catchAll((err) => {
+          if (err instanceof SessionNotFoundError) return Effect.fail(err);
+          return Effect.gen(function* () {
+            yield* store.notify('error', `Failed to update session: ${err}`);
+            return yield* Effect.fail(err);
+          });
+        }),
+      );
 
     return ChatService.of({
       createSession: () =>
@@ -80,203 +111,79 @@ export const ChatServiceLive = Layer.effect(
         }),
 
       addMessage: (sessionId, message) =>
-        Effect.gen(function* () {
-          const now = yield* platform.now;
+        updateSession(sessionId, (session) => {
+          const messages = [...session.messages];
 
-          yield* store
-            .update((state) => {
-              const currentSession = state.sessions[sessionId];
-              if (!currentSession) return state;
-
-              const messages = [...currentSession.messages];
-
-              if (message.parentId) {
-                const parentIndex = messages.findIndex((m) => m.id === message.parentId);
-                if (parentIndex !== -1) {
-                  const parent = messages[parentIndex];
-                  messages[parentIndex] = {
-                    ...parent,
-                    childrenIds: [...(parent.childrenIds || []), message.id],
-                  };
-                }
-              }
-
-              messages.push(message);
-
-              const title =
-                currentSession.messages.length === 0 && message.role === 'user' && message.content
-                  ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
-                  : currentSession.title;
-
-              return {
-                ...state,
-                sessions: {
-                  ...state.sessions,
-                  [sessionId]: {
-                    ...currentSession,
-                    messages,
-                    activeMessageId: message.id,
-                    title,
-                    updatedAt: now,
-                  },
-                },
+          if (message.parentId) {
+            const parentIndex = messages.findIndex((m) => m.id === message.parentId);
+            if (parentIndex !== -1) {
+              const parent = messages[parentIndex];
+              messages[parentIndex] = {
+                ...parent,
+                childrenIds: [...(parent.childrenIds || []), message.id],
               };
-            })
-            .pipe(
-              Effect.catchAll((err) =>
-                Effect.gen(function* () {
-                  yield* store.notify('error', `Failed to add message: ${err}`);
-                  return yield* Effect.fail(err);
-                }),
-              ),
-            );
-
-          const { sessions } = yield* SubscriptionRef.get(store.state);
-          if (!sessions[sessionId]) {
-            yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+            }
           }
+
+          messages.push(message);
+
+          const title =
+            session.messages.length === 0 && message.role === 'user' && message.content
+              ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
+              : session.title;
+
+          return {
+            ...session,
+            messages,
+            activeMessageId: message.id,
+            title,
+          };
         }),
 
       updateMessage: (sessionId, messageId, content) =>
         Effect.gen(function* () {
-          const now = yield* platform.now;
-
-          yield* store
-            .update((state) => {
-              const currentSession = state.sessions[sessionId];
-              if (!currentSession) return state;
-
-              const updatedMessages = currentSession.messages.map((m) => (m.id === messageId ? { ...m, content } : m));
-
-              return {
-                ...state,
-                sessions: {
-                  ...state.sessions,
-                  [sessionId]: {
-                    ...currentSession,
-                    messages: updatedMessages,
-                    updatedAt: now,
-                  },
-                },
-              };
-            })
-            .pipe(
-              Effect.catchAll((err) =>
-                Effect.gen(function* () {
-                  yield* store.notify('error', `Failed to update message: ${err}`);
-                  return yield* Effect.fail(err);
-                }),
-              ),
-            );
+          yield* updateSession(sessionId, (session) => ({
+            ...session,
+            messages: session.messages.map((m) => (m.id === messageId ? { ...m, content } : m)),
+          }));
 
           const { sessions } = yield* SubscriptionRef.get(store.state);
-          const session = sessions[sessionId];
-          if (!session) {
-            yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-          }
-          if (!session.messages.find((m) => m.id === messageId)) {
+          if (!sessions[sessionId]?.messages.find((m) => m.id === messageId)) {
             yield* Effect.fail(new MessageNotFoundError({ messageId }));
           }
         }),
 
       deleteMessage: (sessionId, messageId) =>
-        Effect.gen(function* () {
-          const now = yield* platform.now;
+        updateSession(sessionId, (session) => {
+          const messageToDelete = session.messages.find((m) => m.id === messageId);
+          if (!messageToDelete) return session;
 
-          yield* store
-            .update((state) => {
-              const session = state.sessions[sessionId];
-              if (!session) return state;
+          const newMessages = session.messages.filter((m) => m.id !== messageId);
 
-              const messageToDelete = session.messages.find((m) => m.id === messageId);
-              if (!messageToDelete) return state;
-
-              // Remove message from messages array
-              const newMessages = session.messages.filter((m) => m.id !== messageId);
-
-              // Update parent's childrenIds if applicable
-              if (messageToDelete.parentId) {
-                const parentIndex = newMessages.findIndex((m) => m.id === messageToDelete.parentId);
-                if (parentIndex !== -1) {
-                  const parent = newMessages[parentIndex];
-                  newMessages[parentIndex] = {
-                    ...parent,
-                    childrenIds: parent.childrenIds?.filter((id) => id !== messageId),
-                  };
-                }
-              }
-
-              // Update activeMessageId if it was the one deleted
-              let activeMessageId = session.activeMessageId;
-              if (activeMessageId === messageId) {
-                activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
-              }
-
-              return {
-                ...state,
-                sessions: {
-                  ...state.sessions,
-                  [sessionId]: {
-                    ...session,
-                    messages: newMessages,
-                    activeMessageId,
-                    updatedAt: now,
-                  },
-                },
+          if (messageToDelete.parentId) {
+            const parentIndex = newMessages.findIndex((m) => m.id === messageToDelete.parentId);
+            if (parentIndex !== -1) {
+              const parent = newMessages[parentIndex];
+              newMessages[parentIndex] = {
+                ...parent,
+                childrenIds: parent.childrenIds?.filter((id) => id !== messageId),
               };
-            })
-            .pipe(
-              Effect.catchAll((err) =>
-                Effect.gen(function* () {
-                  yield* store.notify('error', `Failed to delete message: ${err}`);
-                  return yield* Effect.fail(err);
-                }),
-              ),
-            );
-
-          const { sessions } = yield* SubscriptionRef.get(store.state);
-          const session = sessions[sessionId];
-          if (!session) {
-            yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+            }
           }
-          // We don't fail if message is not found after update because we just deleted it or it didn't exist
+
+          let activeMessageId = session.activeMessageId;
+          if (activeMessageId === messageId) {
+            activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
+          }
+
+          return {
+            ...session,
+            messages: newMessages,
+            activeMessageId,
+          };
         }),
 
-      renameSession: (sessionId, title) =>
-        Effect.gen(function* () {
-          const now = yield* platform.now;
-
-          yield* store
-            .update((state) => {
-              const session = state.sessions[sessionId];
-              if (!session) return state;
-
-              return {
-                ...state,
-                sessions: {
-                  ...state.sessions,
-                  [sessionId]: {
-                    ...session,
-                    title,
-                    updatedAt: now,
-                  },
-                },
-              };
-            })
-            .pipe(
-              Effect.catchAll((err) =>
-                Effect.gen(function* () {
-                  yield* store.notify('error', `Failed to rename session: ${err}`);
-                  return yield* Effect.fail(err);
-                }),
-              ),
-            );
-
-          const { sessions } = yield* SubscriptionRef.get(store.state);
-          if (!sessions[sessionId]) {
-            yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-          }
-        }),
+      renameSession: (sessionId, title) => updateSession(sessionId, (session) => ({ ...session, title })),
 
       getSessionPath: (sessionId, messageId) =>
         Effect.gen(function* () {
@@ -286,13 +193,7 @@ export const ChatServiceLive = Layer.effect(
             yield* Effect.fail(new SessionNotFoundError({ sessionId }));
           }
 
-          const findPath = (currId: string): ReadonlyArray<Message> => {
-            const msg = session.messages.find((m) => m.id === currId);
-            if (!msg) return [];
-            return msg.parentId ? [...findPath(msg.parentId), msg] : [msg];
-          };
-
-          return findPath(messageId);
+          return getMessagePath(session, messageId);
         }),
 
       branchChat: (sessionId, messageId) =>

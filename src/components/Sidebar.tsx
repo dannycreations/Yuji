@@ -3,17 +3,16 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
+import { groupSessions } from '../helpers/SessionHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useStore, useUpdateStore } from '../hooks/useStore';
+import { useAction, useConfirm, useStore, useUpdateStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
-import { StoreService } from '../services/StoreService';
-import { groupSessions } from '../utilities/SessionUtil';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { AppState, ChatSession, ConfirmState } from '../app/Schema';
+import type { AppState, ChatSession } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
@@ -27,12 +26,7 @@ export const Sidebar: FC = () => {
   const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
   const toggleSetting = () => updateStore((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
 
-  const showConfirm = useAction((config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.setConfirm(config);
-    }),
-  );
+  const showConfirm = useConfirm();
 
   const handleCreateSession = useAction(() =>
     Effect.gen(function* () {

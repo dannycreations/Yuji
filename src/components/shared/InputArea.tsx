@@ -1,10 +1,11 @@
 import clsx from 'clsx';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
+import { useLocalValue } from '../../hooks/useLocalValue';
 import { Icon } from './Icon';
 
-import type { ChangeEvent, ComponentProps, FC } from 'react';
+import type { ComponentProps, FC } from 'react';
 import type { TextareaAutosizeProps } from 'react-textarea-autosize';
 import type { IconName } from './Icon';
 
@@ -16,16 +17,7 @@ interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
 
 export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
   ({ className, containerClassName, leftIcon, rightIcon, value, onChange, ...props }, ref) => {
-    const [localValue, setLocalValue] = useState(value ?? '');
-
-    useEffect(() => {
-      setLocalValue(value ?? '');
-    }, [value]);
-
-    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-      setLocalValue(e.target.value);
-      onChange?.(e);
-    };
+    const [localValue, handleChange] = useLocalValue(value, onChange);
 
     return (
       <div className={clsx('relative group', containerClassName)}>
@@ -101,16 +93,7 @@ export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled 
 };
 
 export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ className, value, onChange, ...props }, ref) => {
-  const [localValue, setLocalValue] = useState(value ?? '');
-
-  useEffect(() => {
-    setLocalValue(value ?? '');
-  }, [value]);
-
-  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalValue(e.target.value);
-    onChange?.(e);
-  };
+  const [localValue, handleChange] = useLocalValue(value, onChange);
 
   return (
     <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />

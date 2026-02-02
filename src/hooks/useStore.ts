@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from
 import { YujiRuntime } from '../app/Yuji';
 import { StoreService } from '../services/StoreService';
 
-import type { AppState } from '../app/Schema';
+import type { AppState, ConfirmState } from '../app/Schema';
 
 export const StoreContext = createContext<StoreService | null>(null);
 
@@ -81,4 +81,13 @@ export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => E
 export const useUpdateStore = () => {
   const storeService = useStoreService();
   return useMemo(() => (f: (state: AppState) => AppState) => YujiRuntime.runPromise(storeService.update(f)), [storeService]);
+};
+
+export const useConfirm = () => {
+  return useAction((config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.setConfirm(config);
+    }),
+  );
 };
