@@ -118,11 +118,14 @@ export const Sidebar: FC = () => {
           <Icon name="PanelLeftClose" size={20} />
         </button>
 
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-          <div className="flex items-center gap-1">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <button
+            onClick={() => setActiveSession(null)}
+            className="flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer"
+          >
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
-          </div>
+          </button>
         </div>
 
         <button onClick={handleCreateSession} className="btn-icon z-10" title="New Chat">

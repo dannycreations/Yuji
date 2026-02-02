@@ -137,6 +137,11 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-highlight;
   }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply select-none;
+  }
 }
 
 @layer components {
