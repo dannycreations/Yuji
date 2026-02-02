@@ -50,7 +50,7 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
           </button>
         </div>
       </div>
-      {!isCollapsed && <div className="code-block-content">{children}</div>}
+      <div className={clsx('code-block-content', isCollapsed && 'hidden')}>{children}</div>
     </div>
   );
 };
