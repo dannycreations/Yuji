@@ -28,7 +28,8 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
 
   const handleClose = () => {
     setIsClosing(true);
-    setTimeout(onClose, 200); // Match animation duration (0.2s)
+    // Slightly shorter than animation to ensure state update happens before animation finish
+    setTimeout(onClose, 180);
   };
 
   useClickOutside(containerRef, handleClose);
