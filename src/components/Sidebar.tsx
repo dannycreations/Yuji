@@ -3,9 +3,8 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
-import { YujiRuntime } from '../app/Yuji';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useStore, useUpdateStore } from '../hooks/useStore';
+import { useAction, useStore, useUpdateStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 import { groupSessions } from '../utilities/SessionUtil';
@@ -27,13 +26,27 @@ export const Sidebar: FC = () => {
   const setActiveSession = (id: string | null) => updateStore((s) => ({ ...s, activeSessionId: id }));
   const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
   const toggleSetting = () => updateStore((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
-  const showConfirm = (config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const store = yield* StoreService;
-        yield* store.setConfirm(config);
-      }),
-    );
+
+  const showConfirm = useAction((config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.setConfirm(config);
+    }),
+  );
+
+  const handleCreateSession = useAction(() =>
+    Effect.gen(function* () {
+      const chat = yield* ChatService;
+      yield* chat.createSession();
+    }),
+  );
+
+  const handleDeleteSession = useAction((id: string) =>
+    Effect.gen(function* () {
+      const chat = yield* ChatService;
+      yield* chat.deleteSession(id);
+    }),
+  );
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -45,24 +58,6 @@ export const Sidebar: FC = () => {
     setMenuOpenId(null);
     setMenuPosition(null);
   });
-
-  const handleCreateSession = () => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const chat = yield* ChatService;
-        yield* chat.createSession();
-      }),
-    );
-  };
-
-  const handleDeleteSession = (id: string) => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const chat = yield* ChatService;
-        yield* chat.deleteSession(id);
-      }),
-    );
-  };
 
   const filteredSessions = useMemo(() => {
     let allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);

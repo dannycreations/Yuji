@@ -25,7 +25,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
   const updateStore = useUpdateStore();
 
-  const updateSession = (sessionId: string, updates: Partial<ChatSession>) =>
+  const updateSession = (updates: Partial<ChatSession>) =>
     updateStore((state) => {
       const session = state.sessions[sessionId];
       if (!session) return state;
@@ -45,15 +45,15 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   if (!session) return null;
 
   const updateGeneral = (updates: Partial<ChatSession['general']>) => {
-    updateSession(sessionId, { general: { ...session.general, ...updates } });
+    updateSession({ general: { ...session.general, ...updates } });
   };
 
   const updateInstruction = (updates: Partial<ChatSession['instruction']>) => {
-    updateSession(sessionId, { instruction: { ...session.instruction, ...updates } });
+    updateSession({ instruction: { ...session.instruction, ...updates } });
   };
 
   const updatePersonalisation = (updates: Partial<ChatSession['personalisation']>) => {
-    updateSession(sessionId, { personalisation: { ...session.personalisation, ...updates } });
+    updateSession({ personalisation: { ...session.personalisation, ...updates } });
   };
 
   const renderContent = () => {
@@ -63,11 +63,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <div className="space-y-2">
               <label className="settings-label">Chat Title</label>
-              <InputText
-                value={session.title}
-                onChange={(e) => updateSession(sessionId, { title: e.target.value })}
-                placeholder="Enter chat title..."
-              />
+              <InputText value={session.title} onChange={(e) => updateSession({ title: e.target.value })} placeholder="Enter chat title..." />
             </div>
 
             <OverrideSection

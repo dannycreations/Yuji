@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { Model } from '../../app/Schema';
-import { YujiRuntime } from '../../app/Yuji';
 import { useAction, useStore, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { StoreService } from '../../services/StoreService';
@@ -65,36 +64,29 @@ export const GlobalSettingModal: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 7;
 
-  const handleRefreshModels = () => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const llm = yield* LLMProvider;
-        const result = yield* llm.fetchModels(settings);
+  const handleRefreshModels = useAction(() =>
+    Effect.gen(function* () {
+      const llm = yield* LLMProvider;
+      const result = yield* llm.fetchModels(settings);
 
-        const apiModels: ReadonlyArray<Model> = result.data.map((m) =>
-          Model({
-            id: m.id,
-            name: m.id,
-            description: `Fetched from ${settings.baseUrl}`,
-            provider: 'OpenAI Compatible',
-            icon: 'Cpu',
-            color: 'text-text-secondary',
-            tags: ['API'],
-          }),
-        );
-
-        const staticIds = new Set(availableModels.map((m) => m.id));
-        const newModels = apiModels.filter((m) => !staticIds.has(m.id));
-
-        setAvailableModels([...availableModels, ...newModels]);
-      }).pipe(
-        Effect.catchAll((error) => {
-          console.error('Failed to fetch models:', error);
-          return Effect.void;
+      const apiModels: ReadonlyArray<Model> = result.data.map((m) =>
+        Model({
+          id: m.id,
+          name: m.id,
+          description: `Fetched from ${settings.baseUrl}`,
+          provider: 'OpenAI Compatible',
+          icon: 'Cpu',
+          color: 'text-text-secondary',
+          tags: ['API'],
         }),
-      ),
-    );
-  };
+      );
+
+      const staticIds = new Set(availableModels.map((m) => m.id));
+      const newModels = apiModels.filter((m) => !staticIds.has(m.id));
+
+      setAvailableModels([...availableModels, ...newModels]);
+    }),
+  );
 
   useEffect(() => {
     if (isSettingOpen) {

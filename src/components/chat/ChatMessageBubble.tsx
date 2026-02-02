@@ -75,14 +75,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleBranch = () => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const chat = yield* ChatService;
-        yield* chat.branchChat(sessionId, message.id);
-      }),
-    );
-  };
+  const handleBranch = useAction(() =>
+    Effect.gen(function* () {
+      const chat = yield* ChatService;
+      yield* chat.branchChat(sessionId, message.id);
+    }),
+  );
 
   const handleSaveEdit = () => {
     if (editContent.trim() !== message.content.trim()) {
@@ -91,22 +89,20 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     setIsEditing(false);
   };
 
-  const handleDelete = () => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const store = yield* StoreService;
-        const chat = yield* ChatService;
+  const handleDelete = useAction(() =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      const chat = yield* ChatService;
 
-        yield* store.setConfirm({
-          title: 'Delete Message',
-          message: 'Are you sure you want to delete this message?',
-          confirmLabel: 'Delete',
-          variant: 'danger',
-          onConfirm: () => YujiRuntime.runFork(chat.deleteMessage(sessionId, message.id)),
-        });
-      }),
-    );
-  };
+      yield* store.setConfirm({
+        title: 'Delete Message',
+        message: 'Are you sure you want to delete this message?',
+        confirmLabel: 'Delete',
+        variant: 'danger',
+        onConfirm: () => YujiRuntime.runFork(chat.deleteMessage(sessionId, message.id)),
+      });
+    }),
+  );
 
   return (
     <div className="group w-full">

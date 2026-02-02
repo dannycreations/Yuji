@@ -8,8 +8,16 @@ import type { AppState } from '../app/Schema';
 
 export const StoreContext = createContext<StoreService | null>(null);
 
+export const useStoreService = (): StoreService => {
+  const service = useContext(StoreContext);
+  if (!service) {
+    throw new Error('StoreContext not found');
+  }
+  return service;
+};
+
 export const useStore = <T>(selector: (state: AppState) => T, initialValue?: T): T => {
-  const storeService = useContext(StoreContext);
+  const storeService = useStoreService();
   const lastSnapshotRef = useRef<T>(initialValue as T);
   const lastStateRef = useRef<AppState | null>(null);
 
@@ -56,25 +64,21 @@ export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => E
     () =>
       (...args: A) =>
         YujiRuntime.runPromise(
-          effectFnRef.current(...args).pipe(
-            Effect.catchAll((err) =>
-              Effect.gen(function* () {
-                const store = yield* StoreService;
+          Effect.gen(function* () {
+            const store = yield* StoreService;
+            return yield* effectFnRef.current(...args).pipe(
+              Effect.catchAll((err) => {
                 const message = err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err);
-                yield* store.notify('error', message);
+                return store.notify('error', message);
               }),
-            ),
-          ),
+            );
+          }),
         ),
     [],
   );
 };
 
 export const useUpdateStore = () => {
-  return useAction((f: (state: AppState) => AppState) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      return yield* store.update(f);
-    }),
-  );
+  const storeService = useStoreService();
+  return useMemo(() => (f: (state: AppState) => AppState) => YujiRuntime.runPromise(storeService.update(f)), [storeService]);
 };

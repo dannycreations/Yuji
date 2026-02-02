@@ -12,7 +12,7 @@ import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { AppState, Model } from '../app/Schema';
+import type { Model } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -138,7 +138,7 @@ export const Header: FC = () => {
   );
 
   const { currentModelId, currentModelName } = useMemo(() => {
-    const id = getEffectiveModelId({ settings, activeSessionId, sessions, availableModels } as AppState, activeSessionId);
+    const id = getEffectiveModelId(settings, availableModels, sessions, activeSessionId);
     const name = getModelName(availableModels, optimisticModelId || id);
 
     return { currentModelId: id, currentModelName: name };

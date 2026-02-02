@@ -2,6 +2,7 @@ import { Context, Effect, Layer, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
+import { getDefaultModelId } from '../utilities/ModelUtil';
 import { PlatformService } from './PlatformService';
 import { StoreService } from './StoreService';
 
@@ -33,9 +34,7 @@ export const ChatServiceLive = Layer.effect(
           const now = yield* platform.now;
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
 
-          const disabledModels = settings.disabledModels || [];
-          const activeModels = availableModels.filter((m) => !disabledModels.includes(m.id));
-          const effectiveDefaultModel = activeModels.find((m) => m.id === settings.defaultModel)?.id || activeModels[0]?.id || 'gpt-4o';
+          const effectiveDefaultModel = getDefaultModelId(settings, availableModels);
 
           const newSession: ChatSession = {
             id,

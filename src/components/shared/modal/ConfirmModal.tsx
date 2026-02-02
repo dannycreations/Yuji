@@ -2,9 +2,8 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useRef, useState } from 'react';
 
-import { YujiRuntime } from '../../../app/Yuji';
 import { useClickOutside } from '../../../hooks/useClickOutside';
-import { useStore } from '../../../hooks/useStore';
+import { useAction, useStore } from '../../../hooks/useStore';
 import { StoreService } from '../../../services/StoreService';
 
 import type { FC } from 'react';
@@ -23,39 +22,41 @@ export const ConfirmModal: FC = () => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const onCancel = useAction(() =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      if (id) {
+        yield* store.clearConfirm(id);
+      }
+      yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+      setIsClosing(false);
+    }),
+  );
+
+  const onConfirm = useAction(() =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      if (id) {
+        const onConfirm = yield* store.getOnConfirm(id);
+        if (onConfirm) onConfirm();
+        yield* store.clearConfirm(id);
+      }
+      yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+    }),
+  );
+
   const handleCancel = () => {
     setIsClosing(true);
-    setTimeout(() => {
-      YujiRuntime.runPromise(
-        Effect.gen(function* () {
-          const store = yield* StoreService;
-          if (id) {
-            yield* store.clearConfirm(id);
-          }
-          yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-          setIsClosing(false);
-        }),
-      );
-    }, 200);
+    setTimeout(onCancel, 200);
+  };
+
+  const handleConfirm = () => {
+    onConfirm();
   };
 
   useClickOutside(containerRef, handleCancel);
 
   if (!confirm.isOpen) return null;
-
-  const handleConfirm = () => {
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const store = yield* StoreService;
-        if (id) {
-          const onConfirm = yield* store.getOnConfirm(id);
-          if (onConfirm) onConfirm();
-          yield* store.clearConfirm(id);
-        }
-        yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-      }),
-    );
-  };
 
   return (
     <div className={clsx('modal-overlay z-[100]', isClosing ? 'animate-fade-out' : 'animate-fade-in')}>
