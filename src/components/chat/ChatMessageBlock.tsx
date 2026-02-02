@@ -5,6 +5,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 import { useCopy } from '../../hooks/useCopy';
+import { randomString } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
 
 import type { FC } from 'react';
@@ -60,7 +61,7 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `code-${Math.random().toString(36).slice(2, 7)}.txt`;
+    a.download = `code-${randomString(6)}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -106,7 +107,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
     const render = async () => {
       try {
         mermaid.initialize({ startOnLoad: false, theme: 'base' });
-        const id = `mermaid-${Math.random().toString(36).slice(2, 11)}`;
+        const id = `mermaid-${randomString(8)}`;
         const { svg } = await mermaid.render(id, code);
         if (isMounted) {
           setSvg(svg);

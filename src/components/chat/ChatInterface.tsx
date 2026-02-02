@@ -8,13 +8,11 @@ import { getMessagePath } from '../../helpers/SessionHelper';
 import { useAction, useStore } from '../../hooks/useStore';
 import { LLMProvider, synthesizeSystemPrompt } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
-import { PlatformService } from '../../services/PlatformService';
 import { StoreService } from '../../services/StoreService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
-import { ChatMessageVirtual } from './ChatMessageVirtual';
 
 import type { FC } from 'react';
 import type { MessageNotFoundError, SessionNotFoundError } from '../../app/Error';
@@ -26,10 +24,7 @@ export const ChatInterface: FC = () => {
   const userName = useStore((s: AppState) => s.settings.personalisation.userName, '');
 
   const [isLoading, setIsLoading] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const fiberRef = useRef<Fiber.Fiber<void, SessionNotFoundError | MessageNotFoundError>>(null);
-  const isAutoScrolling = useRef(true);
 
   const activeSession = activeSessionId ? sessions[activeSessionId] : null;
 
@@ -39,51 +34,6 @@ export const ChatInterface: FC = () => {
 
     return getMessagePath(activeSession, activeSession.activeMessageId);
   }, [activeSession]);
-
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    if (scrollContainerRef.current) {
-      if (behavior === 'instant') {
-        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
-      } else {
-        messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
-      }
-    }
-  };
-
-  const handleScroll = () => {
-    if (!scrollContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    const atBottom = scrollHeight - scrollTop - clientHeight < 100;
-    isAutoScrolling.current = atBottom;
-  };
-
-  // Reset auto-scroll and force jump when switching sessions
-  useEffect(() => {
-    isAutoScrolling.current = true;
-    if (visibleMessages.length > 0) {
-      // Double RAF to ensure layout has settled for virtualized elements
-      const frame1 = requestAnimationFrame(() => {
-        const frame2 = requestAnimationFrame(() => {
-          scrollToBottom('instant');
-        });
-        return () => cancelAnimationFrame(frame2);
-      });
-      return () => cancelAnimationFrame(frame1);
-    }
-  }, [activeSessionId, visibleMessages.length > 0]);
-
-  // Handle streaming content updates: pinning to bottom
-  const lastMessageId = visibleMessages[visibleMessages.length - 1]?.id;
-  const lastMessageContent = visibleMessages[visibleMessages.length - 1]?.content;
-
-  useEffect(() => {
-    if (isLoading && isAutoScrolling.current) {
-      const frame = requestAnimationFrame(() => {
-        scrollToBottom('auto');
-      });
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [lastMessageId, lastMessageContent, isLoading]);
 
   const handleStop = () => {
     if (fiberRef.current) {
@@ -119,9 +69,9 @@ export const ChatInterface: FC = () => {
 
       setIsLoading(true);
 
-      const assistantMessageId = crypto.randomUUID();
+      const id = crypto.randomUUID();
       const assistantMessage: Message = {
-        id: assistantMessageId,
+        id,
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
@@ -149,7 +99,7 @@ export const ChatInterface: FC = () => {
         yield* Stream.runForEach(stream, (token) =>
           Effect.gen(function* () {
             fullContent += token;
-            yield* chat.updateMessage(sessionId, assistantMessageId, fullContent);
+            yield* chat.updateMessage(sessionId, id, fullContent);
           }),
         );
       }).pipe(
@@ -157,7 +107,7 @@ export const ChatInterface: FC = () => {
           Effect.gen(function* () {
             const msg = err instanceof LLMProviderError ? err.message : 'Unknown error';
             console.error(err);
-            yield* chat.updateMessage(sessionId, assistantMessageId, `*[Error: ${msg}]*`);
+            yield* chat.updateMessage(sessionId, id, `*[Error: ${msg}]*`);
             yield* store.notify('error', `Chat error: ${msg}`);
           }),
         ),
@@ -170,7 +120,6 @@ export const ChatInterface: FC = () => {
   const handleSend = useAction((content: string, attachments: Attachment[] = []) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      const platform = yield* PlatformService;
 
       let currentSessionId = activeSessionId;
       if (!currentSessionId) {
@@ -178,16 +127,13 @@ export const ChatInterface: FC = () => {
         currentSessionId = session.id;
       }
 
-      const parentId = activeSession?.activeMessageId;
-      const userMessageId = yield* platform.nextId;
-      const now = yield* platform.now;
       const userMessage: Message = {
-        id: userMessageId,
+        id: crypto.randomUUID(),
         role: 'user',
         content,
         attachments,
-        timestamp: now,
-        parentId,
+        timestamp: Date.now(),
+        parentId: activeSession?.activeMessageId,
       };
 
       yield* chat.addMessage(currentSessionId, userMessage);
@@ -263,21 +209,19 @@ export const ChatInterface: FC = () => {
   return (
     <div className="main-layout">
       <Header />
-      <div ref={scrollContainerRef} onScroll={handleScroll} className="chat-scroll-area">
+      <div className="chat-scroll-area">
         <div className="message-list-container">
           {visibleMessages.map((message, idx) => (
-            <ChatMessageVirtual key={message.id}>
-              <ChatMessageBubble
-                message={message}
-                sessionId={activeSession.id}
-                isLast={idx === visibleMessages.length - 1}
-                isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
-                onRegenerate={() => handleRegenerate(message.id)}
-                onEdit={(newContent) => handleEdit(message.id, newContent)}
-              />
-            </ChatMessageVirtual>
+            <ChatMessageBubble
+              key={message.id}
+              message={message}
+              sessionId={activeSession.id}
+              isLast={idx === visibleMessages.length - 1}
+              isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
+              onRegenerate={() => handleRegenerate(message.id)}
+              onEdit={(newContent) => handleEdit(message.id, newContent)}
+            />
           ))}
-          <div ref={messagesEndRef} className="h-4" />
         </div>
       </div>
 

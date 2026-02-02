@@ -116,8 +116,6 @@ export const GlobalSettingModal: FC = () => {
 
   const setConfirm = useConfirm();
 
-  if (!isSettingOpen) return null;
-
   const handleDeleteSelected = () => {
     if (selectedSessionIds.size === 0) return;
 
@@ -463,6 +461,8 @@ export const GlobalSettingModal: FC = () => {
   };
 
   const activeTabLabel = GLOBAL_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
+
+  if (!isSettingOpen) return null;
 
   return (
     <SettingModal tabs={GLOBAL_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={toggleSettings} title={activeTabLabel}>

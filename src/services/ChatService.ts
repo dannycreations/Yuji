@@ -4,7 +4,6 @@ import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
 import { getDefaultModelId } from '../helpers/ModelHelper';
 import { getMessagePath } from '../helpers/SessionHelper';
-import { PlatformService } from './PlatformService';
 import { StoreService } from './StoreService';
 
 import type { ChatSession, Message } from '../app/Schema';
@@ -25,12 +24,11 @@ export const ChatService = Context.GenericTag<ChatService>('@services/ChatServic
 export const ChatServiceLive = Layer.effect(
   ChatService,
   Effect.gen(function* () {
-    const platform = yield* PlatformService;
     const store = yield* StoreService;
 
     const updateSession = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession) =>
       Effect.gen(function* () {
-        const now = yield* platform.now;
+        const now = Date.now();
         const result = yield* store.update((state) => {
           const session = state.sessions[sessionId];
           if (!session) return state;
@@ -61,8 +59,8 @@ export const ChatServiceLive = Layer.effect(
     return ChatService.of({
       createSession: () =>
         Effect.gen(function* () {
-          const id = yield* platform.nextId;
-          const now = yield* platform.now;
+          const now = Date.now();
+          const id = crypto.randomUUID();
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
 
           const effectiveDefaultModel = getDefaultModelId(settings, availableModels);
@@ -208,8 +206,8 @@ export const ChatServiceLive = Layer.effect(
             yield* Effect.fail(new MessageNotFoundError({ messageId }));
           }
 
-          const id = yield* platform.nextId;
-          const now = yield* platform.now;
+          const now = Date.now();
+          const id = crypto.randomUUID();
           const branchedMessages = sourceSession.messages.slice(0, messageIndex + 1);
 
           const newSession: ChatSession = {

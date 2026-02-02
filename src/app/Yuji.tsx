@@ -10,13 +10,11 @@ import { Sidebar } from '../components/Sidebar';
 import { StoreContext } from '../hooks/useStore';
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
-import { PlatformServiceLive } from '../services/PlatformService';
 import { StorageServiceLive } from '../services/StorageService';
 import { StoreService, StoreServiceLive } from '../services/StoreService';
 
 const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(OpenAIProviderLive),
-  Layer.provideMerge(PlatformServiceLive),
   Layer.provideMerge(StoreServiceLive),
   Layer.provideMerge(StorageServiceLive),
   Layer.provide(FetchHttpClient.layer),

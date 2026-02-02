@@ -2,6 +2,7 @@ import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect'
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { AppStoreState, MODELS } from '../app/Schema';
+import { randomString } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
 import type { AppState, ConfirmState } from '../app/Schema';
@@ -32,7 +33,7 @@ const createNotification = (
 
   return [
     {
-      id: Math.random().toString(36).substring(7),
+      id: randomString(8),
       type,
       message,
       timestamp: Date.now(),
@@ -101,7 +102,7 @@ export const StoreServiceLive = Layer.effect(
       setConfirm: (options) =>
         Effect.gen(function* () {
           const { onConfirm, ...rest } = options;
-          const id = Math.random().toString(36).substring(7);
+          const id = randomString(8);
           OnConfirmStore.set(id, onConfirm);
           yield* SubscriptionRef.update(state, (s) => ({
             ...s,
