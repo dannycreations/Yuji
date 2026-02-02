@@ -2,7 +2,7 @@ import { Context, Effect, Layer, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
-import { getDefaultModelId } from '../helpers/ModelHelper';
+import { getModelId } from '../helpers/ModelHelper';
 import { getMessagePath } from '../helpers/SessionHelper';
 import { StoreService } from './StoreService';
 
@@ -67,7 +67,7 @@ export const ChatServiceLive = Layer.effect(
           const id = crypto.randomUUID();
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
 
-          const effectiveDefaultModel = getDefaultModelId(settings, availableModels);
+          const effectiveModel = getModelId(settings, availableModels);
 
           const newSession: ChatSession = {
             id,
@@ -76,7 +76,7 @@ export const ChatServiceLive = Layer.effect(
             createdAt: now,
             updatedAt: now,
             general: {
-              model: effectiveDefaultModel,
+              model: effectiveModel,
               overrideInstruction: false,
               overridePersonalisation: false,
             },

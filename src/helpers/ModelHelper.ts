@@ -2,9 +2,9 @@ import { toTitleCase } from '../utilities/CommonUtil';
 
 import type { AppState, Model } from '../app/Schema';
 
-export const getDefaultModelId = (settings: AppState['settings'], availableModels: AppState['availableModels']): string => {
+export const getModelId = (settings: AppState['settings'], availableModels: AppState['availableModels']): string => {
   const active = availableModels.filter((m) => !settings.disabledModels.includes(m.id));
-  return active.find((m) => m.id === settings.defaultModel)?.id || active[0]?.id || 'gpt-4o';
+  return active.find((m) => m.id === settings.model)?.id || active[0]?.id || 'gpt-4o';
 };
 
 export const getModelName = (availableModels: ReadonlyArray<Model>, modelId: string): string => {
@@ -18,7 +18,7 @@ export const getEffectiveModelId = (
   sessions: AppState['sessions'],
   sessionId: string | null,
 ): string => {
-  const effectiveDefault = getDefaultModelId(settings, availableModels);
+  const effectiveDefault = getModelId(settings, availableModels);
   const session = sessionId ? sessions[sessionId] : null;
   return session?.general.model || effectiveDefault;
 };

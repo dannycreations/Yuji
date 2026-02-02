@@ -195,9 +195,9 @@ export const GlobalSettingModal: FC = () => {
     () => availableModels.filter((m) => !settings.disabledModels.includes(m.id)),
     [availableModels, settings.disabledModels],
   );
-  const effectiveDefaultModelId = useMemo(
-    () => activeModels.find((m: Model) => m.id === settings.defaultModel)?.id || activeModels[0]?.id,
-    [activeModels, settings.defaultModel],
+  const effectiveModelId = useMemo(
+    () => activeModels.find((m: Model) => m.id === settings.model)?.id || activeModels[0]?.id,
+    [activeModels, settings.model],
   );
 
   const toggleModel = (modelId: string) => {
@@ -223,6 +223,11 @@ export const GlobalSettingModal: FC = () => {
               <div className="text-sm text-text-primary">Enter to send</div>
               <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSettings({ enterToSend: checked })} />
             </div>
+
+            <div className="panel-section flex items-center justify-between">
+              <div className="text-sm text-text-primary">Expand code blocks</div>
+              <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => updateSettings({ expandCodeblock: checked })} />
+            </div>
           </div>
         );
 
@@ -244,7 +249,6 @@ export const GlobalSettingModal: FC = () => {
                 onChange={(e) => updateSettings({ baseUrl: e.target.value })}
                 placeholder="http://localhost:11434/v1"
               />
-              <p className="text-xs text-text-secondary pl-1">For LocalAI or Ollama, use your local endpoint.</p>
             </div>
 
             <div className="space-y-2">
@@ -302,7 +306,7 @@ export const GlobalSettingModal: FC = () => {
                           <span className={clsx('font-bold text-sm', isEnabled ? 'text-text-primary' : 'text-text-secondary')}>
                             {toTitleCase(model.name)}
                           </span>
-                          {effectiveDefaultModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
+                          {effectiveModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
                           {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                         </div>
                         <div className="text-[10px] text-text-secondary/80 font-mono leading-tight">{model.id}</div>

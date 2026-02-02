@@ -124,7 +124,7 @@ export const Header: FC = () => {
       const store = yield* StoreService;
       yield* store.update((s) => ({
         ...s,
-        settings: { ...s.settings, defaultModel: modelId },
+        settings: { ...s.settings, model: modelId },
       }));
     }),
   );

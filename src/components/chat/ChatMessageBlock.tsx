@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { useCopy } from '../../hooks/useCopy';
+import { useStore } from '../../hooks/useStore';
 import { randomString } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
 
 import type { FC } from 'react';
+import type { AppState } from '../../app/Schema';
 
 interface CodeBlockProps {
   readonly language: string;
@@ -23,8 +26,9 @@ interface BaseMessageBlockProps {
 }
 
 const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, onDownload }) => {
+  const expandCodeblock = useStore((s: AppState) => s.settings.expandCodeblock, DEFAULT_SETTINGS.expandCodeblock);
   const [copied, setCopy] = useCopy();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(!expandCodeblock);
 
   const handleCopy = () => {
     setCopy(value);

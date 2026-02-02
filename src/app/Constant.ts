@@ -12,10 +12,10 @@ export const DEFAULT_GUIDE_PROMPT = `
 export const DEFAULT_SETTINGS = {
   apiKey: '',
   baseUrl: 'http://localhost:11434/v1',
-  defaultModel: 'gpt-4o',
+  model: 'gpt-4o',
   theme: 'dark',
   enterToSend: true,
-
+  expandCodeblock: true,
   instruction: {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
   },
@@ -25,8 +25,6 @@ export const DEFAULT_SETTINGS = {
     assistantTraits: ['creative', 'cynical'],
     additionalContext: '',
   },
-
-  // Model Defaults
   disabledModels: [],
 } as const;
 

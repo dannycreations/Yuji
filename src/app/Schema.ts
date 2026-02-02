@@ -119,9 +119,10 @@ export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
 export const Settings = Schema.Struct({
   apiKey: Schema.String,
   baseUrl: Schema.String,
-  defaultModel: Schema.String,
+  model: Schema.String,
   theme: Schema.Literal('dark', 'light'),
   enterToSend: Schema.Boolean,
+  expandCodeblock: Schema.Boolean,
   instruction: InstructionSchema,
   personalisation: PersonalisationSchema,
   disabledModels: Schema.Array(Schema.String),
