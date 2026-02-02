@@ -1,7 +1,7 @@
 import { Icon } from '../shared/Icon';
-import { InputText, InputTextarea } from '../shared/InputArea';
+import { InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
 
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import type { Instruction, Personalisation } from '../../app/Schema';
 
 interface InstructionSectionProps {
@@ -104,3 +104,39 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
     </div>
   </div>
 );
+
+interface OverrideSectionProps {
+  readonly title: string;
+  readonly description: string;
+  readonly checked: boolean;
+  readonly onChange: (checked: boolean) => void;
+  readonly children?: ReactNode;
+  readonly onEnable?: () => void;
+}
+
+export const OverrideSection: FC<OverrideSectionProps> = ({ title, description, checked, onChange, children, onEnable }) => {
+  if (!checked && onEnable) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
+        <Icon name="Lock" size={24} className="mb-2 opacity-50" />
+        <p className="text-sm">{description}</p>
+        <button onClick={onEnable} className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest">
+          Enable Override
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 animate-fade-in">
+      <div className="flex items-center justify-between py-2 border-b border-separator">
+        <div>
+          <div className="text-sm text-text-primary">{title}</div>
+          <div className="text-xs text-text-secondary">{description}</div>
+        </div>
+        <InputSwitch checked={checked} onChange={onChange} />
+      </div>
+      {checked && children}
+    </div>
+  );
+};

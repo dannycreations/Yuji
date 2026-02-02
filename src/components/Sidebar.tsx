@@ -5,9 +5,10 @@ import { useMemo, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { YujiRuntime } from '../app/Yuji';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useStore } from '../hooks/useStore';
+import { useStore, useUpdateStore } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
+import { groupSessions } from '../utilities/SessionUtil';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
@@ -21,12 +22,7 @@ export const Sidebar: FC = () => {
   const activeSessionId = useStore((s: AppState) => s.activeSessionId, null);
   const isSidebarOpen = useStore((s: AppState) => s.isSidebarOpen, true);
 
-  const updateStore = useAction((f: (s: AppState) => AppState) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      return yield* store.update(f);
-    }),
-  );
+  const updateStore = useUpdateStore();
 
   const setActiveSession = (id: string | null) => updateStore((s) => ({ ...s, activeSessionId: id }));
   const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
@@ -76,34 +72,6 @@ export const Sidebar: FC = () => {
     }
     return allSessions;
   }, [sessions, searchQuery]);
-
-  const groupSessions = (sessionsList: ChatSession[]) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const groups: Record<string, ChatSession[]> = {
-      Today: [],
-      Yesterday: [],
-      'Last 7 Days': [],
-      'Last 30 Days': [],
-    };
-
-    sessionsList.forEach((session) => {
-      const date = new Date(session.updatedAt);
-      if (date.toDateString() === today.toDateString()) {
-        groups['Today'].push(session);
-      } else if (date.toDateString() === yesterday.toDateString()) {
-        groups['Yesterday'].push(session);
-      } else if (today.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) {
-        groups['Last 7 Days'].push(session);
-      } else {
-        groups['Last 30 Days'].push(session);
-      }
-    });
-
-    return groups;
-  };
 
   const groupedSessions = groupSessions(filteredSessions);
 

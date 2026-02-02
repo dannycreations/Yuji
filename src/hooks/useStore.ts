@@ -69,3 +69,12 @@ export const useAction = <A extends unknown[], R, E>(effectFn: (...args: A) => E
     [],
   );
 };
+
+export const useUpdateStore = () => {
+  return useAction((f: (state: AppState) => AppState) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      return yield* store.update(f);
+    }),
+  );
+};

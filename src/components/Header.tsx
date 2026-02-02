@@ -4,9 +4,10 @@ import { useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useStore } from '../hooks/useStore';
+import { useAction, useStore, useUpdateStore } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { toTitleCase } from '../utilities/CommonUtil';
+import { getEffectiveModelId, getModelName } from '../utilities/ModelUtil';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
@@ -98,12 +99,7 @@ export const Header: FC = () => {
     },
   );
 
-  const updateStore = useAction((f: (s: AppState) => AppState) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      return yield* store.update(f);
-    }),
-  );
+  const updateStore = useUpdateStore();
 
   const toggleSidebar = () => updateStore((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen }));
 
@@ -142,19 +138,11 @@ export const Header: FC = () => {
   );
 
   const { currentModelId, currentModelName } = useMemo(() => {
-    const disabled = settings.disabledModels || [];
-    const active = availableModels.filter((m) => !disabled.includes(m.id));
-    const effectiveDefault = active.find((m) => m.id === settings.defaultModel)?.id || active[0]?.id || 'gpt-4o';
-
-    const session = activeSessionId ? sessions[activeSessionId] : null;
-    const id = (session?.general.overrideModel && session?.general.model) || effectiveDefault;
-
-    const targetId = optimisticModelId || id;
-    const model = active.find((m) => m.id === targetId);
-    const name = model ? toTitleCase(model.name) : 'Yuji';
+    const id = getEffectiveModelId({ settings, activeSessionId, sessions, availableModels } as AppState, activeSessionId);
+    const name = getModelName(availableModels, optimisticModelId || id);
 
     return { currentModelId: id, currentModelName: name };
-  }, [availableModels, settings.disabledModels, settings.defaultModel, activeSessionId, sessions, optimisticModelId]);
+  }, [availableModels, settings, activeSessionId, sessions, optimisticModelId]);
 
   const handleModelSelect = (modelId: string) => {
     // 1. Immediate UI feedback (High Priority)

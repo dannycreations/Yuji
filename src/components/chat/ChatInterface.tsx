@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { LLMProviderError } from '../../app/Error';
 import { YujiRuntime } from '../../app/Yuji';
-import { useStore } from '../../hooks/useStore';
+import { useAction, useStore } from '../../hooks/useStore';
 import { LLMProvider, synthesizeSystemPrompt } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
 import { PlatformService } from '../../services/PlatformService';
@@ -178,8 +178,8 @@ export const ChatInterface: FC = () => {
       fiberRef.current = yield* Effect.forkDaemon(streamEffect);
     });
 
-  const handleSend = (content: string, attachments: Attachment[] = []) => {
-    const sendEffect = Effect.gen(function* () {
+  const handleSend = useAction((content: string, attachments: Attachment[] = []) =>
+    Effect.gen(function* () {
       const chat = yield* ChatService;
       const platform = yield* PlatformService;
 
@@ -205,24 +205,12 @@ export const ChatInterface: FC = () => {
       const history = yield* chat.getSessionPath(currentSessionId, userMessage.id);
 
       yield* generateResponse(currentSessionId, history);
-    });
+    }),
+  );
 
-    YujiRuntime.runFork(
-      sendEffect.pipe(
-        Effect.catchAll((err) =>
-          Effect.gen(function* () {
-            const store = yield* StoreService;
-            yield* store.notify('error', `Failed to send message: ${err}`);
-          }),
-        ),
-      ),
-    );
-  };
-
-  const handleRegenerate = (messageId: string) => {
-    if (!activeSessionId) return;
-
-    const regenerateEffect = Effect.gen(function* () {
+  const handleRegenerate = useAction((messageId: string) =>
+    Effect.gen(function* () {
+      if (!activeSessionId) return;
       const chat = yield* ChatService;
       const store = yield* StoreService;
       const state = yield* SubscriptionRef.get(store.state);
@@ -241,45 +229,16 @@ export const ChatInterface: FC = () => {
           : yield* chat.getSessionPath(activeSessionId, messageId);
 
       yield* generateResponse(activeSessionId, history);
-    }).pipe(
-      Effect.catchAll((err) =>
-        Effect.sync(() => {
-          console.error('Failed to regenerate:', err);
-        }),
-      ),
-    );
+    }),
+  );
 
-    YujiRuntime.runFork(
-      regenerateEffect.pipe(
-        Effect.catchAll((err) =>
-          Effect.gen(function* () {
-            const store = yield* StoreService;
-            yield* store.notify('error', `Failed to regenerate: ${err}`);
-          }),
-        ),
-      ),
-    );
-  };
-
-  const handleEdit = (messageId: string, newContent: string) => {
-    if (!activeSession) return;
-
-    const editEffect = Effect.gen(function* () {
+  const handleEdit = useAction((messageId: string, newContent: string) =>
+    Effect.gen(function* () {
+      if (!activeSession) return;
       const chat = yield* ChatService;
       yield* chat.updateMessage(activeSession.id, messageId, newContent);
-    });
-
-    YujiRuntime.runFork(
-      editEffect.pipe(
-        Effect.catchAll((err) =>
-          Effect.gen(function* () {
-            const store = yield* StoreService;
-            yield* store.notify('error', `Failed to edit message: ${err}`);
-          }),
-        ),
-      ),
-    );
-  };
+    }),
+  );
 
   if (!activeSession || activeSession.messages.length === 0) {
     return (

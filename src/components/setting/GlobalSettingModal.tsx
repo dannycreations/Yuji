@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { Model } from '../../app/Schema';
 import { YujiRuntime } from '../../app/Yuji';
-import { useAction, useStore } from '../../hooks/useStore';
+import { useAction, useStore, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { StoreService } from '../../services/StoreService';
 import { toTitleCase } from '../../utilities/CommonUtil';
@@ -36,48 +36,26 @@ export const GlobalSettingModal: FC = () => {
   const sessions = useStore((s: AppState) => s.sessions, {});
   const availableModels = useStore((s: AppState) => s.availableModels, []);
 
-  const toggleSettings = useAction(() =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
-    }),
-  );
+  const updateStore = useUpdateStore();
 
-  const updateSettings = useAction((newSettings: Partial<Settings>) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => ({ ...s, settings: { ...s.settings, ...newSettings } }));
-    }),
-  );
+  const toggleSettings = () => updateStore((s) => ({ ...s, isSettingOpen: !s.isSettingOpen }));
 
-  const importSessions = useAction((newSessions: Record<string, ChatSession>) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => ({ ...s, sessions: { ...s.sessions, ...newSessions } }));
-    }),
-  );
+  const updateSettings = (newSettings: Partial<Settings>) => updateStore((s) => ({ ...s, settings: { ...s.settings, ...newSettings } }));
 
-  const deleteSessions = useAction((ids: Set<string>) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => {
-        const nextSessions = { ...s.sessions };
-        ids.forEach((id) => delete nextSessions[id]);
-        return {
-          ...s,
-          sessions: nextSessions,
-          activeSessionId: ids.has(s.activeSessionId || '') ? null : s.activeSessionId,
-        };
-      });
-    }),
-  );
+  const importSessions = (newSessions: Record<string, ChatSession>) => updateStore((s) => ({ ...s, sessions: { ...s.sessions, ...newSessions } }));
 
-  const setAvailableModels = useAction((models: ReadonlyArray<Model>) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => ({ ...s, availableModels: models }));
-    }),
-  );
+  const deleteSessions = (ids: Set<string>) =>
+    updateStore((s) => {
+      const nextSessions = { ...s.sessions };
+      ids.forEach((id) => delete nextSessions[id]);
+      return {
+        ...s,
+        sessions: nextSessions,
+        activeSessionId: ids.has(s.activeSessionId || '') ? null : s.activeSessionId,
+      };
+    });
+
+  const setAvailableModels = (models: ReadonlyArray<Model>) => updateStore((s) => ({ ...s, availableModels: models }));
   const [activeTab, setActiveTab] = useState<GlobalSettingTab>('general');
   const [modelSearch, setModelSearch] = useState('');
 
