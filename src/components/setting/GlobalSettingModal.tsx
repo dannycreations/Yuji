@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { DEFAULT_SETTINGS } from '../../app/Constant';
 import { Model } from '../../app/Schema';
-import { useAction, useConfirm, useStore, useToggleSetting, useUpdateStore } from '../../hooks/useStore';
+import { useAction, useConfirm, useStore, useToggleSetting, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
@@ -14,7 +14,7 @@ import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, PersonalisationSection } from './SettingSection';
 
 import type { ChangeEvent, FC } from 'react';
-import type { AppState, ChatSession, Settings } from '../../app/Schema';
+import type { AppState, ChatSession } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history';
@@ -36,8 +36,7 @@ export const GlobalSettingModal: FC = () => {
 
   const toggleSetting = useToggleSetting();
   const updateStore = useUpdateStore();
-
-  const updateSettings = (newSettings: Partial<Settings>) => updateStore((s) => ({ ...s, settings: { ...s.settings, ...newSettings } }));
+  const updateSetting = useUpdateSetting();
 
   const importSessions = (newSessions: Record<string, ChatSession>) => updateStore((s) => ({ ...s, sessions: { ...s.sessions, ...newSessions } }));
 
@@ -203,7 +202,7 @@ export const GlobalSettingModal: FC = () => {
   const toggleModel = (modelId: string) => {
     const isDisabled = settings.disabledModels.includes(modelId);
     const newDisabledModels = isDisabled ? settings.disabledModels.filter((id) => id !== modelId) : [...settings.disabledModels, modelId];
-    updateSettings({ disabledModels: newDisabledModels });
+    updateSetting({ disabledModels: newDisabledModels });
   };
 
   const renderContent = () => {
@@ -221,12 +220,12 @@ export const GlobalSettingModal: FC = () => {
 
             <div className="panel-section flex items-center justify-between">
               <div className="text-sm text-text-primary">Enter to send</div>
-              <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSettings({ enterToSend: checked })} />
+              <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSetting({ enterToSend: checked })} />
             </div>
 
             <div className="panel-section flex items-center justify-between">
               <div className="text-sm text-text-primary">Expand code blocks</div>
-              <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => updateSettings({ expandCodeblock: checked })} />
+              <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => updateSetting({ expandCodeblock: checked })} />
             </div>
           </div>
         );
@@ -246,7 +245,7 @@ export const GlobalSettingModal: FC = () => {
               <InputText
                 leftIcon="Link"
                 value={settings.baseUrl}
-                onChange={(e) => updateSettings({ baseUrl: e.target.value })}
+                onChange={(e) => updateSetting({ baseUrl: e.target.value })}
                 placeholder="http://localhost:11434/v1"
               />
             </div>
@@ -257,7 +256,7 @@ export const GlobalSettingModal: FC = () => {
                 type="password"
                 leftIcon="Key"
                 value={settings.apiKey}
-                onChange={(e) => updateSettings({ apiKey: e.target.value })}
+                onChange={(e) => updateSetting({ apiKey: e.target.value })}
                 placeholder="sk-..."
               />
             </div>
@@ -331,7 +330,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <InstructionSection
             instruction={settings.instruction}
-            onChange={(updates) => updateSettings({ instruction: { ...settings.instruction, ...updates } })}
+            onChange={(updates) => updateSetting({ instruction: { ...settings.instruction, ...updates } })}
             footer="This instruction will be sent as the system prompt to the AI."
           />
         );
@@ -341,7 +340,7 @@ export const GlobalSettingModal: FC = () => {
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
             <PersonalisationSection
               personalisation={settings.personalisation}
-              onChange={(updates) => updateSettings({ personalisation: { ...settings.personalisation, ...updates } })}
+              onChange={(updates) => updateSetting({ personalisation: { ...settings.personalisation, ...updates } })}
             />
           </div>
         );

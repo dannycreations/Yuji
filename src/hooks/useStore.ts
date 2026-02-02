@@ -90,6 +90,10 @@ export const useToggleSetting = () => {
   return useAction(() => Effect.flatMap(StoreService, (s) => s.toggleSetting()));
 };
 
+export const useUpdateSetting = () => {
+  return useAction((updates: Partial<AppState['settings']>) => Effect.flatMap(StoreService, (s) => s.updateSetting(updates)));
+};
+
 export const useConfirm = () => {
   return useAction((config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) =>
     Effect.flatMap(StoreService, (s) => s.setConfirm(config)),

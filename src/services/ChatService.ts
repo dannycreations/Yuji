@@ -20,6 +20,7 @@ export interface ChatService {
   ) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (sessionId: string, messageId: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
+  readonly updateSession: (sessionId: string, f: (session: ChatSession, now: number) => ChatSession) => Effect.Effect<void, SessionNotFoundError>;
   readonly getSessionPath: (sessionId: string, messageId: string) => Effect.Effect<ReadonlyArray<Message>, SessionNotFoundError>;
   readonly branchChat: (sessionId: string, messageId: string) => Effect.Effect<ChatSession, SessionNotFoundError | MessageNotFoundError>;
 }
@@ -61,6 +62,7 @@ export const ChatServiceLive = Layer.effect(
       );
 
     return ChatService.of({
+      updateSession,
       createSession: () =>
         Effect.gen(function* () {
           const now = Date.now();

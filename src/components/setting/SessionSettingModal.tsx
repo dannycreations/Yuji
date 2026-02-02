@@ -1,6 +1,8 @@
+import { Effect } from 'effect';
 import { useState } from 'react';
 
-import { useStore, useUpdateStore } from '../../hooks/useStore';
+import { useAction, useStore } from '../../hooks/useStore';
+import { ChatService } from '../../services/ChatService';
 import { Icon } from '../shared/Icon';
 import { InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
@@ -24,26 +26,22 @@ const SESSION_SETTING_TABS: SettingTabItem[] = [
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
   const sessions = useStore((s: AppState) => s.sessions, {});
 
-  const updateStore = useUpdateStore();
-
-  const updateSession = (updates: Partial<ChatSession>) =>
-    updateStore((state) => {
-      const session = state.sessions[sessionId];
-      if (!session) return state;
-      return {
-        ...state,
-        sessions: {
-          ...state.sessions,
-          [sessionId]: { ...session, ...updates },
-        },
-      };
-    });
+  const updateSessionEffect = useAction((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
+    Effect.gen(function* () {
+      const chat = yield* ChatService;
+      yield* chat.updateSession(sessionId, f);
+    }),
+  );
 
   const session = sessions[sessionId];
 
   const [activeTab, setActiveTab] = useState('general');
 
   if (!session) return null;
+
+  const updateSession = (updates: Partial<ChatSession>) => {
+    updateSessionEffect(sessionId, (s: ChatSession) => ({ ...s, ...updates }));
+  };
 
   const updateGeneral = (updates: Partial<ChatSession['general']>) => {
     updateSession({ general: { ...session.general, ...updates } });

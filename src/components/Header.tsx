@@ -5,14 +5,14 @@ import { useMemo, useRef, useState } from 'react';
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { getEffectiveModelId, getEffectiveModelName, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useAction, useStore, useToggleSidebar } from '../hooks/useStore';
-import { StoreService } from '../services/StoreService';
+import { useAction, useStore, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
+import { ChatService } from '../services/ChatService';
 import { toTitleCase } from '../utilities/CommonUtil';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { Model } from '../app/Schema';
+import type { ChatSession, Model } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -96,35 +96,14 @@ export const Header: FC = () => {
 
   const toggleSidebar = useToggleSidebar();
 
+  const updateSetting = useUpdateSetting();
+
   const setSessionModel = useAction((sessionId: string, model: string) =>
     Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((state) => {
-        const session = state.sessions[sessionId];
-        if (!session) return state;
-        return {
-          ...state,
-          sessions: {
-            ...state.sessions,
-            [sessionId]: {
-              ...session,
-              general: {
-                ...session.general,
-                model,
-              },
-            },
-          },
-        };
-      });
-    }),
-  );
-
-  const setGlobalModel = useAction((modelId: string) =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => ({
+      const chat = yield* ChatService;
+      yield* chat.updateSession(sessionId, (s: ChatSession) => ({
         ...s,
-        settings: { ...s.settings, model: modelId },
+        general: { ...s.general, model },
       }));
     }),
   );
@@ -145,7 +124,7 @@ export const Header: FC = () => {
 
     // 2. Defer heavy store mutations (Low Priority)
     setTimeout(() => {
-      setGlobalModel(modelId);
+      updateSetting({ model: modelId });
       if (activeSessionId) {
         setSessionModel(activeSessionId, modelId);
       }

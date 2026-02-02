@@ -10,7 +10,6 @@ import { YujiRuntime } from '../../app/Yuji';
 import { useCopy } from '../../hooks/useCopy';
 import { useAction, useConfirm, useStore } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
-import { StoreService } from '../../services/StoreService';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
@@ -48,22 +47,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
 
   const switchBranch = useAction((sessionId: string, messageId: string) =>
     Effect.gen(function* () {
-      const store = yield* StoreService;
-      yield* store.update((s) => {
-        const session = s.sessions[sessionId];
-        if (!session) return s;
-        return {
-          ...s,
-          sessions: {
-            ...s.sessions,
-            [sessionId]: {
-              ...session,
-              activeMessageId: messageId,
-              updatedAt: Date.now(),
-            },
-          },
-        };
-      });
+      const chat = yield* ChatService;
+      yield* chat.updateSession(sessionId, (session) => ({
+        ...session,
+        activeMessageId: messageId,
+      }));
     }),
   );
 
