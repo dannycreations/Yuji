@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useStore, useUpdateStore } from '../../hooks/useStore';
+import { Icon } from '../shared/Icon';
 import { InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection } from './SettingSection';
@@ -67,23 +68,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
             </div>
 
             <OverrideSection
-              title="Override Global Model"
-              description="Use a specific model for this chat."
-              checked={!!session.general.overrideModel}
-              onChange={(checked) => updateGeneral({ overrideModel: checked })}
-            >
-              <div className="space-y-2">
-                <label className="settings-label">Model Name</label>
-                <InputText
-                  value={session.general.model || ''}
-                  onChange={(e) => updateGeneral({ model: e.target.value })}
-                  placeholder="e.g., gpt-4o"
-                />
-              </div>
-            </OverrideSection>
-
-            <OverrideSection
-              title="Override Instructions"
+              title="Override Instruction"
               description="Ignore global system prompt."
               checked={!!session.general.overrideInstruction}
               onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
@@ -101,34 +86,44 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
       case 'instruction':
         return (
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            <OverrideSection
-              title="Override Instructions"
-              description="Instruction is following global settings."
-              checked={!!session.general.overrideInstruction}
-              onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
-              onEnable={() => updateGeneral({ overrideInstruction: true })}
-            >
+            {session.general.overrideInstruction ? (
               <InstructionSection
                 instruction={session.instruction}
                 onChange={updateInstruction}
                 footer="This will completely replace the global system prompt."
               />
-            </OverrideSection>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
+                <Icon name="Lock" size={24} className="mb-2 opacity-50" />
+                <p className="text-sm">Instruction is following global settings.</p>
+                <button
+                  onClick={() => updateGeneral({ overrideInstruction: true })}
+                  className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest"
+                >
+                  Enable Override
+                </button>
+              </div>
+            )}
           </div>
         );
 
       case 'persona':
         return (
           <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
-            <OverrideSection
-              title="Override Personalization"
-              description="Personalization is following global settings."
-              checked={!!session.general.overridePersonalisation}
-              onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
-              onEnable={() => updateGeneral({ overridePersonalisation: true })}
-            >
+            {session.general.overridePersonalisation ? (
               <PersonalisationSection personalisation={session.personalisation} onChange={updatePersonalisation} />
-            </OverrideSection>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
+                <Icon name="Lock" size={24} className="mb-2 opacity-50" />
+                <p className="text-sm">Personalization is following global settings.</p>
+                <button
+                  onClick={() => updateGeneral({ overridePersonalisation: true })}
+                  className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest"
+                >
+                  Enable Override
+                </button>
+              </div>
+            )}
           </div>
         );
     }

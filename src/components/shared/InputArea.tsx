@@ -96,6 +96,8 @@ export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizePro
   const [localValue, handleChange] = useLocalValue(value, onChange);
 
   return (
-    <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
+    <div className="relative overflow-hidden rounded-xl">
+      <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
+    </div>
   );
 });

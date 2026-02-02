@@ -82,7 +82,7 @@ export const ChatInterface: FC = () => {
         yield* chat.addMessage(sessionId, assistantMessage);
 
         const systemPrompt = synthesizeSystemPrompt(settings, session);
-        const model = session.general.overrideModel && session.general.model ? session.general.model : settings.defaultModel;
+        const model = session.general.model || settings.defaultModel;
 
         const stream = yield* llm.streamCompletion(
           messagesToProcess,

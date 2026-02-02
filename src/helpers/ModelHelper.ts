@@ -20,7 +20,7 @@ export const getEffectiveModelId = (
 ): string => {
   const effectiveDefault = getDefaultModelId(settings, availableModels);
   const session = sessionId ? sessions[sessionId] : null;
-  return session?.general.overrideModel && session?.general.model ? session.general.model : effectiveDefault;
+  return session?.general.model || effectiveDefault;
 };
 
 export const getEffectiveModelName = (

@@ -72,7 +72,6 @@ export const ChatServiceLive = Layer.effect(
             updatedAt: now,
             general: {
               model: effectiveDefaultModel,
-              overrideModel: false,
               overrideInstruction: false,
               overridePersonalisation: false,
             },

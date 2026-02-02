@@ -111,7 +111,6 @@ export const Header: FC = () => {
               general: {
                 ...session.general,
                 model,
-                overrideModel: true,
               },
             },
           },

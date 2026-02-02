@@ -100,7 +100,6 @@ export const ChatSession = Schema.Struct({
   updatedAt: Schema.Number,
   general: Schema.Struct({
     model: Schema.optional(Schema.String),
-    overrideModel: Schema.optional(Schema.Boolean),
     overrideInstruction: Schema.optional(Schema.Boolean),
     overridePersonalisation: Schema.optional(Schema.Boolean),
   }),
