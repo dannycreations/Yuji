@@ -27,6 +27,7 @@
   --spacing-settings-sidebar: 220px;
   --spacing-settings-height: 500px;
   --spacing-chat-max-width: 48rem;
+  --spacing-notification: 350px;
 
   /* Constraints */
   --max-width-settings: 800px;

@@ -45,7 +45,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
 
   return (
     <div
-      className={`pointer-events-auto relative flex items-center gap-3 p-3 rounded-xl border border-line bg-surface/90 backdrop-blur-md shadow-2xl min-w-[320px] max-w-md overflow-hidden animate-in slide-in-from-right-8 fade-in duration-300`}
+      className={`pointer-events-auto relative flex items-center gap-3 p-3 rounded-xl border border-line bg-surface/90 backdrop-blur-md shadow-2xl w-[var(--spacing-notification)] overflow-hidden animate-in slide-in-from-right-8 fade-in duration-300`}
     >
       {/* Vertical Line */}
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${variant.lineColor}`} />
@@ -85,7 +85,7 @@ export const NotificationToast = () => {
   const clearNotification = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.clearNotification(id)));
 
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none w-[var(--spacing-notification)]">
       {notifications.map((n) => (
         <ToastItem key={n.id} notification={n} onDismiss={clearNotification} />
       ))}

@@ -9,7 +9,46 @@ import { useStore } from '../../hooks/useStore';
 import { randomString } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
 
+import type { MermaidConfig } from 'mermaid';
 import type { FC } from 'react';
+
+const MERMAID_CONFIG: Readonly<MermaidConfig> = {
+  startOnLoad: false,
+  theme: 'dark',
+  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+  themeVariables: {
+    fontSize: '14px',
+    primaryColor: '#2f2f2f',
+    primaryTextColor: '#ececec',
+    primaryBorderColor: '#424242',
+    lineColor: '#71717a',
+    secondaryColor: '#171717',
+    tertiaryColor: '#212121',
+    mainBkg: '#2f2f2f',
+    nodeBorder: '#424242',
+    clusterBkg: '#171717',
+    clusterBorder: '#424242',
+    defaultLinkColor: '#71717a',
+    titleColor: '#ececec',
+    edgeLabelBackground: '#0d0d0d',
+    nodeTextColor: '#ececec',
+
+    // Sequence diagram specific
+    noteBkgColor: '#424242',
+    noteTextColor: '#ececec',
+    noteBorderColor: '#71717a',
+    actorBkg: '#2f2f2f',
+    actorBorder: '#424242',
+    actorTextColor: '#ececec',
+    actorLineColor: '#71717a',
+    signalColor: '#ececec',
+    signalTextColor: '#ececec',
+    labelBoxBkgColor: '#2f2f2f',
+    labelBoxBorderColor: '#424242',
+    labelTextColor: '#ececec',
+    loopTextColor: '#ececec',
+  },
+};
 
 interface CodeBlockProps {
   readonly language: string;
@@ -108,7 +147,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
     let isMounted = true;
     const render = async () => {
       try {
-        mermaid.initialize({ startOnLoad: false, theme: 'base' });
+        mermaid.initialize(MERMAID_CONFIG);
         const id = `mermaid-${randomString(8)}`;
         const { svg } = await mermaid.render(id, code);
         if (isMounted) {
