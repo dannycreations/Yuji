@@ -203,11 +203,7 @@ export const ChatServiceLive = Layer.effect(
       deleteSession: (id) =>
         store.update((state) => {
           const { [id]: _, ...rest } = state.sessions;
-          let newActiveId = state.activeSessionId;
-          if (state.activeSessionId === id) {
-            const keys = Object.keys(rest);
-            newActiveId = keys.length > 0 ? keys[0] : null;
-          }
+          const newActiveId = state.activeSessionId === id ? null : state.activeSessionId;
           return { ...state, sessions: rest, activeSessionId: newActiveId };
         }),
 

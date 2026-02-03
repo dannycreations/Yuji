@@ -500,20 +500,18 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
 );
 
 interface OverrideSectionProps {
-  readonly title: string;
   readonly description: string;
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
   readonly children?: ReactNode;
-  readonly lockDescription?: string;
 }
 
-export const OverrideSection: FC<OverrideSectionProps> = ({ title, description, checked, onChange, children, lockDescription }) => {
+export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children }) => {
   if (!checked) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
-        <p className="text-sm">{lockDescription || description}</p>
+        <p className="text-sm">{description}</p>
         <button
           onClick={() => onChange(true)}
           className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest transition-all"
@@ -524,16 +522,5 @@ export const OverrideSection: FC<OverrideSectionProps> = ({ title, description, 
     );
   }
 
-  return (
-    <div className="space-y-3 animate-fade-in">
-      <div className="flex items-center justify-between py-2 border-b border-separator">
-        <div>
-          <div className="text-sm text-text-primary">{title}</div>
-          <div className="text-xs text-text-secondary">{description}</div>
-        </div>
-        <InputSwitch checked={checked} onChange={onChange} />
-      </div>
-      {checked && children}
-    </div>
-  );
+  return <div className="space-y-3 animate-fade-in">{children}</div>;
 };

@@ -63,9 +63,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
         return (
           <SectionWrapper>
             <OverrideSection
-              title="Session Instruction"
-              description="System prompt for this specific chat."
-              lockDescription="Instruction is following global settings."
+              description="Instruction is following global settings."
               checked={!!session.general.overrideInstruction}
               onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
             >
@@ -82,9 +80,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
         return (
           <SectionWrapper>
             <OverrideSection
-              title="Session Personalization"
-              description="User persona for this specific chat."
-              lockDescription="Personalization is following global settings."
+              description="Personalization is following global settings."
               checked={!!session.general.overridePersonalisation}
               onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
             >
