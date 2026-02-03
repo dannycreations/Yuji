@@ -51,12 +51,16 @@ export const GeneralSection: FC<{ settings: Settings }> = ({ settings }) => {
         </button>
       </SettingItem>
 
-      <SettingItem label="Enter to send">
+      <SettingItem label="Enter to send" description="Send the message by pressing the Enter key.">
         <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSetting({ enterToSend: checked })} />
       </SettingItem>
 
-      <SettingItem label="Expand code blocks">
+      <SettingItem label="Expand code blocks" description="Automatically expand code blocks to show full content.">
         <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => updateSetting({ expandCodeblock: checked })} />
+      </SettingItem>
+
+      <SettingItem label="Show suggestions" description="Show prompt suggestions on the initial chat page.">
+        <InputSwitch checked={settings.showSuggestions} onChange={(checked) => updateSetting({ showSuggestions: checked })} />
       </SettingItem>
     </SectionWrapper>
   );

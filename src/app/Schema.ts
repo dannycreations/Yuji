@@ -123,6 +123,7 @@ export const Settings = Schema.Struct({
   theme: Schema.Literal('dark', 'light'),
   enterToSend: Schema.Boolean,
   expandCodeblock: Schema.Boolean,
+  showSuggestions: Schema.Boolean,
   instruction: InstructionSchema,
   personalisation: PersonalisationSchema,
   disabledModels: Schema.Array(Schema.String),

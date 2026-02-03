@@ -41,15 +41,17 @@ export const ChatInterface: FC = () => {
               </h1>
             </div>
 
-            <div className="suggestion-grid">
-              {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
-                <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">
-                  <Icon name={suggestion.icon} size={20} className="suggestion-item-icon" />
-                  <div className="suggestion-item-label">{suggestion.label}</div>
-                  <div className="suggestion-item-prompt">{suggestion.prompt}</div>
-                </button>
-              ))}
-            </div>
+            {settings.showSuggestions && (
+              <div className="suggestion-grid">
+                {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
+                  <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">
+                    <Icon name={suggestion.icon} size={20} className="suggestion-item-icon" />
+                    <div className="suggestion-item-label">{suggestion.label}</div>
+                    <div className="suggestion-item-prompt">{suggestion.prompt}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />

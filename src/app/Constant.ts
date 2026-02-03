@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS = {
   theme: 'dark',
   enterToSend: true,
   expandCodeblock: true,
+  showSuggestions: true,
   instruction: {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
   },
