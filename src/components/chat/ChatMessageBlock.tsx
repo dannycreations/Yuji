@@ -8,6 +8,7 @@ import { useCopy } from '../../hooks/useCopy';
 import { useStore } from '../../hooks/useStore';
 import { randomString } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
+import { MermaidFullscreenModal } from './MermaidFullscreenModal';
 
 import type { MermaidConfig } from 'mermaid';
 import type { FC } from 'react';
@@ -60,9 +61,10 @@ interface BaseMessageBlockProps {
   readonly value: string;
   readonly children: React.ReactNode;
   readonly onDownload?: () => void;
+  readonly onFullscreen?: () => void;
 }
 
-const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, onDownload }) => {
+const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, onDownload, onFullscreen }) => {
   const expandCodeblock = useStore((s) => s.settings.expandCodeblock);
   const [copied, setCopy] = useCopy();
   const [isCollapsed, setIsCollapsed] = useState(!expandCodeblock);
@@ -81,14 +83,19 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
           <span className="code-block-header-label">{label}</span>
         </div>
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button onClick={handleCopy} className="code-block-header-btn" title={copied ? 'Copied' : 'Copy'}>
+            <Icon name={copied ? 'Check' : 'Copy'} size={14} className={copied ? 'text-emerald-500' : ''} />
+          </button>
+          {onFullscreen && (
+            <button onClick={onFullscreen} className="code-block-header-btn" title="Fullscreen">
+              <Icon name="Maximize" size={14} />
+            </button>
+          )}
           {onDownload && (
             <button onClick={onDownload} className="code-block-header-btn" title="Download">
               <Icon name="Download" size={14} />
             </button>
           )}
-          <button onClick={handleCopy} className="code-block-header-btn" title={copied ? 'Copied' : 'Copy'}>
-            <Icon name={copied ? 'Check' : 'Copy'} size={14} className={copied ? 'text-emerald-500' : ''} />
-          </button>
         </div>
       </div>
       <div className={clsx('code-block-content', isCollapsed && 'hidden')}>{children}</div>
@@ -141,6 +148,7 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
 const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -168,13 +176,16 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   }, [code]);
 
   return (
-    <BaseMessageBlock label="diagram" value={code}>
-      {error ? (
-        <pre className="p-3 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs">{code}</pre>
-      ) : (
-        <div ref={containerRef} className="flex justify-center p-3 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
-      )}
-    </BaseMessageBlock>
+    <>
+      <BaseMessageBlock label="diagram" value={code} onFullscreen={svg ? () => setIsFullscreen(true) : undefined}>
+        {error ? (
+          <pre className="p-3 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs">{code}</pre>
+        ) : (
+          <div ref={containerRef} className="flex justify-center p-3 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
+        )}
+      </BaseMessageBlock>
+      {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={() => setIsFullscreen(false)} />}
+    </>
   );
 };
 
