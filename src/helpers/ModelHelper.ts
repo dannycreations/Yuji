@@ -19,7 +19,13 @@ export const getEffectiveModelId = (
   sessionId: string | null,
 ): string => {
   const session = sessionId ? sessions[sessionId] : null;
-  return session?.general.model || getModelId(settings, availableModels);
+  const sessionModelId = session?.general.model;
+
+  if (sessionModelId && !settings.disabledModels.includes(sessionModelId)) {
+    return sessionModelId;
+  }
+
+  return getModelId(settings, availableModels);
 };
 
 export const getEffectiveModelName = (
