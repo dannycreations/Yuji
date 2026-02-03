@@ -164,6 +164,7 @@ export const AppState = Schema.extend(
     isHydrated: Schema.Boolean,
     confirm: ConfirmState,
     notifications: Schema.Array(Notification),
+    backgroundSessionIds: Schema.Array(Schema.String),
   }),
 );
 export type AppState = Schema.Schema.Type<typeof AppState>;

@@ -17,6 +17,7 @@ export const Sidebar: FC = () => {
   const settings = useStore((s) => s.settings);
   const activeSessionId = useStore((s) => s.activeSessionId);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
+  const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
 
   const updateStore = useUpdateStore();
 
@@ -95,8 +96,13 @@ export const Sidebar: FC = () => {
                       className={clsx('sidebar-session-item group', activeSessionId === session.id && 'sidebar-session-item-active')}
                       onClick={() => setActiveSession(session.id)}
                     >
-                      <div className="sidebar-session-title">
+                      <div className="sidebar-session-title flex items-center gap-2 min-w-0">
                         <span className="block truncate">{session.title}</span>
+                        {backgroundSessionIds.includes(session.id) && (
+                          <div className="flex items-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          </div>
+                        )}
                       </div>
 
                       <div className="relative flex items-center">
