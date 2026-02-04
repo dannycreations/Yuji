@@ -59,6 +59,7 @@ const INITIAL_STATE: AppState = {
     message: '',
   },
   notifications: [],
+  pinnedSessionIds: [],
   backgroundSessionIds: [],
 };
 

@@ -1,9 +1,10 @@
 import { Effect } from 'effect';
 
 import { ChatService } from '../services/ChatService';
+import { StoreService } from '../services/StoreService';
 import { useStore, useStoreEffect } from './useStore';
 
-import type { Attachment, Message } from '../app/Schema';
+import type { AppState, Attachment, Message } from '../app/Schema';
 
 export const useChatAction = () => {
   const activeSessionId = useStore((s) => s.activeSessionId);
@@ -96,6 +97,17 @@ export const useChatAction = () => {
     }),
   );
 
+  const handleTogglePin = useStoreEffect((sessionId: string) =>
+    Effect.gen(function* () {
+      const store = yield* StoreService;
+      yield* store.update((s: AppState) => {
+        const isPinned = s.pinnedSessionIds.includes(sessionId);
+        const pinnedSessionIds = isPinned ? s.pinnedSessionIds.filter((id: string) => id !== sessionId) : [...s.pinnedSessionIds, sessionId];
+        return { ...s, pinnedSessionIds };
+      });
+    }),
+  );
+
   const handleCreateSession = useStoreEffect(() =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
@@ -118,6 +130,7 @@ export const useChatAction = () => {
     handleBranch,
     handleSwitchBranch,
     handleDeleteSession,
+    handleTogglePin,
     handleCreateSession,
   };
 };

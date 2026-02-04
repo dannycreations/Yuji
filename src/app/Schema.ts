@@ -154,6 +154,8 @@ export const AppStoreState = Schema.Struct({
   activeSessionId: Schema.NullOr(Schema.String),
   settings: Settings,
   availableModels: Schema.Array(ModelSchema),
+  pinnedSessionIds: Schema.Array(Schema.String),
+  backgroundSessionIds: Schema.Array(Schema.String),
 });
 export type AppStoreState = Schema.Schema.Type<typeof AppStoreState>;
 
@@ -165,7 +167,6 @@ export const AppState = Schema.extend(
     isHydrated: Schema.Boolean,
     confirm: ConfirmState,
     notifications: Schema.Array(Notification),
-    backgroundSessionIds: Schema.Array(Schema.String),
   }),
 );
 export type AppState = Schema.Schema.Type<typeof AppState>;

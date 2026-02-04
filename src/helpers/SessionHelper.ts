@@ -10,7 +10,10 @@ export const getMessagePath = (session: ChatSession, messageId: string): Readonl
   return findPath(messageId);
 };
 
-export const groupSessions = (sessionsList: ReadonlyArray<ChatSession>): Record<string, ReadonlyArray<ChatSession>> => {
+export const groupSessions = (
+  sessionsList: ReadonlyArray<ChatSession>,
+  pinnedSessionIds: ReadonlyArray<string> = [],
+): Record<string, ReadonlyArray<ChatSession>> => {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
 
@@ -19,6 +22,7 @@ export const groupSessions = (sessionsList: ReadonlyArray<ChatSession>): Record<
   const last7DaysStart = todayStart - 7 * dayMs;
 
   const groups: Record<string, ChatSession[]> = {
+    Pinned: [],
     Today: [],
     Yesterday: [],
     'Last 7 Days': [],
@@ -26,6 +30,11 @@ export const groupSessions = (sessionsList: ReadonlyArray<ChatSession>): Record<
   };
 
   sessionsList.forEach((session) => {
+    if (pinnedSessionIds.includes(session.id)) {
+      groups['Pinned'].push(session);
+      return;
+    }
+
     const time = session.updatedAt;
     if (time >= todayStart) {
       groups['Today'].push(session);

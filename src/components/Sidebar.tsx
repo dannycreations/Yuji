@@ -16,6 +16,7 @@ export const Sidebar: FC = () => {
   const sessions = useStore((s) => s.sessions);
   const settings = useStore((s) => s.settings);
   const activeSessionId = useStore((s) => s.activeSessionId);
+  const pinnedSessionIds = useStore((s) => s.pinnedSessionIds);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
   const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
 
@@ -27,7 +28,7 @@ export const Sidebar: FC = () => {
 
   const showConfirm = useConfirm();
 
-  const { handleCreateSession, handleDeleteSession } = useChatAction();
+  const { handleCreateSession, handleDeleteSession, handleTogglePin } = useChatAction();
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export const Sidebar: FC = () => {
     return query ? allSessions.filter((s) => s.title.toLowerCase().includes(query)) : allSessions;
   }, [sessions, searchQuery]);
 
-  const groupedSessions = groupSessions(filteredSessions);
+  const groupedSessions = groupSessions(filteredSessions, pinnedSessionIds);
 
   const menuSession = menuOpenId ? sessions[menuOpenId] : null;
 
@@ -98,17 +99,33 @@ export const Sidebar: FC = () => {
                     >
                       <div className="sidebar-session-title flex items-center gap-2 min-w-0">
                         <span className="block truncate">{session.title}</span>
-                        {backgroundSessionIds.includes(session.id) && (
-                          <div className="flex items-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                          </div>
-                        )}
                       </div>
 
-                      <div className="relative flex items-center">
+                      <div className="relative flex items-center h-8 w-8 justify-center">
+                        {backgroundSessionIds.includes(session.id) ? (
+                          <div
+                            className={clsx(
+                              'flex items-center transition-opacity',
+                              menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
+                            )}
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          </div>
+                        ) : (
+                          pinnedSessionIds.includes(session.id) && (
+                            <div
+                              className={clsx(
+                                'flex items-center text-text-tertiary transition-opacity',
+                                menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
+                              )}
+                            >
+                              <Icon name="Pin" size={16} className="rotate-45" />
+                            </div>
+                          )
+                        )}
                         <button
                           className={clsx(
-                            'btn-icon !p-1 transition-opacity',
+                            'btn-icon !p-1 transition-opacity absolute inset-0 bg-transparent flex items-center justify-center',
                             menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                           )}
                           onClick={(e) => {
@@ -157,6 +174,17 @@ export const Sidebar: FC = () => {
           }}
           onClick={(e) => e.stopPropagation()}
         >
+          <button
+            className="list-item-interactive !text-text-primary mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
+            onClick={() => {
+              handleTogglePin(menuOpenId);
+              setMenuOpenId(null);
+              setMenuPosition(null);
+            }}
+          >
+            <Icon name="Pin" size={16} className={clsx('text-text-secondary', pinnedSessionIds.includes(menuOpenId) && 'rotate-45')} />
+            <span className="flex-1 text-left">{pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}</span>
+          </button>
           <button
             className="list-item-interactive !text-text-primary mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
             onClick={() => {
