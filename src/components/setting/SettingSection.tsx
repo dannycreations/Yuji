@@ -9,7 +9,7 @@ import { LLMProvider } from '../../providers/LLMProvider';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Icon } from '../shared/Icon';
-import { InputSearch, InputSelect, InputSwitch, InputText, InputTextarea } from '../shared/InputArea';
+import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { ChatSession, Instruction, Personalisation, Settings } from '../../app/Schema';
@@ -423,48 +423,18 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
       />
     </SettingField>
     <SettingField label="What do you do?">
-      <InputText
-        value={personalisation.userOccupation || ''}
-        onChange={(e) => onChange({ userOccupation: e.target.value.slice(0, 100) })}
-        placeholder="Programmer, engineer, student..."
+      <InputTag
+        tags={personalisation.userOccupation || []}
+        onChange={(userOccupation) => onChange({ userOccupation })}
+        placeholder="Type a job and press Enter..."
       />
     </SettingField>
     <SettingField label="What traits should Yuji have?">
-      <div className="input-tag-container">
-        {(personalisation.assistantTraits || []).map((trait) => (
-          <div key={trait} className="tag-item">
-            {trait}
-            <button
-              onClick={() => {
-                const next = (personalisation.assistantTraits || []).filter((t) => t !== trait);
-                onChange({ assistantTraits: next });
-              }}
-              className="tag-remove"
-            >
-              <Icon name="X" size={10} />
-            </button>
-          </div>
-        ))}
-        <input
-          className="flex-1 bg-transparent border-none outline-none py-1 px-1 text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
-          placeholder={(personalisation.assistantTraits || []).length === 0 ? 'Type a trait and press Enter...' : ''}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === 'Tab') {
-              e.preventDefault();
-              const val = e.currentTarget.value.trim().toLowerCase();
-              if (val && !(personalisation.assistantTraits || []).includes(val)) {
-                onChange({ assistantTraits: [...(personalisation.assistantTraits || []), val] });
-                e.currentTarget.value = '';
-              }
-            } else if (e.key === 'Backspace' && !e.currentTarget.value && (personalisation.assistantTraits || []).length > 0) {
-              const next = [...(personalisation.assistantTraits || [])];
-              next.pop();
-              onChange({ assistantTraits: next });
-            }
-          }}
-          maxLength={100}
-        />
-      </div>
+      <InputTag
+        tags={personalisation.assistantTraits || []}
+        onChange={(assistantTraits) => onChange({ assistantTraits })}
+        placeholder="Type a trait and press Enter..."
+      />
     </SettingField>
     <SettingField label="Anything else Yuji should know about you?">
       <InputTextarea

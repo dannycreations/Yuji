@@ -15,8 +15,8 @@ export const synthesizeSystemPrompt = (settings: Settings, session: ChatSession)
   if (personalisation.userName) {
     parts2.push(`- The user's name is ${personalisation.userName}.\n`);
   }
-  if (personalisation.userOccupation) {
-    parts2.push(`- The user acts as a ${personalisation.userOccupation}.\n`);
+  if (personalisation.userOccupation && personalisation.userOccupation.length > 0) {
+    parts2.push(`- The user acts as ${personalisation.userOccupation.join(', ')}.\n`);
   }
   if (personalisation.assistantTraits && personalisation.assistantTraits.length > 0) {
     parts2.push(`- You should act ${personalisation.assistantTraits.join(', ')}.\n`);

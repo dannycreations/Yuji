@@ -86,7 +86,7 @@ export type Instruction = Schema.Schema.Type<typeof InstructionSchema>;
 
 export const PersonalisationSchema = Schema.Struct({
   userName: Schema.String,
-  userOccupation: Schema.String,
+  userOccupation: Schema.Array(Schema.String),
   assistantTraits: Schema.Array(Schema.String),
   additionalContext: Schema.String,
 });
@@ -109,7 +109,7 @@ export const ChatSession = Schema.Struct({
   }),
   personalisation: Schema.Struct({
     userName: Schema.optional(Schema.String),
-    userOccupation: Schema.optional(Schema.String),
+    userOccupation: Schema.optional(Schema.Array(Schema.String)),
     assistantTraits: Schema.optional(Schema.Array(Schema.String)),
     additionalContext: Schema.optional(Schema.String),
   }),

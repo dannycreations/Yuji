@@ -99,3 +99,52 @@ export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizePro
     <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
   );
 });
+
+interface InputTagProps {
+  readonly tags: ReadonlyArray<string>;
+  readonly onChange: (tags: string[]) => void;
+  readonly placeholder?: string;
+  readonly maxLength?: number;
+}
+
+export const InputTag: FC<InputTagProps> = ({ tags, onChange, placeholder, maxLength = 100 }) => {
+  const removeTag = (tag: string) => {
+    onChange(tags.filter((t) => t !== tag));
+  };
+
+  const addTag = (tag: string) => {
+    const val = tag.trim().toLowerCase();
+    if (val && !tags.includes(val)) {
+      onChange([...tags, val]);
+    }
+  };
+
+  return (
+    <div className="input-tag-container">
+      {tags.map((tag) => (
+        <div key={tag} className="tag-item">
+          {tag}
+          <button onClick={() => removeTag(tag)} className="tag-remove" type="button">
+            <Icon name="X" size={10} />
+          </button>
+        </div>
+      ))}
+      <input
+        className="flex-1 bg-transparent border-none outline-none py-1 px-1 text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
+        placeholder={tags.length === 0 ? placeholder : ''}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            addTag(e.currentTarget.value);
+            e.currentTarget.value = '';
+          } else if (e.key === 'Backspace' && !e.currentTarget.value && tags.length > 0) {
+            const next = [...tags];
+            next.pop();
+            onChange(next);
+          }
+        }}
+        maxLength={maxLength}
+      />
+    </div>
+  );
+};

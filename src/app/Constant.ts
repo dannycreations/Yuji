@@ -22,7 +22,7 @@ export const DEFAULT_SETTINGS = {
   },
   personalisation: {
     userName: '',
-    userOccupation: '',
+    userOccupation: ['student'],
     assistantTraits: ['creative', 'cynical'],
     additionalContext: '',
   },

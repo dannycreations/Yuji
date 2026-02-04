@@ -185,7 +185,7 @@ export const ChatServiceLive = Layer.effect(
             },
             personalisation: {
               userName: settings.personalisation.userName,
-              userOccupation: settings.personalisation.userOccupation,
+              userOccupation: [...settings.personalisation.userOccupation],
               assistantTraits: [...settings.personalisation.assistantTraits],
               additionalContext: settings.personalisation.additionalContext,
             },
