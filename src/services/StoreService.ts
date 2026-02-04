@@ -9,6 +9,7 @@ import type { AppState, ConfirmState } from '../app/Schema';
 
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppState>;
+  readonly getSnapshot: () => AppState;
   readonly update: (f: (state: AppState) => AppState) => Effect.Effect<void>;
   readonly updateSetting: (updates: Partial<AppState['settings']>) => Effect.Effect<void>;
   readonly toggleSidebar: () => Effect.Effect<void>;
@@ -135,6 +136,7 @@ export const StoreServiceLive = Layer.effect(
 
     return StoreService.of({
       state,
+      getSnapshot: () => SubscriptionRef.get(state).pipe(Effect.runSync),
       update,
       updateSetting: (updates) => update((s) => ({ ...s, settings: { ...s.settings, ...updates } })),
       toggleSidebar: () => update((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen })),

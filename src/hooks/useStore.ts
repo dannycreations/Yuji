@@ -1,4 +1,4 @@
-import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
+import { Effect, Fiber, Stream } from 'effect';
 import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Yuji';
@@ -18,8 +18,6 @@ export const useStoreService = (): StoreService => {
 
 export const useStore = <T>(selector: (state: AppState) => T): T => {
   const storeService = useStoreService();
-  const lastSnapshotRef = useRef<T>(null as T);
-  const lastStateRef = useRef<AppState | null>(null);
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
@@ -30,18 +28,7 @@ export const useStore = <T>(selector: (state: AppState) => T): T => {
     };
   }, [storeService]);
 
-  const getSnapshot = () => {
-    const state = YujiRuntime.runSync(SubscriptionRef.get(storeService.state));
-
-    if (state === lastStateRef.current) {
-      return lastSnapshotRef.current;
-    }
-
-    const nextSnapshot = selector(state);
-    lastStateRef.current = state;
-    lastSnapshotRef.current = nextSnapshot;
-    return nextSnapshot;
-  };
+  const getSnapshot = () => selector(storeService.getSnapshot());
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };
