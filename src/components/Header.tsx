@@ -55,7 +55,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
             </div>
             <div className="flex-1 min-w-0 text-left">
               <span className="model-picker-item-title block">{toTitleCase(model.name)}</span>
-              <div className="text-xs text-muted line-clamp-1 group-hover:text-text-secondary/80">{model.id}</div>
+              <div className="text-xs text-text-tertiary line-clamp-1 group-hover:text-text-secondary/80">{model.id}</div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
@@ -64,7 +64,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
             </div>
           </button>
         ))}
-        {filtered.length === 0 && <div className="p-3 text-center text-xs text-text-secondary">No models found</div>}
+        {filtered.length === 0 && <div className="p-3 text-center text-xs text-text-tertiary">No models found</div>}
       </div>
     </div>
   );
@@ -127,7 +127,7 @@ export const Header: FC = () => {
   }
 
   return (
-    <div className="sticky-header border-b border-separator">
+    <div className="sticky-header">
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
           <button onClick={toggleSidebar} className="btn-icon" title="Open Sidebar">

@@ -18,12 +18,11 @@ interface InputWrapperProps {
 }
 
 const InputWrapper: FC<InputWrapperProps> = ({ leftIcon, rightIcon, containerClassName, children, disabled }) => {
-  const iconClass = clsx('text-muted transition-colors pointer-events-none', !disabled && 'group-focus-within:text-primary');
   return (
-    <div className={clsx('relative group', containerClassName, disabled && 'opacity-50 cursor-not-allowed')}>
-      {leftIcon && <Icon name={leftIcon} size={14} className={clsx('abs-center !left-4', iconClass)} />}
+    <div className={clsx('input-wrapper', containerClassName, disabled && 'disabled')}>
+      {leftIcon && <Icon name={leftIcon} size={14} className="input-icon left" />}
       {children}
-      {rightIcon && <Icon name={rightIcon} size={14} className={clsx('abs-center !right-4 !left-auto', iconClass)} />}
+      {rightIcon && <Icon name={rightIcon} size={14} className="input-icon right" />}
     </div>
   );
 };
@@ -97,8 +96,6 @@ export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizePro
   const [localValue, handleChange] = useLocalValue(value, onChange);
 
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
-    </div>
+    <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
   );
 });

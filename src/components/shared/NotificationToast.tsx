@@ -50,7 +50,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
 
       <div className="flex-1 text-sm font-medium text-text-primary pr-2">{notification.message}</div>
 
-      <button onClick={() => onDismiss(notification.id)} className="btn-icon !p-1 !rounded-md">
+      <button onClick={() => onDismiss(notification.id)} className="btn-icon !p-1 !rounded-md hover:bg-black/10">
         <Icon name="X" size={16} />
       </button>
 
@@ -70,7 +70,7 @@ export const NotificationToast = () => {
   const clearNotification = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.clearNotification(id)));
 
   return (
-    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none w-[var(--spacing-notification)]">
+    <div className="fixed top-4 right-4 z-notification flex flex-col gap-2 pointer-events-none w-[var(--spacing-notification)]">
       {notifications.map((n) => (
         <ToastItem key={n.id} notification={n} onDismiss={clearNotification} />
       ))}

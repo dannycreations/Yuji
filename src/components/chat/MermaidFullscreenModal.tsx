@@ -55,7 +55,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
 
   return (
     <div className="fullscreen-overlay animate-fade-in">
-      <div className="flex-between p-4 border-b border-separator">
+      <div className="flex-between p-4 border-b border-separator/50">
         <h3 className="text-sm font-medium text-text-primary">Diagram Preview</h3>
         <div className="flex items-center gap-2">
           <button onClick={resetZoom} className="btn-icon" title="Reset Zoom">
@@ -67,7 +67,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
           <button onClick={() => setScale((s) => s * 0.8)} className="btn-icon" title="Zoom Out">
             <Icon name="ZoomOut" size={16} />
           </button>
-          <div className="w-px h-4 bg-separator mx-1" />
+          <div className="w-px h-4 bg-separator/50 mx-1" />
           <button onClick={onClose} className="btn-icon" title="Close">
             <Icon name="X" size={18} />
           </button>
@@ -90,9 +90,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
           }}
           dangerouslySetInnerHTML={{ __html: svg }}
         />
-        <div className="abs-center !top-auto bottom-6 px-3 py-1.5 bg-surface-hover/80 backdrop-blur rounded-full border border-separator text-xs text-text-secondary select-none pointer-events-none whitespace-nowrap">
-          Scroll to zoom • Drag to move
-        </div>
+        <div className="mermaid-fullscreen-indicator">Scroll to zoom • Drag to move</div>
       </div>
     </div>
   );

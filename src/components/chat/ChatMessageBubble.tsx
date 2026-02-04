@@ -158,7 +158,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                       <Icon name="ChevronLeft" size={16} />
                     </button>
                     <span className="text-sm tabular-nums mx-1 flex-center">
-                      {currentIndex + 1}/{siblings.length}
+                      {currentIndex + 1}
+                      <span className="text-text-tertiary mx-0.5">/</span>
+                      {siblings.length}
                     </span>
                     <button
                       disabled={currentIndex === siblings.length - 1}

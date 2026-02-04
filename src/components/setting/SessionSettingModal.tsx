@@ -46,11 +46,11 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
               <InputText value={session.title} onChange={(e) => updateSession({ title: e.target.value })} placeholder="Enter chat title..." />
             </SettingField>
 
-            <SettingItem label="Override Instruction" description="Ignore global system prompt." className="border-t border-separator mt-2 pt-2">
+            <SettingItem label="Override Instruction" description="Ignore global system prompt." className="border-t border-separator/50 mt-2 pt-2">
               <InputSwitch checked={!!session.general.overrideInstruction} onChange={(checked) => updateGeneral({ overrideInstruction: checked })} />
             </SettingItem>
 
-            <SettingItem label="Override Personalization" description="Ignore global user persona." className="border-t border-separator pt-2">
+            <SettingItem label="Override Personalization" description="Ignore global user persona." className="border-t border-separator/50 pt-2">
               <InputSwitch
                 checked={!!session.general.overridePersonalisation}
                 onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}

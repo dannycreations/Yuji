@@ -103,7 +103,7 @@ export const Sidebar: FC = () => {
                         <span className="block truncate">{session.title}</span>
                       </div>
 
-                      <div className="relative flex items-center h-8 w-8 justify-center">
+                      <div className="relative flex-center h-8 w-8">
                         {backgroundSessionIds.includes(session.id) ? (
                           <div
                             className={clsx(
@@ -117,7 +117,7 @@ export const Sidebar: FC = () => {
                           pinnedSessionIds.includes(session.id) && (
                             <div
                               className={clsx(
-                                'flex items-center text-muted transition-opacity',
+                                'flex items-center text-text-tertiary transition-opacity',
                                 menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
                               )}
                             >
@@ -127,7 +127,7 @@ export const Sidebar: FC = () => {
                         )}
                         <button
                           className={clsx(
-                            'btn-icon !p-1 transition-opacity absolute inset-0 bg-transparent flex items-center justify-center',
+                            'btn-icon !p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
                             menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                           )}
                           onClick={(e) => {
@@ -153,13 +153,13 @@ export const Sidebar: FC = () => {
           onClick={toggleSetting}
           className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
         >
-          <div className="avatar-sm bg-surface-hover flex-shrink-0 flex-center">
+          <div className="avatar-sm bg-surface-hover flex-center">
             {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
           </div>
-          <div className="text-muted flex items-center">
+          <div className="text-text-tertiary flex items-center">
             <Icon name="Settings" size={16} />
           </div>
         </button>
@@ -184,7 +184,7 @@ export const Sidebar: FC = () => {
               setMenuPosition(null);
             }}
           >
-            <Icon name="Pin" size={16} className={clsx('text-muted', pinnedSessionIds.includes(menuOpenId) && 'rotate-45')} />
+            <Icon name="Pin" size={16} className={clsx('text-text-tertiary', pinnedSessionIds.includes(menuOpenId) && 'rotate-45')} />
             <span className="flex-1 text-left">{pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}</span>
           </button>
           <button
@@ -195,7 +195,7 @@ export const Sidebar: FC = () => {
               setMenuPosition(null);
             }}
           >
-            <Icon name="Settings" size={16} className="text-muted" />
+            <Icon name="Settings" size={16} className="text-text-tertiary" />
             <span className="flex-1 text-left">Settings</span>
           </button>
           <button

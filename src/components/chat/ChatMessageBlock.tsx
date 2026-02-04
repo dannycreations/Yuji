@@ -181,11 +181,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
         {error ? (
           <pre className="code-error">{code}</pre>
         ) : (
-          <div
-            ref={containerRef}
-            className="flex justify-center p-3 bg-transparent overflow-x-auto scrollbar-thin select-none"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          <div ref={containerRef} className="mermaid-container" dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </BaseMessageBlock>
       {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={() => setIsFullscreen(false)} />}

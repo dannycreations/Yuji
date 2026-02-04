@@ -44,7 +44,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
         )}
       >
         {/* Sidebar */}
-        <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator">
+        <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator/50">
           <div className="flex justify-between items-center px-1 mb-2">
             <button onClick={handleClose} className="btn-icon">
               <Icon name="X" size={18} />
@@ -53,7 +53,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
           <div className="flex-1 overflow-y-auto space-y-1">
             {tabs.map((tab) => (
               <button key={tab.id} onClick={() => onTabChange(tab.id)} className={clsx('list-item-interactive', activeTab === tab.id && 'active')}>
-                <Icon name={tab.icon} size={18} className={clsx(activeTab === tab.id ? 'text-text-primary' : 'text-muted')} />
+                <Icon name={tab.icon} size={18} className="list-item-icon" />
                 {tab.label}
               </button>
             ))}
@@ -62,7 +62,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
         </div>
 
         {/* Main Content */}
-        <div className="settings-main-content">
+        <div className="settings-main-content bg-background">
           <div className="modal-header">
             <div className="header-title">{title}</div>
           </div>
