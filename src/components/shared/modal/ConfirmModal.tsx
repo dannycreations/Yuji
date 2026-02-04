@@ -40,7 +40,8 @@ export const ConfirmModal: FC = () => {
 
   const handleCancel = () => {
     setIsClosing(true);
-    setTimeout(() => onCancel(), 200);
+    // Slightly shorter than animation to ensure state update happens before animation finish
+    setTimeout(onCancel, 180);
   };
 
   const handleConfirm = () => {
