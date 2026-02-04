@@ -45,10 +45,14 @@ export const GeneralSection: FC<{ settings: Settings }> = ({ settings }) => {
   return (
     <SectionWrapper>
       <SettingItem label="Appearance">
-        <button className="settings-appearance-btn">
-          Dark
-          <Icon name="ChevronDown" size={16} />
-        </button>
+        <InputSelect
+          value={settings.theme}
+          onChange={(e) => updateSetting({ theme: e.target.value as 'dark' | 'light' })}
+          className="!py-1.5 !text-xs min-w-[100px]"
+        >
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </InputSelect>
       </SettingItem>
 
       <SettingItem label="Enter to send" description="Send the message by pressing the Enter key.">

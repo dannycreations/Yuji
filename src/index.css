@@ -163,9 +163,36 @@
   @apply flex-center px-1 py-1 rounded text-xs font-bold uppercase tracking-wider;
 }
 
+:root.light {
+  --color-background: #ffffff;
+  --color-background-soft: #f9f9f9;
+  --color-background-raised: #f3f3f3;
+  --color-sidebar: #f5f5f5;
+  --color-surface: #f0f0f0;
+  --color-surface-hover: #e5e5e5;
+  --color-primary: #000000;
+  --color-text-primary: #171717;
+  --color-text-secondary: #444444;
+  --color-text-tertiary: #717171;
+  --color-danger: #dc2626;
+  --color-separator: rgba(0, 0, 0, 0.06);
+  --color-line: rgba(0, 0, 0, 0.12);
+  --color-highlight: rgba(0, 0, 0, 0.1);
+  --color-overlay: rgba(0, 0, 0, 0.4);
+
+  --color-code: #f5f5f5;
+  --color-code-header: rgba(229, 231, 235, 0.8);
+  --color-code-text-muted: #6b7280;
+  --color-code-text-active: #111827;
+}
+
 @layer base {
   :root {
     color-scheme: dark;
+
+    &.light {
+      color-scheme: light;
+    }
   }
 
   body {

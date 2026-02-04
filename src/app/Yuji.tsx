@@ -7,7 +7,7 @@ import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
 import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
 import { NotificationToast } from '../components/shared/NotificationToast';
 import { Sidebar } from '../components/Sidebar';
-import { StoreContext } from '../hooks/useStore';
+import { StoreContext, useStore } from '../hooks/useStore';
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
 import { StorageServiceLive } from '../services/StorageService';
@@ -21,6 +21,28 @@ const MainLayer = ChatServiceLive.pipe(
 ).pipe(Layer.orDie);
 
 export const YujiRuntime = ManagedRuntime.make(MainLayer);
+
+const YujiLayout = () => {
+  const theme = useStore((s) => s.settings.theme);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+  }, [theme]);
+
+  return (
+    <div className="app-container">
+      <Sidebar />
+      <main className="main-layout">
+        <ChatInterface />
+      </main>
+      <GlobalSettingModal />
+      <ConfirmModal />
+      <NotificationToast />
+    </div>
+  );
+};
 
 export const YujiApp = () => {
   const [store, setStore] = useState<StoreService | null>(null);
@@ -56,15 +78,7 @@ export const YujiApp = () => {
 
   return (
     <StoreContext.Provider value={store}>
-      <div className="app-container">
-        <Sidebar />
-        <main className="main-layout">
-          <ChatInterface />
-        </main>
-        <GlobalSettingModal />
-        <ConfirmModal />
-        <NotificationToast />
-      </div>
+      <YujiLayout />
     </StoreContext.Provider>
   );
 };
