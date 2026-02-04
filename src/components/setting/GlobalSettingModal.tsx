@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useStore, useToggleSetting, useUpdateSetting } from '../../hooks/useStore';
 import { SettingModal } from '../shared/modal/SettingModal';
-import { ConnectionSection, GeneralSection, HistorySection, InstructionSection, ModelsSection, PersonalisationSection } from './SettingSection';
+import { ConnectionSection, GeneralSection, HistorySection, InstructionSection, ModelsSection, PersonalisationSection, SectionWrapper } from './SettingSection';
 
 import type { FC } from 'react';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
@@ -47,12 +47,12 @@ export const GlobalSettingModal: FC = () => {
         );
       case 'persona':
         return (
-          <div className="space-y-3 animate-fade-in h-full overflow-y-auto pr-2">
+          <SectionWrapper>
             <PersonalisationSection
               personalisation={settings.personalisation}
               onChange={(updates) => updateSetting({ personalisation: { ...settings.personalisation, ...updates } })}
             />
-          </div>
+          </SectionWrapper>
         );
       case 'history':
         return <HistorySection sessions={sessions} />;

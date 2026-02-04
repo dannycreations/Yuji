@@ -149,7 +149,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
   const effectiveModelId = getModelId(settings, availableModels);
 
   return (
-    <div className="space-y-3 animate-fade-in flex flex-col scrollable-section">
+    <SectionWrapper className="space-y-3">
       <div className="flex-shrink-0 flex gap-2">
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
@@ -203,7 +203,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
           </div>
         )}
       </div>
-    </div>
+    </SectionWrapper>
   );
 };
 
@@ -294,7 +294,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
   };
 
   return (
-    <div className="space-y-3 animate-fade-in flex flex-col scrollable-section">
+    <SectionWrapper className="space-y-3">
       <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
       <div className="flex flex-col gap-3 flex-shrink-0">
         <p className="settings-info-box">
@@ -390,7 +390,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
           </div>
         </div>
       )}
-    </div>
+    </SectionWrapper>
   );
 };
 
@@ -421,7 +421,7 @@ interface PersonalisationSectionProps {
 }
 
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
-  <div className="space-y-3 animate-fade-in scrollable-section">
+  <SectionWrapper className="space-y-3">
     <SettingField label="What should Yuji call you?">
       <InputText
         value={personalisation.userName || ''}
@@ -487,7 +487,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         maxRows={5}
       />
     </SettingField>
-  </div>
+  </SectionWrapper>
 );
 
 interface OverrideSectionProps {

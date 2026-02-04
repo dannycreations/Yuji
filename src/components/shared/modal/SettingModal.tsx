@@ -39,7 +39,7 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
       <div
         ref={containerRef}
         className={clsx(
-          'w-full max-w-settings h-settings-height bg-sidebar flex overflow-hidden modal-container',
+          'w-full max-w-settings h-settings-height bg-sidebar flex overflow-hidden modal-container origin-bottom',
           isClosing ? 'animate-slide-down' : 'animate-slide-up',
         )}
       >

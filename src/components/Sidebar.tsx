@@ -153,7 +153,7 @@ export const Sidebar: FC = () => {
           onClick={toggleSetting}
           className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
         >
-          <div className="avatar-sm bg-surface-hover">
+          <div className="avatar-sm bg-surface-hover flex-shrink-0">
             {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>
           <div className="flex-1 text-left min-w-0">
@@ -169,7 +169,7 @@ export const Sidebar: FC = () => {
       {menuOpenId && menuPosition && menuSession && (
         <div
           ref={menuRef}
-          className="dropdown-menu fixed w-44 py-1 z-[100] animate-fade-in"
+          className="dropdown-menu fixed w-44 py-1 origin-top-right"
           style={{
             top: `${menuPosition.top}px`,
             left: `${menuPosition.left}px`,

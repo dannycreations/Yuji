@@ -116,6 +116,19 @@
   }
 }
 
+@utility dropdown-menu-base {
+  @apply absolute bg-surface border border-separator rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown animate-fade-in select-none;
+}
+
+@utility layout-chat-container {
+  @apply max-w-chat mx-auto w-full px-3 md:px-0;
+}
+
+@utility avatar-base {
+  @apply rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
+  @apply w-8 h-8;
+}
+
 @layer base {
   :root {
     color-scheme: dark;
@@ -226,7 +239,7 @@
 
   /* Model Picker */
   .model-picker-dropdown {
-    @apply absolute bg-surface border border-separator rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown animate-fade-in select-none top-full left-0 mt-2 w-[280px] origin-top-left;
+    @apply dropdown-menu-base top-full left-0 mt-2 w-[280px] origin-top-left;
   }
 
   .model-picker-header {
@@ -341,12 +354,16 @@
     @apply flex justify-end px-3 pb-3 gap-3;
   }
 
-  .chat-container {
+  .layout-chat-container {
     @apply max-w-chat mx-auto w-full px-3 md:px-0;
   }
 
+  .chat-container {
+    @apply layout-chat-container;
+  }
+
   .chat-empty-container {
-    @apply flex flex-col items-center justify-center p-3 min-h-full animate-fade-in max-w-chat mx-auto w-full px-3 md:px-0;
+    @apply flex flex-col items-center justify-center p-3 min-h-full animate-fade-in layout-chat-container;
   }
 
   .chat-empty-icon-wrapper {
@@ -358,19 +375,20 @@
   }
 
   .avatar-base {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors overflow-hidden;
+    @apply rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
+    @apply w-8 h-8;
   }
 
   .avatar-sm {
-    @apply w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-text-primary border border-separator transition-colors overflow-hidden;
+    @apply avatar-base w-6 h-6 text-xs font-medium;
   }
 
   .avatar-xs {
-    @apply w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium text-text-primary border border-separator transition-colors overflow-hidden;
+    @apply avatar-base w-5 h-5 text-[10px] font-medium;
   }
 
   .dropdown-menu {
-    @apply absolute bg-surface border border-separator rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown animate-fade-in select-none;
+    @apply dropdown-menu-base;
   }
 
   .badge {
@@ -558,7 +576,7 @@
   }
 
   .message-row {
-    @apply max-w-chat mx-auto w-full px-3 md:px-0 py-3 flex gap-3 md:gap-3 text-text-primary;
+    @apply layout-chat-container py-3 flex gap-3 md:gap-3 text-text-primary;
     &.user {
       @apply justify-end;
     }

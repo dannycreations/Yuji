@@ -133,7 +133,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                 </div>
               </div>
             ) : (
-              <div className={clsx('prose-chat', isUser ? 'message-bubble-user' : 'message-bubble-assistant')}>
+              <div className={clsx(isUser ? 'message-bubble-user' : 'message-bubble-assistant prose-chat')}>
                 {isThinking && !message.content ? (
                   <div className="message-thinking-container">
                     <div className="message-thinking-dot" />

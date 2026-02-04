@@ -53,10 +53,12 @@ export const ConfirmModal: FC = () => {
   if (!confirm.isOpen) return null;
 
   return (
-    <div className={clsx('modal-overlay z-[100]', isClosing ? 'animate-fade-out' : 'animate-fade-in')}>
+    <div className={clsx('modal-overlay', isClosing ? 'animate-fade-out' : 'animate-fade-in')}>
       <div ref={containerRef} className={clsx('confirm-modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up')}>
         <div className="confirm-modal-content">
-          <h3 className="header-title modal-header">{title}</h3>
+          <div className="modal-header">
+            <h3 className="header-title">{title}</h3>
+          </div>
           <div className="confirm-modal-message">
             {message
               .split(/(\*\*.*?\*\*)/)
