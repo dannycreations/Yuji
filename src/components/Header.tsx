@@ -55,7 +55,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
             </div>
             <div className="flex-1 min-w-0 text-left">
               <span className="model-picker-item-title block">{toTitleCase(model.name)}</span>
-              <div className="text-[10px] text-text-secondary leading-tight line-clamp-1 group-hover:text-text-secondary/80">{model.id}</div>
+              <div className="text-xs text-muted line-clamp-1 group-hover:text-text-secondary/80">{model.id}</div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}

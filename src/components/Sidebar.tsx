@@ -117,7 +117,7 @@ export const Sidebar: FC = () => {
                           pinnedSessionIds.includes(session.id) && (
                             <div
                               className={clsx(
-                                'flex items-center text-text-tertiary transition-opacity',
+                                'flex items-center text-muted transition-opacity',
                                 menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
                               )}
                             >
@@ -159,7 +159,7 @@ export const Sidebar: FC = () => {
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
           </div>
-          <div className="text-text-tertiary flex items-center">
+          <div className="text-muted flex items-center">
             <Icon name="Settings" size={16} />
           </div>
         </button>
@@ -184,7 +184,7 @@ export const Sidebar: FC = () => {
               setMenuPosition(null);
             }}
           >
-            <Icon name="Pin" size={16} className={clsx('text-text-secondary', pinnedSessionIds.includes(menuOpenId) && 'rotate-45')} />
+            <Icon name="Pin" size={16} className={clsx('text-muted', pinnedSessionIds.includes(menuOpenId) && 'rotate-45')} />
             <span className="flex-1 text-left">{pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}</span>
           </button>
           <button
@@ -195,7 +195,7 @@ export const Sidebar: FC = () => {
               setMenuPosition(null);
             }}
           >
-            <Icon name="Settings" size={16} className="text-text-secondary" />
+            <Icon name="Settings" size={16} className="text-muted" />
             <span className="flex-1 text-left">Settings</span>
           </button>
           <button

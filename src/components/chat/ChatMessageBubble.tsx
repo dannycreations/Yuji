@@ -150,7 +150,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
           </div>
 
           {!isEditing && (
-            <div className={clsx('flex items-center mt-2 h-6 transition-opacity duration-200', isThinking && 'opacity-0 pointer-events-none')}>
+            <div className={clsx('message-action-bar', isThinking && 'opacity-0 pointer-events-none')}>
               <div className="message-actions">
                 {siblings.length > 1 && (
                   <div className="flex items-center gap-1 text-text-primary select-none font-medium">

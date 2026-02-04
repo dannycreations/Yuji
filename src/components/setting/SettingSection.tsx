@@ -27,7 +27,7 @@ export const SettingItem: FC<{ label: string; description?: string; children: Re
   <div className={clsx('panel-section flex items-center justify-between gap-4', className)}>
     <div className="flex-1 min-w-0">
       <div className="text-sm text-text-primary">{label}</div>
-      {description && <div className="text-xs text-text-secondary mt-0.5">{description}</div>}
+      {description && <div className="text-xs text-muted mt-0.5">{description}</div>}
     </div>
     <div className="flex-shrink-0">{children}</div>
   </div>
@@ -182,14 +182,12 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={clsx('font-bold text-sm', isEnabled ? 'text-text-primary' : 'text-text-secondary')}>
-                      {toTitleCase(model.name)}
-                    </span>
+                    <span className={clsx('text-semibold text-sm', isEnabled ? 'text-text-primary' : 'text-muted')}>{toTitleCase(model.name)}</span>
                     {effectiveModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
                     {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
                   </div>
-                  <div className="text-[10px] text-text-secondary/80 font-mono leading-tight">{model.id}</div>
-                  {model.description && <p className="text-xs text-text-secondary line-clamp-1 mt-1">{model.description}</p>}
+                  <div className="text-xs text-muted font-mono">{model.id}</div>
+                  {model.description && <p className="text-xs text-muted line-clamp-1 mt-1">{model.description}</p>}
                 </div>
 
                 <InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />
@@ -197,7 +195,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
             );
           })
         ) : (
-          <div className="flex flex-col items-center justify-center py-3 text-text-secondary bg-line rounded-xl border border-dashed border-separator">
+          <div className="flex flex-col items-center justify-center py-3 text-muted bg-line rounded-xl border border-dashed border-separator">
             <Icon name="Search" size={24} className="mb-2 opacity-50" />
             <p className="text-sm">No models match "{modelSearch}"</p>
           </div>
@@ -303,7 +301,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
       </div>
       <div className="settings-history-table">
         <div className="settings-history-header">
-          <div className="w-8 flex-shrink-0 flex items-center justify-center">
+          <div className="settings-history-checkbox-col">
             <button
               onClick={toggleSelectAll}
               className={clsx(
@@ -326,11 +324,11 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
                 Delete ({selectedSessionIds.size})
               </button>
             )}
-            <button onClick={handleExport} className="badge-outline !text-text-secondary">
+            <button onClick={handleExport} className="badge-outline !text-muted">
               <Icon name="Upload" size={12} />
               Export {selectedSessionIds.size > 0 ? `(${selectedSessionIds.size})` : ''}
             </button>
-            <button onClick={() => fileInputRef.current?.click()} className="badge-outline !text-text-secondary">
+            <button onClick={() => fileInputRef.current?.click()} className="badge-outline !text-muted">
               <Icon name="Download" size={12} />
               Import
             </button>
@@ -341,7 +339,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
           {currentHistoryItems.length > 0 ? (
             currentHistoryItems.map((session) => (
               <div key={session.id} className={clsx('settings-history-row', selectedSessionIds.has(session.id) && 'settings-history-row-active')}>
-                <div className="w-8 flex-shrink-0 flex items-center justify-center">
+                <div className="settings-history-checkbox-col">
                   <button
                     onClick={() => toggleSelectSession(session.id)}
                     className={clsx('checkbox-base', selectedSessionIds.has(session.id) && 'checked')}
@@ -351,13 +349,13 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
                 </div>
                 <div className="flex-1 min-w-0 pr-3">
                   <div className="text-sm text-text-primary font-medium truncate">{session.title}</div>
-                  <div className="text-xs text-text-secondary font-mono mt-1">{session.id}</div>
+                  <div className="text-xs text-muted font-mono mt-1">{session.id}</div>
                 </div>
-                <div className="text-xs text-text-secondary whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
+                <div className="text-xs text-muted whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
               </div>
             ))
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-text-secondary gap-2">
+            <div className="flex flex-col items-center justify-center h-full text-muted gap-2">
               <Icon name="Inbox" size={32} className="opacity-20" />
               <p className="text-sm">No chat history available.</p>
             </div>
@@ -367,14 +365,14 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
 
       {totalHistoryPages > 1 && (
         <div className="flex-between pt-2 flex-shrink-0">
-          <div className="text-xs text-text-secondary">
+          <div className="text-xs text-muted">
             Page {historyPage + 1} of {totalHistoryPages}
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
               disabled={historyPage === 0}
-              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <Icon name="ChevronLeft" size={12} />
               Prev
@@ -382,7 +380,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
             <button
               onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages - 1, p + 1))}
               disabled={historyPage >= totalHistoryPages - 1}
-              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-muted hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               Next
               <Icon name="ChevronRight" size={12} />
@@ -410,7 +408,7 @@ export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, o
         minRows={8}
         maxRows={8}
       />
-      {footer && <p className="text-xs text-text-secondary pl-1">{footer}</p>}
+      {footer && <p className="text-xs text-muted pl-1">{footer}</p>}
     </SettingField>
   </SectionWrapper>
 );
@@ -450,7 +448,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
                   const next = (personalisation.assistantTraits || []).filter((t) => t !== trait);
                   onChange({ assistantTraits: next });
                 }}
-                className="text-text-secondary hover:text-text-primary transition-colors"
+                className="text-muted hover:text-text-primary transition-colors"
               >
                 <Icon name="X" size={10} />
               </button>
@@ -500,7 +498,7 @@ interface OverrideSectionProps {
 export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children }) => {
   if (!checked) {
     return (
-      <div className="flex-center flex-col py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
+      <div className="flex-center flex-col py-10 text-muted bg-line rounded-xl border border-dashed border-separator animate-fade-in">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
         <button

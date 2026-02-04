@@ -577,6 +577,23 @@
     @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors;
   }
 
+
+  .text-muted {
+    @apply text-text-secondary;
+  }
+
+  .text-semibold {
+    @apply font-semibold;
+  }
+
+  .bg-surface-faint {
+    @apply bg-surface/40;
+  }
+
+  .border-subtle {
+    @apply border-separator/30;
+  }
+
   /* Chat Interface */
   .chat-scroll-area {
     @apply flex-1 min-h-0 overflow-y-auto w-full;
@@ -659,6 +676,10 @@
     @apply w-2 bg-text-primary/40 rounded-full animate-pulse aspect-square;
   }
 
+  .message-action-bar {
+    @apply flex items-center gap-1 mt-2 h-6 transition-opacity duration-200;
+  }
+
   .message-actions {
     @apply flex items-center gap-1;
   }
@@ -711,6 +732,10 @@
     @apply flex-between px-2 pb-2 relative;
   }
 
+  .chat-input-action-group {
+    @apply flex items-center gap-1;
+  }
+
   .chat-input-submit {
     @apply p-2 rounded-full transition-all duration-200;
     &.active {
@@ -741,6 +766,14 @@
 
   .settings-info-box {
     @apply text-sm text-text-secondary leading-relaxed bg-surface-hover/50 p-3 rounded-xl border border-line;
+  }
+
+  .settings-history-table {
+    @apply flex-1 min-h-0 flex flex-col border border-separator rounded-xl overflow-hidden bg-surface/50;
+  }
+
+  .settings-history-checkbox-col {
+    @apply w-8 flex-shrink-0 flex items-center justify-center;
   }
 
   .settings-history-table {

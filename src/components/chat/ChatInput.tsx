@@ -98,7 +98,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
         />
 
         <div className="chat-input-actions">
-          <div className="flex items-center gap-1">
+          <div className="chat-input-action-group">
             <button onClick={() => fileInputRef.current?.click()} className="btn-icon" title="Attach Image">
               <Icon name="Plus" size={24} />
             </button>
