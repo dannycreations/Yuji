@@ -588,7 +588,7 @@
   }
 
   .prose-chat {
-    @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col gap-2;
+    @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col;
     & > :first-child {
       @apply mt-0! pt-0!;
     }
@@ -797,7 +797,7 @@
   }
 
   .message-bubble-user {
-    @apply bg-surface px-3 py-2 rounded-2xl break-words max-w-full;
+    @apply bg-surface px-3 py-2 rounded-2xl break-words max-w-full flex flex-col gap-1;
     & > :first-child {
       @apply mt-0! pt-0!;
     }

@@ -162,7 +162,7 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
           borderRadius: 0,
           background: 'transparent',
           padding: '0.75rem',
-          fontSize: 'inherit',
+          fontSize: 'var(--font-size-xs)',
           lineHeight: 'inherit',
           fontFamily: 'inherit',
         }}
