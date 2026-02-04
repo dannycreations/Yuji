@@ -35,11 +35,12 @@ interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
   readonly leftIcon?: IconName;
   readonly rightIcon?: IconName;
   readonly containerClassName?: string;
+  readonly debounceMs?: number;
 }
 
 export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
-  ({ className, containerClassName, leftIcon, rightIcon, value, onChange, ...props }, ref) => {
-    const [localValue, handleChange] = useLocalValue(value, onChange);
+  ({ className, containerClassName, leftIcon, rightIcon, value, onChange, debounceMs, ...props }, ref) => {
+    const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
     return (
       <InputWrapper leftIcon={leftIcon} rightIcon={rightIcon} containerClassName={containerClassName}>
@@ -56,7 +57,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
 );
 
 export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>((props, ref) => {
-  return <InputText ref={ref} leftIcon="Search" {...props} />;
+  return <InputText ref={ref} leftIcon="Search" debounceMs={0} {...props} />;
 });
 
 interface InputSelectProps extends ComponentProps<'select'> {
