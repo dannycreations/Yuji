@@ -13,17 +13,15 @@ import type { FC } from 'react';
 
 export const ChatInterface: FC = () => {
   const activeSessionId = useStore((s) => s.activeSessionId);
-  const sessions = useStore((s) => s.sessions);
-  const settings = useStore((s) => s.settings);
-  const userName = settings.personalisation.userName;
+  const activeSession = useStore((s) => (activeSessionId ? s.sessions[activeSessionId] : null));
+  const showSuggestions = useStore((s) => s.settings.showSuggestions);
+  const userName = useStore((s) => s.settings.personalisation.userName);
 
   const { isLoading, handleSend, handleRegenerate, handleEdit, stop: handleStop } = useChatAction();
 
-  const activeSession = activeSessionId ? sessions[activeSessionId] : null;
-
   const visibleMessages = useMemo(
     () => (activeSession?.activeMessageId ? getMessagePath(activeSession, activeSession.activeMessageId) : activeSession?.messages || []),
-    [activeSession],
+    [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id],
   );
 
   if (!activeSession || activeSession.messages.length === 0) {
@@ -41,7 +39,7 @@ export const ChatInterface: FC = () => {
               </h1>
             </div>
 
-            {settings.showSuggestions && (
+            {showSuggestions && (
               <div className="suggestion-grid">
                 {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
                   <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">

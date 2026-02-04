@@ -47,7 +47,7 @@ export const Sidebar: FC = () => {
     return query ? allSessions.filter((s) => s.title.toLowerCase().includes(query)) : allSessions;
   }, [sessions, searchQuery]);
 
-  const groupedSessions = groupSessions(filteredSessions, pinnedSessionIds);
+  const groupedSessions = useMemo(() => groupSessions(filteredSessions, pinnedSessionIds), [filteredSessions, pinnedSessionIds]);
 
   const menuSession = menuOpenId ? sessions[menuOpenId] : null;
 

@@ -96,6 +96,9 @@ export const Header: FC = () => {
     }),
   );
 
+  const activeSession = activeSessionId ? sessions[activeSessionId] : null;
+  const sessionModel = activeSession?.general.model;
+
   const { currentModelId, currentModelName } = useMemo(() => {
     const id = getEffectiveModelId(settings, availableModels, sessions, activeSessionId);
     const name = optimisticModelId
@@ -103,7 +106,7 @@ export const Header: FC = () => {
       : getEffectiveModelName(settings, availableModels, sessions, activeSessionId);
 
     return { currentModelId: id, currentModelName: name };
-  }, [availableModels, settings, activeSessionId, sessions, optimisticModelId]);
+  }, [availableModels, settings.model, settings.disabledModels, sessionModel, optimisticModelId, activeSessionId]);
 
   const handleModelSelect = (modelId: string) => {
     // 1. Immediate UI feedback (High Priority)

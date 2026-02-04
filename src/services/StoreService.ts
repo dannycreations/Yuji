@@ -87,6 +87,7 @@ export const StoreServiceLive = Layer.effect(
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
+        Stream.debounce('1 seconds'),
         Stream.runForEach((s) => {
           const sanitizedSessions = Object.fromEntries(
             Object.entries(s.sessions).map(([id, session]) => {

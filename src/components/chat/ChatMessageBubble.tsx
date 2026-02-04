@@ -27,21 +27,21 @@ interface ChatMessageBubbleProps {
 
 export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit, isThinking }) => {
   const isUser = message.role === 'user';
-  const sessions = useStore((s) => s.sessions);
+  const childrenIds = useStore((s) => {
+    if (!message.parentId) return undefined;
+    const session = s.sessions[sessionId];
+    if (!session) return undefined;
+    return session.messages.find((m) => m.id === message.parentId)?.childrenIds;
+  });
+
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
 
   const { handleBranch, handleSwitchBranch, handleDeleteMessage } = useChatAction();
 
-  const session = sessions[sessionId];
-
   // Logic to find siblings for navigation
-  const siblings = useMemo(() => {
-    if (!message.parentId || !session) return [];
-    const parent = session.messages.find((m) => m.id === message.parentId);
-    return parent?.childrenIds || [];
-  }, [message.parentId, session]);
+  const siblings = childrenIds || [];
 
   const currentIndex = siblings.indexOf(message.id);
 
