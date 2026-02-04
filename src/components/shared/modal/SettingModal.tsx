@@ -58,12 +58,12 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
               </button>
             ))}
           </div>
-          {sidebarBottom && <div className="mt-2 pt-2 border-t border-separator">{sidebarBottom}</div>}
+          {sidebarBottom && <div className="modal-footer">{sidebarBottom}</div>}
         </div>
 
         {/* Main Content */}
         <div className="settings-main-content">
-          <div className="flex items-center justify-between mb-2 border-b border-line pb-2">
+          <div className="modal-header">
             <div className="header-title">{title}</div>
           </div>
 

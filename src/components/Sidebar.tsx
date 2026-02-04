@@ -37,8 +37,10 @@ export const Sidebar: FC = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useClickOutside(menuRef, () => {
-    setMenuOpenId(null);
-    setMenuPosition(null);
+    if (menuOpenId) {
+      setMenuOpenId(null);
+      setMenuPosition(null);
+    }
   });
 
   const filteredSessions = useMemo(() => {
@@ -175,7 +177,7 @@ export const Sidebar: FC = () => {
           onClick={(e) => e.stopPropagation()}
         >
           <button
-            className="list-item-interactive !text-text-primary mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
+            className="dropdown-item !text-text-primary"
             onClick={() => {
               handleTogglePin(menuOpenId);
               setMenuOpenId(null);
@@ -186,7 +188,7 @@ export const Sidebar: FC = () => {
             <span className="flex-1 text-left">{pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}</span>
           </button>
           <button
-            className="list-item-interactive !text-text-primary mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
+            className="dropdown-item !text-text-primary"
             onClick={() => {
               setSettingsOpenId(menuOpenId);
               setMenuOpenId(null);
@@ -197,7 +199,7 @@ export const Sidebar: FC = () => {
             <span className="flex-1 text-left">Settings</span>
           </button>
           <button
-            className="list-item-interactive !text-danger mx-1 w-[calc(100%-8px)] hover:bg-surface-hover px-2 py-2"
+            className="dropdown-item danger"
             onClick={() => {
               showConfirm({
                 title: 'Delete chat?',

@@ -317,6 +317,14 @@
     @apply bg-background rounded-2xl shadow-2xl overflow-hidden border border-line;
   }
 
+  .modal-header {
+    @apply flex items-center justify-between mb-2 border-b border-line pb-2;
+  }
+
+  .modal-footer {
+    @apply mt-2 pt-2 border-t border-separator;
+  }
+
   .confirm-modal-container {
     @apply w-full max-w-[440px] bg-background rounded-2xl shadow-2xl overflow-hidden border border-line;
   }
@@ -373,6 +381,10 @@
     @apply px-1 py-1 rounded text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary;
   }
 
+  .badge-outline {
+    @apply flex items-center gap-2 px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-[10px] font-bold uppercase tracking-wider transition-colors border border-separator cursor-pointer;
+  }
+
   .label-caps {
     @apply text-xs font-bold text-text-secondary uppercase tracking-widest;
     &.label-sm {
@@ -384,6 +396,19 @@
     @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-separator hover:text-text-primary border-none outline-none;
     &.active {
       @apply bg-highlight text-text-primary font-medium;
+    }
+    &.danger {
+      @apply text-danger hover:bg-danger/10;
+    }
+  }
+
+  .dropdown-item {
+    @apply w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1 w-[calc(100%-8px)];
+    &.active {
+      @apply bg-highlight text-text-primary font-medium;
+    }
+    &.danger {
+      @apply text-danger hover:bg-danger/10;
     }
   }
 

@@ -154,11 +154,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <button
-          onClick={handleRefreshModels}
-          className="flex items-center gap-2 px-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl badge transition-colors border border-separator cursor-pointer"
-          title="Refresh Library"
-        >
+        <button onClick={handleRefreshModels} className="badge-outline" title="Refresh Library">
           <Icon name="RefreshCw" size={14} />
           <span>Refresh</span>
         </button>
@@ -325,25 +321,16 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
           <div className="flex-1 label-caps text-text-primary">Title</div>
           <div className="flex items-center gap-2">
             {selectedSessionIds.size > 0 && (
-              <button
-                onClick={handleDeleteSelected}
-                className="flex items-center gap-1 px-2 py-1 bg-danger/10 hover:bg-danger/20 border border-danger/20 rounded-md text-xs font-bold text-danger transition-colors uppercase tracking-wide cursor-pointer"
-              >
+              <button onClick={handleDeleteSelected} className="badge-outline !bg-danger/10 !text-danger border-danger/20">
                 <Icon name="Trash2" size={12} />
                 Delete ({selectedSessionIds.size})
               </button>
             )}
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-1 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
-            >
+            <button onClick={handleExport} className="badge-outline !text-text-secondary">
               <Icon name="Upload" size={12} />
               Export {selectedSessionIds.size > 0 ? `(${selectedSessionIds.size})` : ''}
             </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 px-2 py-1 bg-surface hover:bg-separator border border-separator rounded-md text-xs font-bold text-text-secondary transition-colors uppercase tracking-wide cursor-pointer"
-            >
+            <button onClick={() => fileInputRef.current?.click()} className="badge-outline !text-text-secondary">
               <Icon name="Download" size={12} />
               Import
             </button>
