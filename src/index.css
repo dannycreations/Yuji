@@ -36,12 +36,13 @@
   --max-width-chat: 48rem;
 
   /* Z-Index */
-  --z-index-chat-input: 5;
-  --z-index-sidebar: 40;
-  --z-index-modal: 50;
-  --z-index-dropdown: 60;
-  --z-index-notification: 100;
-  --z-index-fullscreen: 100;
+  --z-index-chat-input: 10;
+  --z-index-header: 20;
+  --z-index-sidebar: 30;
+  --z-index-modal: 40;
+  --z-index-dropdown: 50;
+  --z-index-fullscreen: 60;
+  --z-index-notification: 70;
 
   /* Typography */
   --font-size-xs: 0.75rem; /* 12px */
@@ -310,7 +311,7 @@
   }
 
   .input-wrapper {
-    @apply relative;
+    @apply relative flex items-center;
     &.disabled {
       @apply opacity-50 cursor-not-allowed;
     }
@@ -321,15 +322,15 @@
   }
 
   .input-icon {
-    @apply text-text-tertiary transition-colors pointer-events-none;
+    @apply absolute top-1/2 -translate-y-1/2 text-text-tertiary transition-colors pointer-events-none;
     .input-wrapper:focus-within & {
       @apply text-primary;
     }
     &.left {
-      @apply abs-center !left-4;
+      @apply left-3;
     }
     &.right {
-      @apply abs-center !right-4 !left-auto;
+      @apply right-3;
     }
   }
 
@@ -648,7 +649,7 @@
   }
 
   .code-block-header {
-    @apply flex items-center justify-between px-2 py-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-10 backdrop-blur-md;
+    @apply flex items-center justify-between px-2 py-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-chat-input backdrop-blur-md;
     &.collapsed {
       @apply border-b-transparent;
     }
@@ -697,7 +698,7 @@
   }
 
   .sticky-header {
-    @apply flex-between px-3 py-2 h-14 sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-separator/50;
+    @apply flex-between px-3 py-2 h-14 sticky top-0 z-header bg-background/95 backdrop-blur border-b border-separator/50;
   }
 
   .mermaid-container {
@@ -705,6 +706,13 @@
     & svg {
       @apply max-w-full h-auto;
     }
+
+    /* CSS Overrides to kill default Mermaid leakage */
+    & rect.rect {
+      fill: var(--color-background-raised) !important;
+      stroke: var(--color-line) !important;
+    }
+
     &::-webkit-scrollbar {
       @apply w-2.5 h-2.5;
     }

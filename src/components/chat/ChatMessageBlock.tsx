@@ -15,7 +15,7 @@ import type { FC } from 'react';
 
 const getMermaidConfig = (theme: 'dark' | 'light'): MermaidConfig => ({
   startOnLoad: false,
-  theme: theme === 'dark' ? 'dark' : 'default',
+  theme: 'base',
   fontFamily: 'ui-sans-serif, system-ui, sans-serif',
   themeVariables:
     theme === 'dark'

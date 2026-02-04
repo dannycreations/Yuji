@@ -58,7 +58,7 @@ export const Sidebar: FC = () => {
   return (
     <div className="sidebar-container">
       <div className="sidebar-header relative">
-        <button onClick={toggleSidebar} className="btn-icon z-10" title="Close Sidebar">
+        <button onClick={toggleSidebar} className="btn-icon z-chat-input" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />
         </button>
 
@@ -69,7 +69,7 @@ export const Sidebar: FC = () => {
           </button>
         </div>
 
-        <button onClick={handleCreateSession} className="btn-icon z-10" title="New Chat">
+        <button onClick={handleCreateSession} className="btn-icon z-chat-input" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </button>
       </div>
