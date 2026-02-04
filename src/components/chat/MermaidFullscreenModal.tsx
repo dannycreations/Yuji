@@ -55,7 +55,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
 
   return (
     <div className="fullscreen-overlay animate-fade-in">
-      <div className="flex items-center justify-between p-4 border-b border-separator">
+      <div className="flex-between p-4 border-b border-separator">
         <h3 className="text-sm font-medium text-text-primary">Diagram Preview</h3>
         <div className="flex items-center gap-2">
           <button onClick={resetZoom} className="btn-icon" title="Reset Zoom">
@@ -83,14 +83,14 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
         onMouseLeave={handleMouseUp}
       >
         <div
-          className="absolute inset-0 flex items-center justify-center transition-transform duration-75 ease-out"
+          className="flex-center absolute inset-0 transition-transform duration-75 ease-out"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center',
           }}
           dangerouslySetInnerHTML={{ __html: svg }}
         />
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-surface-hover/80 backdrop-blur rounded-full border border-separator text-xs text-text-secondary select-none pointer-events-none">
+        <div className="abs-center !top-auto bottom-6 px-3 py-1.5 bg-surface-hover/80 backdrop-blur rounded-full border border-separator text-xs text-text-secondary select-none pointer-events-none whitespace-nowrap">
           Scroll to zoom • Drag to move
         </div>
       </div>

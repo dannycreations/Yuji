@@ -18,15 +18,12 @@ interface InputWrapperProps {
 }
 
 const InputWrapper: FC<InputWrapperProps> = ({ leftIcon, rightIcon, containerClassName, children, disabled }) => {
-  const iconClass = clsx(
-    'absolute top-1/2 -translate-y-1/2 text-text-secondary transition-colors pointer-events-none',
-    !disabled && 'group-focus-within:text-primary',
-  );
+  const iconClass = clsx('text-text-secondary transition-colors pointer-events-none', !disabled && 'group-focus-within:text-primary');
   return (
     <div className={clsx('relative group', containerClassName, disabled && 'opacity-50 cursor-not-allowed')}>
-      {leftIcon && <Icon name={leftIcon} size={14} className={clsx('absolute left-4', iconClass)} />}
+      {leftIcon && <Icon name={leftIcon} size={14} className={clsx('abs-center !left-4', iconClass)} />}
       {children}
-      {rightIcon && <Icon name={rightIcon} size={14} className={clsx('absolute right-4', iconClass)} />}
+      {rightIcon && <Icon name={rightIcon} size={14} className={clsx('abs-center !right-4 !left-auto', iconClass)} />}
     </div>
   );
 };

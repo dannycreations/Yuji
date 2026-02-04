@@ -154,7 +154,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <button onClick={handleRefreshModels} className="badge-outline" title="Refresh Library">
+        <button onClick={handleRefreshModels} className="badge-outline whitespace-nowrap" title="Refresh Library">
           <Icon name="RefreshCw" size={14} />
           <span>Refresh</span>
         </button>
@@ -213,7 +213,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
   const [historyPage, setHistoryPage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const ITEMS_PER_PAGE = 7;
+  const ITEMS_PER_PAGE = 6;
 
   const importSessions = (newSessions: Record<string, ChatSession>) => updateStore((s) => ({ ...s, sessions: { ...s.sessions, ...newSessions } }));
 
@@ -366,7 +366,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
       </div>
 
       {totalHistoryPages > 1 && (
-        <div className="flex justify-between items-center pt-2 flex-shrink-0">
+        <div className="flex-between pt-2 flex-shrink-0">
           <div className="text-xs text-text-secondary">
             Page {historyPage + 1} of {totalHistoryPages}
           </div>
@@ -374,7 +374,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
             <button
               onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
               disabled={historyPage === 0}
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <Icon name="ChevronLeft" size={12} />
               Prev
@@ -382,7 +382,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
             <button
               onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages - 1, p + 1))}
               disabled={historyPage >= totalHistoryPages - 1}
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-secondary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               Next
               <Icon name="ChevronRight" size={12} />
@@ -500,7 +500,7 @@ interface OverrideSectionProps {
 export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children }) => {
   if (!checked) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
+      <div className="flex-center flex-col py-10 text-text-secondary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
         <button

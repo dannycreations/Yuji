@@ -62,10 +62,10 @@ export const Sidebar: FC = () => {
           <Icon name="PanelLeftClose" size={20} />
         </button>
 
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="abs-center flex-center pointer-events-none">
           <button
             onClick={() => setActiveSession(null)}
-            className="flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer"
+            className="flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto"
           >
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
@@ -153,7 +153,7 @@ export const Sidebar: FC = () => {
           onClick={toggleSetting}
           className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
         >
-          <div className="avatar-sm bg-surface-hover flex-shrink-0">
+          <div className="avatar-sm bg-surface-hover flex-shrink-0 flex-center">
             {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>
           <div className="flex-1 text-left min-w-0">

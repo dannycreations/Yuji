@@ -30,7 +30,7 @@ export const ChatInterface: FC = () => {
         <Header />
         <div className="chat-scroll-area">
           <div className="chat-empty-container">
-            <div className="mb-3 flex flex-col items-center w-full">
+            <div className="mb-3 flex flex-col items-center w-full select-none">
               <div className="chat-empty-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>

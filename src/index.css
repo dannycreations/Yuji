@@ -125,8 +125,36 @@
 }
 
 @utility avatar-base {
-  @apply rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
+  @apply flex-center rounded-full text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
   @apply w-8 h-8;
+}
+
+@utility btn-base {
+  @apply inline-flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
+
+@utility flex-between {
+  @apply flex items-center justify-between;
+}
+
+@utility abs-center {
+  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+}
+
+@utility overlay-base {
+  @apply fixed inset-0 backdrop-blur-sm bg-overlay z-modal;
+}
+
+@utility btn-pill {
+  @apply btn-base px-3 py-2 text-sm font-medium rounded-full;
+}
+
+@utility badge-base {
+  @apply flex-center px-1 py-1 rounded text-xs font-bold uppercase tracking-wider;
 }
 
 @layer base {
@@ -174,30 +202,31 @@
   }
 
   .btn-icon {
-    @apply p-2 text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center;
+    @apply btn-base p-2 text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg;
+    @apply disabled:opacity-30;
     &.active {
       @apply text-text-primary bg-surface;
     }
   }
 
   .btn-primary {
-    @apply px-3 py-2 bg-primary text-black text-sm font-medium rounded-full hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-pill bg-primary text-black hover:opacity-90 transition-opacity;
   }
 
   .btn-secondary {
-    @apply px-3 py-2 text-sm font-medium text-text-primary bg-surface-hover rounded-full hover:bg-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-pill text-text-primary bg-surface-hover hover:bg-surface;
   }
 
   .btn-danger {
-    @apply px-3 py-2 text-sm font-medium text-white bg-danger hover:bg-red-600 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-pill text-white bg-danger hover:bg-red-600;
   }
 
   .btn-warning {
-    @apply px-3 py-2 text-sm font-medium text-white bg-amber-500 hover:bg-amber-600 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-pill text-white bg-amber-500 hover:bg-amber-600;
   }
 
   .btn-info {
-    @apply px-3 py-2 text-sm font-medium text-black bg-primary hover:opacity-90 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-pill bg-primary text-black hover:opacity-90 transition-opacity;
   }
 
   .input-base {
@@ -275,7 +304,7 @@
   }
 
   .sidebar-header {
-    @apply px-3 py-3 flex items-center justify-between h-14;
+    @apply flex-between px-3 py-3 h-14;
   }
 
   .sidebar-content {
@@ -319,7 +348,7 @@
 
   /* Modal Overlay */
   .modal-overlay {
-    @apply fixed inset-0 z-modal flex items-center justify-center bg-overlay backdrop-blur-sm p-3;
+    @apply overlay-base flex-center p-3;
   }
 
   .fullscreen-overlay {
@@ -331,7 +360,7 @@
   }
 
   .modal-header {
-    @apply flex items-center justify-between mb-2 border-b border-line pb-2;
+    @apply flex-between mb-2 border-b border-line pb-2;
   }
 
   .modal-footer {
@@ -363,11 +392,11 @@
   }
 
   .chat-empty-container {
-    @apply flex flex-col items-center justify-center p-3 min-h-full animate-fade-in layout-chat-container;
+    @apply flex-center flex-col p-3 min-h-full animate-fade-in layout-chat-container;
   }
 
   .chat-empty-icon-wrapper {
-    @apply w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-separator mb-3;
+    @apply flex-center w-12 h-12 bg-primary rounded-full shadow-lg shadow-separator mb-3;
   }
 
   .chat-empty-title {
@@ -375,7 +404,7 @@
   }
 
   .avatar-base {
-    @apply rounded-full flex items-center justify-center text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
+    @apply flex-center rounded-full text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
     @apply w-8 h-8;
   }
 
@@ -392,11 +421,11 @@
   }
 
   .badge {
-    @apply px-1 py-1 rounded text-xs font-bold uppercase tracking-wider;
+    @apply badge-base;
   }
 
   .badge-primary {
-    @apply px-1 py-1 rounded text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary;
+    @apply badge-base bg-primary/20 text-primary;
   }
 
   .badge-outline {
@@ -421,7 +450,7 @@
   }
 
   .dropdown-item {
-    @apply w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1 w-[calc(100%-8px)];
+    @apply flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
     &.active {
       @apply bg-highlight text-text-primary font-medium;
     }
@@ -541,7 +570,7 @@
   }
 
   .sticky-header {
-    @apply flex items-center justify-between px-3 py-2 h-14 sticky top-0 z-10 bg-background/95 backdrop-blur;
+    @apply flex-between px-3 py-2 h-14 sticky top-0 z-10 bg-background/95 backdrop-blur;
   }
 
   .header-model-button {
@@ -623,7 +652,7 @@
   }
 
   .message-thinking-container {
-    @apply flex items-center gap-1 py-1;
+    @apply flex items-center gap-1 py-1 select-none;
   }
 
   .message-thinking-dot {
@@ -679,7 +708,7 @@
   }
 
   .chat-input-actions {
-    @apply flex items-center justify-between px-2 pb-2 relative;
+    @apply flex-between px-2 pb-2 relative;
   }
 
   .chat-input-submit {
@@ -732,7 +761,7 @@
 
   /* Checkbox/Selection */
   .checkbox-base {
-    @apply w-4 h-4 rounded border flex items-center justify-center transition-all cursor-pointer;
+    @apply flex-center w-4 h-4 rounded border transition-all cursor-pointer;
     @apply border-highlight bg-black/20 text-transparent;
 
     &.checked {
@@ -782,7 +811,7 @@
   }
 
   .toast-icon-wrapper {
-    @apply flex items-center justify-center w-8 h-8 rounded-full;
+    @apply flex-center w-8 h-8 rounded-full;
   }
 
   .toast-progress-track {
