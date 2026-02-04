@@ -182,20 +182,18 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                   <Icon name={copied ? 'Check' : 'Copy'} size={16} />
                 </button>
 
-                {!isEditing && (
-                  <button
-                    onClick={() => {
-                      setEditContent(message.content);
-                      setIsEditing(true);
-                    }}
-                    className="btn-icon"
-                    title="Edit"
-                  >
-                    <Icon name="Pencil" size={16} />
-                  </button>
-                )}
+                <button
+                  onClick={() => {
+                    setEditContent(message.content);
+                    setIsEditing(true);
+                  }}
+                  className="btn-icon"
+                  title="Edit"
+                >
+                  <Icon name="Pencil" size={16} />
+                </button>
 
-                <button onClick={handleDelete} className="btn-icon hover:text-danger" title="Delete">
+                <button onClick={handleDelete} className="btn-icon hover:!text-danger" title="Delete">
                   <Icon name="Trash2" size={16} />
                 </button>
               </div>

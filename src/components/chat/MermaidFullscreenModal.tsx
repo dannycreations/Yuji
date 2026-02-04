@@ -54,7 +54,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-background/95 backdrop-blur-md animate-fade-in">
+    <div className="fullscreen-overlay animate-fade-in">
       <div className="flex items-center justify-between p-4 border-b border-separator">
         <h3 className="text-sm font-medium text-text-primary">Diagram Preview</h3>
         <div className="flex items-center gap-2">

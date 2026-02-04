@@ -15,7 +15,7 @@ import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { ChatSession, Instruction, Personalisation, Settings } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={clsx('animate-fade-in flex flex-col h-full overflow-y-auto pr-2', className)}>{children}</div>
+  <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
 );
 
 export const SettingItem: FC<{ label: string; description?: string; children: ReactNode; className?: string }> = ({
@@ -149,7 +149,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
   const effectiveModelId = getModelId(settings, availableModels);
 
   return (
-    <div className="space-y-3 animate-fade-in h-full flex flex-col">
+    <div className="space-y-3 animate-fade-in flex flex-col scrollable-section">
       <div className="flex-shrink-0 flex gap-2">
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
@@ -164,7 +164,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 min-h-0 space-y-2">
+      <div className="flex-1 min-h-0 space-y-2">
         {filteredModels.length > 0 ? (
           filteredModels.map((model: Model) => {
             const isEnabled = !settings.disabledModels.includes(model.id);
@@ -298,7 +298,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
   };
 
   return (
-    <div className="space-y-3 animate-fade-in flex flex-col h-full">
+    <div className="space-y-3 animate-fade-in flex flex-col scrollable-section">
       <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
       <div className="flex flex-col gap-3 flex-shrink-0">
         <p className="settings-info-box">
@@ -350,7 +350,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ 
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-separator">
+        <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-separator">
           {currentHistoryItems.length > 0 ? (
             currentHistoryItems.map((session) => (
               <div key={session.id} className={clsx('settings-history-row', selectedSessionIds.has(session.id) && 'settings-history-row-active')}>
@@ -434,7 +434,7 @@ interface PersonalisationSectionProps {
 }
 
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
-  <div className="space-y-3 animate-fade-in">
+  <div className="space-y-3 animate-fade-in scrollable-section">
     <SettingField label="What should Yuji call you?">
       <InputText
         value={personalisation.userName || ''}

@@ -127,9 +127,9 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
           borderRadius: 0,
           background: 'transparent',
           padding: '0.75rem',
-          fontSize: '12px',
+          fontSize: 'var(--font-size-xs)',
           lineHeight: '1.6',
-          fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+          fontFamily: 'inherit',
         }}
         codeTagProps={{
           style: {
@@ -179,7 +179,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
     <>
       <BaseMessageBlock label="diagram" value={code} onFullscreen={svg ? () => setIsFullscreen(true) : undefined}>
         {error ? (
-          <pre className="p-3 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs">{code}</pre>
+          <pre className="code-error">{code}</pre>
         ) : (
           <div ref={containerRef} className="flex justify-center p-3 bg-transparent overflow-x-auto" dangerouslySetInnerHTML={{ __html: svg }} />
         )}
