@@ -220,6 +220,9 @@
 
   .btn-secondary {
     @apply btn-pill text-text-primary bg-surface-hover hover:bg-surface;
+    &.active {
+      @apply bg-surface;
+    }
   }
 
   .btn-danger {
@@ -232,6 +235,10 @@
 
   .btn-info {
     @apply btn-pill bg-primary text-black hover:opacity-90 transition-opacity;
+  }
+
+  .btn-sidebar {
+    @apply w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary;
   }
 
   .input-base {
@@ -249,6 +256,10 @@
     &:hover {
       @apply bg-transparent!;
     }
+  }
+
+  .chat-input-file-input {
+    @apply hidden;
   }
 
   .input-switch {
@@ -336,6 +347,12 @@
         @apply text-text-primary;
       }
     }
+    & .model-picker-item-id {
+      @apply text-xs text-text-tertiary line-clamp-1 group-hover:text-text-secondary/80;
+    }
+    & .model-picker-icon-default {
+      @apply text-primary;
+    }
   }
 
   /* Sidebar */
@@ -345,6 +362,10 @@
 
   .sidebar-header {
     @apply flex-between px-3 py-3 h-14;
+  }
+
+  .sidebar-logo {
+    @apply flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto;
   }
 
   .sidebar-content {
@@ -371,6 +392,14 @@
 
   .sidebar-session-title {
     @apply flex-1 truncate relative overflow-hidden;
+  }
+
+  .sidebar-session-indicator-wrapper {
+    @apply relative flex-center h-8 w-8;
+  }
+
+  .sidebar-activity-indicator {
+    @apply w-1.5 h-1.5 rounded-full bg-primary animate-pulse;
   }
 
   .chat-input-attachments {
@@ -432,7 +461,7 @@
   }
 
   .chat-empty-container {
-    @apply flex-center flex-col p-3 min-h-[calc(100vh-120px)] animate-fade-in layout-chat-container;
+    @apply flex-center flex-col p-3 min-h-full animate-fade-in layout-chat-container;
   }
 
   .chat-empty-icon-wrapper {
@@ -509,6 +538,27 @@
     @apply py-3 border-b border-separator/50 last:border-b-0;
   }
 
+  .panel-section-group {
+    @apply border-t border-separator/50;
+  }
+
+  .settings-model-card {
+    @apply flex items-center gap-2 p-2 rounded-xl border transition-all;
+    &.enabled {
+      @apply bg-line border-separator;
+    }
+    &.disabled {
+      @apply bg-surface/50 border-transparent opacity-60;
+    }
+  }
+
+  .settings-model-icon-wrapper {
+    @apply p-2 rounded-lg flex-shrink-0 bg-surface/50;
+    &.disabled {
+      @apply text-text-tertiary/50;
+    }
+  }
+
   .prose-chat {
     @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col gap-2;
     & > :first-child {
@@ -518,7 +568,7 @@
       @apply mb-0! pb-0!;
     }
     & .prose-p {
-      @apply leading-normal m-0;
+      @apply leading-normal m-0 break-words;
     }
     & li {
       @apply leading-7;
@@ -606,6 +656,10 @@
     @apply p-3 text-red-400 bg-red-900/10 rounded-lg overflow-x-auto text-xs;
   }
 
+  .code-block-header-btn-copy {
+    @apply text-emerald-500;
+  }
+
   /* Layout */
   .app-container {
     @apply flex h-screen w-screen overflow-hidden bg-background text-text-primary font-sans antialiased;
@@ -635,6 +689,10 @@
 
   .header-model-button {
     @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors;
+  }
+
+  .header-icon-wrapper {
+    @apply flex-center w-12 h-12 bg-primary rounded-full shadow-lg shadow-separator mb-3;
   }
 
   .text-semibold {
@@ -739,6 +797,14 @@
     @apply flex items-center gap-1;
   }
 
+  .message-branch-navigation {
+    @apply flex items-center gap-1 text-text-primary select-none font-medium;
+  }
+
+  .message-branch-indicator {
+    @apply text-sm tabular-nums mx-1 flex-center;
+  }
+
   .message-attachment-grid {
     @apply flex flex-wrap gap-2 mb-3 last:mb-0;
   }
@@ -819,6 +885,10 @@
     @apply block text-sm text-text-primary mb-2;
   }
 
+  .settings-appearance-btn {
+    @apply flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors;
+  }
+
   .settings-info-box {
     @apply text-sm text-text-secondary leading-relaxed bg-surface-hover/50 p-3 rounded-xl border border-line;
   }
@@ -866,6 +936,10 @@
     @apply pointer-events-auto relative flex items-center gap-3 p-3 rounded-xl border border-line bg-surface/95 backdrop-blur-md shadow-2xl w-[var(--spacing-notification)] overflow-hidden;
   }
 
+  .toast-dismiss-btn {
+    @apply btn-ghost !p-1 !rounded-md hover:bg-black/10;
+  }
+
   .toast-variant-error {
     @apply bg-red-500/10 text-red-400;
     & .toast-line {
@@ -908,6 +982,18 @@
 
   .scrollable-section {
     @apply h-full overflow-y-auto pr-2 overscroll-contain;
+  }
+
+  .override-empty-state {
+    @apply flex-center flex-col py-10 text-text-tertiary bg-line rounded-xl border border-dashed border-separator animate-fade-in;
+  }
+
+  .override-enable-btn {
+    @apply mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest transition-all;
+  }
+
+  .settings-footer-note {
+    @apply text-xs text-text-tertiary pl-1;
   }
 }
 

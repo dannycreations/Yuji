@@ -84,7 +84,7 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
         </div>
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button onClick={handleCopy} className="code-block-header-btn" title={copied ? 'Copied' : 'Copy'}>
-            <Icon name={copied ? 'Check' : 'Copy'} size={14} className={copied ? 'text-emerald-500' : ''} />
+            <Icon name={copied ? 'Check' : 'Copy'} size={14} className={clsx(copied && 'code-block-header-btn-copy')} />
           </button>
           {onFullscreen && (
             <button onClick={onFullscreen} className="code-block-header-btn" title="Fullscreen">

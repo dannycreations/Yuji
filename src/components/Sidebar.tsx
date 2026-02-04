@@ -63,10 +63,7 @@ export const Sidebar: FC = () => {
         </button>
 
         <div className="abs-center flex-center pointer-events-none">
-          <button
-            onClick={() => setActiveSession(null)}
-            className="flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto"
-          >
+          <button onClick={() => setActiveSession(null)} className="sidebar-logo">
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
           </button>
@@ -103,7 +100,7 @@ export const Sidebar: FC = () => {
                         <span className="block truncate">{session.title}</span>
                       </div>
 
-                      <div className="relative flex-center h-8 w-8">
+                      <div className="sidebar-session-indicator-wrapper">
                         {backgroundSessionIds.includes(session.id) ? (
                           <div
                             className={clsx(
@@ -111,7 +108,7 @@ export const Sidebar: FC = () => {
                               menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
                             )}
                           >
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            <div className="sidebar-activity-indicator" />
                           </div>
                         ) : (
                           pinnedSessionIds.includes(session.id) && (
@@ -149,10 +146,7 @@ export const Sidebar: FC = () => {
       </div>
 
       <div className="sidebar-footer">
-        <button
-          onClick={toggleSetting}
-          className="w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary"
-        >
+        <button onClick={toggleSetting} className="btn-sidebar">
           <div className="avatar-sm bg-surface-hover flex-center">
             {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>

@@ -70,7 +70,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
   return (
     <div className="chat-input-wrapper">
-      <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleFileSelect} />
+      <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={handleFileSelect} />
 
       <div className="chat-input-container shadow-2xl">
         {attachments.length > 0 && (

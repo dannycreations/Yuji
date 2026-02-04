@@ -45,7 +45,7 @@ export const GeneralSection: FC<{ settings: Settings }> = ({ settings }) => {
   return (
     <SectionWrapper>
       <SettingItem label="Appearance">
-        <button className="flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors">
+        <button className="settings-appearance-btn">
           Dark
           <Icon name="ChevronDown" size={16} />
         </button>
@@ -165,19 +165,8 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
           filteredModels.map((model: Model) => {
             const isEnabled = !settings.disabledModels.includes(model.id);
             return (
-              <div
-                key={model.id}
-                className={clsx(
-                  'flex items-center gap-2 p-2 rounded-xl border transition-all',
-                  isEnabled ? 'bg-line border-separator' : 'bg-surface/50 border-transparent opacity-60',
-                )}
-              >
-                <div
-                  className={clsx(
-                    'p-2 rounded-lg flex-shrink-0',
-                    isEnabled ? clsx('bg-surface/50', model.color || 'text-text-tertiary') : 'bg-surface/50 text-text-tertiary/50',
-                  )}
-                >
+              <div key={model.id} className={clsx('settings-model-card', isEnabled ? 'enabled' : 'disabled')}>
+                <div className={clsx('settings-model-icon-wrapper', isEnabled ? model.color || 'text-text-tertiary' : 'disabled')}>
                   <Icon name={model.icon} size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -410,7 +399,7 @@ export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, o
         minRows={8}
         maxRows={8}
       />
-      {footer && <p className="text-xs text-text-tertiary pl-1">{footer}</p>}
+      {footer && <p className="settings-footer-note">{footer}</p>}
     </SettingField>
   </SectionWrapper>
 );
@@ -495,13 +484,10 @@ interface OverrideSectionProps {
 export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children }) => {
   if (!checked) {
     return (
-      <div className="flex-center flex-col py-10 text-text-tertiary bg-line rounded-xl border border-dashed border-separator animate-fade-in">
+      <div className="override-empty-state">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
-        <button
-          onClick={() => onChange(true)}
-          className="mt-4 text-xs font-bold text-primary hover:underline uppercase tracking-widest transition-all"
-        >
+        <button onClick={() => onChange(true)} className="override-enable-btn">
           Enable Override
         </button>
       </div>
