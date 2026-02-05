@@ -26,7 +26,7 @@ export const ChatInterface: FC = () => {
 
   if (!activeSession || activeSession.messages.length === 0) {
     return (
-      <div className="main-layout">
+      <div className="main-layout selection:bg-primary/20">
         <Header />
         <div className="chat-scroll-area">
           <div className="chat-empty-container">
@@ -34,7 +34,7 @@ export const ChatInterface: FC = () => {
               <div className="header-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
-              <h1 className="chat-empty-title">
+              <h1 className="chat-empty-title selection:bg-primary/20">
                 {INITIAL_GREETING.replace('{{0}}', userName.trim() ? `, ${userName.trim().split(/\s+/)[0]}` : ' today')}
               </h1>
             </div>
@@ -58,7 +58,7 @@ export const ChatInterface: FC = () => {
   }
 
   return (
-    <div className="main-layout">
+    <div className="main-layout selection:bg-primary/20">
       <Header />
       <div className="chat-scroll-area">
         <div className="message-list-container">

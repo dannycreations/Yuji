@@ -164,7 +164,7 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
           padding: '0.75rem',
           fontSize: 'var(--font-size-xs)',
           lineHeight: 'inherit',
-          fontFamily: 'inherit',
+          fontFamily: 'var(--font-sans)',
         }}
         codeTagProps={{
           style: {

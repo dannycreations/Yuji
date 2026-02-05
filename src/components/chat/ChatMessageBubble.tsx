@@ -107,7 +107,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
 
   return (
     <div className="group w-full">
-      <div className={clsx('message-row', isUser && 'user')}>
+      <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
         <div className={clsx('message-container', isUser ? 'user' : 'assistant')}>
           <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
             {message.attachments && message.attachments.length > 0 && (
@@ -133,7 +133,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                 </div>
               </div>
             ) : (
-              <div className={clsx(isUser ? 'message-bubble-user' : 'message-bubble-assistant prose-chat')}>
+              <div className={clsx(isUser ? 'message-bubble-user' : 'message-bubble-assistant')}>
                 {isThinking && !message.content ? (
                   <div className="message-thinking-container">
                     <div className="message-thinking-dot" />

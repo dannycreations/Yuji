@@ -72,9 +72,9 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
     <div className="chat-input-wrapper">
       <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={handleFileSelect} />
 
-      <div className="chat-input-container shadow-2xl">
+      <div className="chat-input-container shadow-xl">
         {attachments.length > 0 && (
-          <div className="chat-input-attachments">
+          <div className="chat-input-attachments scrollbar-hide">
             {attachments.map((att) => (
               <div key={att.id} className="chat-input-attachment-item">
                 <img src={att.url} alt={att.name} className="chat-input-attachment-img" />
@@ -100,11 +100,11 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
         <div className="chat-input-actions">
           <div className="chat-input-action-group">
             <button onClick={() => fileInputRef.current?.click()} className="btn-icon" title="Attach Image">
-              <Icon name="Plus" size={24} />
+              <Icon name="Plus" size={22} />
             </button>
 
             <button className="btn-icon" title="Search">
-              <Icon name="Globe" size={20} />
+              <Icon name="Globe" size={18} />
             </button>
           </div>
 

@@ -27,7 +27,7 @@
   /* Spacing & Sizes */
   --spacing-sidebar: 260px;
   --spacing-settings-sidebar: 220px;
-  --spacing-settings-height: 500px;
+  --spacing-settings: 500px;
   --spacing-chat-max-width: 48rem;
   --spacing-notification: 350px;
 
@@ -232,6 +232,43 @@
   input::placeholder,
   textarea::placeholder {
     @apply select-none;
+  }
+}
+
+@utility prose-chat {
+  @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col;
+  & > :first-child {
+    @apply mt-0! pt-0!;
+  }
+  & > :last-child {
+    @apply mb-0! pb-0!;
+  }
+  & .prose-p {
+    @apply leading-normal m-0 break-words;
+  }
+  & li {
+    @apply leading-7;
+  }
+  & ul {
+    @apply list-disc pl-3 space-y-1 last:mb-0;
+  }
+  & ol {
+    @apply list-decimal pl-3 space-y-1 last:mb-0;
+  }
+  & h1 {
+    @apply text-xl font-bold last:mb-0;
+  }
+  & h2 {
+    @apply text-lg font-bold last:mb-0;
+  }
+  & h3 {
+    @apply text-sm font-bold last:mb-0;
+  }
+  & blockquote {
+    @apply border-l-2 border-highlight pl-3 text-text-secondary last:mb-0;
+  }
+  & a {
+    @apply text-primary hover:underline;
   }
 }
 
@@ -588,43 +625,6 @@
     }
   }
 
-  .prose-chat {
-    @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col;
-    & > :first-child {
-      @apply mt-0! pt-0!;
-    }
-    & > :last-child {
-      @apply mb-0! pb-0!;
-    }
-    & .prose-p {
-      @apply leading-normal m-0 break-words;
-    }
-    & li {
-      @apply leading-7;
-    }
-    & ul {
-      @apply list-disc pl-3 space-y-1 last:mb-0;
-    }
-    & ol {
-      @apply list-decimal pl-3 space-y-1 last:mb-0;
-    }
-    & h1 {
-      @apply text-xl font-bold last:mb-0;
-    }
-    & h2 {
-      @apply text-lg font-bold last:mb-0;
-    }
-    & h3 {
-      @apply text-sm font-bold last:mb-0;
-    }
-    & blockquote {
-      @apply border-l-2 border-highlight pl-3 text-text-secondary last:mb-0;
-    }
-    & a {
-      @apply text-primary hover:underline;
-    }
-  }
-
   .prose-table-container {
     @apply overflow-x-auto rounded-lg border border-line;
   }
@@ -802,7 +802,7 @@
   }
 
   .message-bubble-assistant {
-    @apply message-bubble-base;
+    @apply message-bubble-base prose-chat;
   }
 
   .message-thinking-container {
@@ -957,7 +957,7 @@
 
   /* Toasts */
   .toast-container {
-    @apply pointer-events-auto relative flex items-center gap-3 p-3 rounded-xl border border-line bg-surface/95 backdrop-blur-md shadow-2xl w-[var(--spacing-notification)] overflow-hidden;
+    @apply pointer-events-auto relative flex items-center gap-3 p-3 rounded-xl border border-line bg-surface/95 backdrop-blur-md shadow-2xl w-notification overflow-hidden;
   }
 
   .toast-dismiss-btn {

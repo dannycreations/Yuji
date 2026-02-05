@@ -123,6 +123,8 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
           icon: 'Cpu',
           color: 'text-text-tertiary',
           tags: ['API'],
+          isNew: false,
+          premium: false,
         }),
       );
 
