@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect'
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { AppStoreState, MODELS } from '../app/Schema';
-import { randomString } from '../utilities/CommonUtil';
+import { deepMerge, randomString } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
 import type { AppState, ConfirmState } from '../app/Schema';
@@ -74,9 +74,16 @@ export const StoreServiceLive = Layer.effect(
     const loadState = Effect.gen(function* () {
       const stored = yield* storage.getItem(STORAGE_KEY);
       if (stored) {
-        return yield* Schema.decodeUnknown(Schema.parseJson(AppStoreState))(stored).pipe(
-          Effect.map((parsed) => ({ ...INITIAL_STATE, ...parsed, isHydrated: true })),
-          Effect.orElseSucceed(() => ({ ...INITIAL_STATE, isHydrated: true })),
+        return yield* Effect.try({
+          try: () => JSON.parse(stored),
+          catch: () => ({}),
+        }).pipe(
+          Effect.flatMap((json) =>
+            Schema.decodeUnknown(AppStoreState)(deepMerge(INITIAL_STATE, json)).pipe(
+              Effect.map((parsed) => ({ ...INITIAL_STATE, ...parsed, isHydrated: true })),
+              Effect.orElseSucceed(() => ({ ...INITIAL_STATE, isHydrated: true })),
+            ),
+          ),
         );
       }
       return { ...INITIAL_STATE, isHydrated: true };

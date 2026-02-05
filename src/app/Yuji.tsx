@@ -1,3 +1,5 @@
+import './styles.css';
+
 import { FetchHttpClient } from '@effect/platform';
 import { Effect, Fiber, Layer, ManagedRuntime, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useState } from 'react';
