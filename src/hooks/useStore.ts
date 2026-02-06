@@ -18,17 +18,31 @@ export const useStoreService = (): StoreService => {
 
 export const useStore = <T>(selector: (state: AppRuntimeState) => T): T => {
   const storeService = useStoreService();
+  const lastSelectedState = useRef<T>(null);
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
-      const fiber = YujiRuntime.runFork(Stream.runForEach(storeService.state.changes, () => Effect.sync(callback)));
+      const fiber = YujiRuntime.runFork(
+        Stream.runForEach(storeService.state.changes, (state) =>
+          Effect.sync(() => {
+            const nextSelectedState = selector(state);
+            if (nextSelectedState !== lastSelectedState.current) {
+              callback();
+            }
+          }),
+        ),
+      );
       return () => {
         YujiRuntime.runFork(Fiber.interrupt(fiber));
       };
     };
-  }, [storeService]);
+  }, [storeService, selector]);
 
-  const getSnapshot = () => selector(storeService.getSnapshot());
+  const getSnapshot = () => {
+    const nextSelectedState = selector(storeService.getSnapshot());
+    lastSelectedState.current = nextSelectedState;
+    return nextSelectedState;
+  };
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };

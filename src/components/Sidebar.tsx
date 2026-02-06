@@ -1,10 +1,11 @@
 import clsx from 'clsx';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 
 import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useConfirm, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
+import { useVirtualList } from '../hooks/useVirtualList';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
@@ -33,6 +34,14 @@ export const Sidebar: FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(0);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      setContainerHeight(scrollContainerRef.current.clientHeight);
+    }
+  }, [isSidebarOpen]);
 
   useClickOutside(menuRef, () => {
     if (menuOpenId) {
@@ -47,6 +56,19 @@ export const Sidebar: FC = () => {
   }, [sessions, searchQuery]);
 
   const groupedSessions = useMemo(() => groupSessions(filteredSessions, pinnedSessionIds), [filteredSessions, pinnedSessionIds]);
+
+  const flattenedSessions = useMemo(() => {
+    return Object.entries(groupedSessions).flatMap(([label, group]) => {
+      if (group.length === 0) return [];
+      return [{ type: 'label' as const, label }, ...group.map(s => ({ type: 'session' as const, session: s }))];
+    });
+  }, [groupedSessions]);
+
+  const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
+    containerHeight,
+    itemHeight: 44, // 40px item + 4px gap
+    totalCount: flattenedSessions.length,
+  });
 
   const menuSessionMetadata = menuOpenId ? sessions[menuOpenId] : null;
 
@@ -80,68 +102,75 @@ export const Sidebar: FC = () => {
         />
       </div>
 
-      <div className="sidebar-content">
-        {Object.entries(groupedSessions).map(
-          ([label, group]) =>
-            group.length > 0 && (
-              <div key={label} className="mb-3">
-                <h3 className="label-caps px-2 py-2 mb-1">{label}</h3>
-                <div className="sidebar-session-list">
-                  {group.map((session) => (
-                    <div
-                      key={session.id}
-                      className={clsx('sidebar-session-item group', activeSessionId === session.id && 'sidebar-session-item-active')}
-                      onClick={() => setActiveSession(session.id)}
-                    >
-                      <div className="sidebar-session-title flex items-center gap-2 min-w-0">
-                        <span className="block truncate">{session.title}</span>
-                      </div>
+      <div className="sidebar-content" ref={scrollContainerRef} onScroll={onScroll}>
+        <div style={{ height: totalHeight, position: 'relative' }}>
+          <div style={{ transform: `translateY(${translateY}px)` }}>
+            {flattenedSessions.slice(startIndex, endIndex).map((item) => {
+              if (item.type === 'label') {
+                return (
+                  <h3 key={`label-${item.label}`} className="label-caps px-2 py-2 mb-1 h-[40px] mt-1">
+                    {item.label}
+                  </h3>
+                );
+              }
+              const { session } = item;
+              return (
+                <div
+                  key={session.id}
+                  className={clsx(
+                    'sidebar-session-item group h-[40px] mt-1',
+                    activeSessionId === session.id && 'sidebar-session-item-active',
+                  )}
+                  onClick={() => setActiveSession(session.id)}
+                >
+                  <div className="sidebar-session-title flex items-center gap-2 min-w-0">
+                    <span className="block truncate">{session.title}</span>
+                  </div>
 
-                      <div className="sidebar-session-indicator-wrapper">
-                        {backgroundSessionIds.includes(session.id) ? (
-                          <div
-                            className={clsx(
-                              'flex items-center transition-opacity',
-                              menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
-                            )}
-                          >
-                            <div className="sidebar-activity-indicator" />
-                          </div>
-                        ) : (
-                          pinnedSessionIds.includes(session.id) && (
-                            <div
-                              className={clsx(
-                                'flex items-center text-text-tertiary transition-opacity',
-                                menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
-                              )}
-                            >
-                              <Icon name="Pin" size={16} className="rotate-45" />
-                            </div>
-                          )
+                  <div className="sidebar-session-indicator-wrapper">
+                    {backgroundSessionIds.includes(session.id) ? (
+                      <div
+                        className={clsx(
+                          'flex items-center transition-opacity',
+                          menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={clsx(
-                            '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
-                            menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setMenuPosition({ top: rect.top + 36, left: rect.right - 36 });
-                            setMenuOpenId(menuOpenId === session.id ? null : session.id);
-                          }}
-                        >
-                          <Icon name="MoreHorizontal" size={16} />
-                        </Button>
+                      >
+                        <div className="sidebar-activity-indicator" />
                       </div>
-                    </div>
-                  ))}
+                    ) : (
+                      pinnedSessionIds.includes(session.id) && (
+                        <div
+                          className={clsx(
+                            'flex items-center text-text-tertiary transition-opacity',
+                            menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
+                          )}
+                        >
+                          <Icon name="Pin" size={16} className="rotate-45" />
+                        </div>
+                      )
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={clsx(
+                        '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
+                        menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setMenuPosition({ top: rect.top + 36, left: rect.right - 36 });
+                        setMenuOpenId(menuOpenId === session.id ? null : session.id);
+                      }}
+                    >
+                      <Icon name="MoreHorizontal" size={16} />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ),
-        )}
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="sidebar-footer">
