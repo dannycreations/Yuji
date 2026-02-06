@@ -9,7 +9,6 @@ import {
   InstructionSection,
   ModelsSection,
   PersonalisationSection,
-  SectionWrapper,
 } from './SettingSection';
 
 import type { FC } from 'react';
@@ -55,12 +54,10 @@ export const GlobalSettingModal: FC = () => {
         );
       case 'persona':
         return (
-          <SectionWrapper>
-            <PersonalisationSection
-              personalisation={settings.personalisation}
-              onChange={(updates) => updateSetting({ personalisation: { ...settings.personalisation, ...updates } })}
-            />
-          </SectionWrapper>
+          <PersonalisationSection
+            personalisation={settings.personalisation}
+            onChange={(updates) => updateSetting({ personalisation: { ...settings.personalisation, ...updates } })}
+          />
         );
       case 'history':
         return <HistorySection sessions={sessions} />;

@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { getModelId, getModelName } from '../helpers/ModelHelper';
+import { getCurrentModelId, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useStore, useStoreAction, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
@@ -95,13 +95,10 @@ export const Header: FC = () => {
     ),
   );
 
-  const currentModelId = useMemo(() => {
-    const sessionModelId = activeSession?.general?.model;
-    if (sessionModelId && !settings.disabledModels.includes(sessionModelId)) {
-      return sessionModelId;
-    }
-    return getModelId(settings, availableModels);
-  }, [settings, availableModels, activeSession]);
+  const currentModelId = useMemo(
+    () => getCurrentModelId(activeSession, settings, availableModels),
+    [settings, availableModels, activeSession],
+  );
 
   const currentModelName = useMemo(() => {
     const id = optimisticModelId || currentModelId;

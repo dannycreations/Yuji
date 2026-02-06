@@ -6,6 +6,7 @@ import { Model } from '../../app/Schema';
 import { getModelId, getModelName } from '../../helpers/ModelHelper';
 import { useConfirm, useStoreEffect, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
+import { downloadFile } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
@@ -226,13 +227,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
     if (selectedSessionIds.size > 0) {
       dataToExport = Object.fromEntries(Object.entries(sessions).filter(([id]) => selectedSessionIds.has(id)));
     }
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dataToExport));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute('href', dataStr);
-    downloadAnchorNode.setAttribute('download', `yuji-history-${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    downloadFile(JSON.stringify(dataToExport), `yuji-history-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -396,16 +391,18 @@ interface InstructionSectionProps {
 }
 
 export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, onChange, footer }) => (
-  <SettingField label="System Instruction" className="animate-fade-in">
-    <InputTextarea
-      value={instruction.systemPrompt || ''}
-      onChange={(e) => onChange({ systemPrompt: e.target.value })}
-      placeholder="Enter system instructions..."
-      minRows={8}
-      maxRows={8}
-    />
-    {footer && <p className="settings-footer-note">{footer}</p>}
-  </SettingField>
+  <SectionWrapper>
+    <SettingField label="System Instruction">
+      <InputTextarea
+        value={instruction.systemPrompt || ''}
+        onChange={(e) => onChange({ systemPrompt: e.target.value })}
+        placeholder="Enter system instructions..."
+        minRows={8}
+        maxRows={8}
+      />
+      {footer && <p className="settings-footer-note">{footer}</p>}
+    </SettingField>
+  </SectionWrapper>
 );
 
 interface PersonalisationSectionProps {
@@ -414,7 +411,7 @@ interface PersonalisationSectionProps {
 }
 
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
-  <div className="space-y-3 animate-fade-in">
+  <SectionWrapper className="space-y-3">
     <SettingField label="What should Yuji call you?">
       <InputText
         value={personalisation.userName || ''}
@@ -445,7 +442,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         maxRows={5}
       />
     </SettingField>
-  </div>
+  </SectionWrapper>
 );
 
 interface OverrideSectionProps {

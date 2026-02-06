@@ -67,10 +67,7 @@ export const ChatServiceLive = Layer.effect(
         Effect.catchAll((err) => {
           if (err instanceof SessionNotFoundError) return Effect.fail(err);
           const msg = (err as { message: string })?.message || String(err);
-          return Effect.gen(function* () {
-            yield* store.notify('error', `Failed to update session: ${msg}`);
-            return yield* Effect.fail(err);
-          });
+          return store.notify('error', `Failed to update session: ${msg}`).pipe(Effect.flatMap(() => Effect.fail(err)));
         }),
       );
 
@@ -78,7 +75,7 @@ export const ChatServiceLive = Layer.effect(
       updateSessionState(sessionId, (state, now) => {
         const session = state.sessions[sessionId];
         if (!session) return { state, sessionFound: false };
-        const updated = { ...f(session, now), updatedAt: now };
+        const updated: ChatMetadata = { ...f(session, now), updatedAt: now };
         const nextState = { ...state, sessions: { ...state.sessions, [sessionId]: updated } };
         if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
           nextState.activeSession = { ...state.activeSession, ...updated };
@@ -92,16 +89,14 @@ export const ChatServiceLive = Layer.effect(
         if (!activeId) return yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
         return yield* updateSessionState(activeId, (s, now) => {
           if (!s.activeSession || s.activeSession.id !== activeId) return { state: s, sessionFound: false };
-          const updated = { ...f(s.activeSession, now), updatedAt: now };
-          return {
-            state: {
-              ...s,
-              activeSession: updated,
-              sessions: { ...s.sessions, [updated.id]: Schema.decodeSync(ChatMetadata)(updated) },
-            },
-            sessionFound: true,
-            sessionToSave: updated,
+          const updated: ChatSession = { ...f(s.activeSession, now), updatedAt: now };
+          const metadata = Schema.decodeSync(ChatMetadata)(updated);
+          const nextState = {
+            ...s,
+            activeSession: updated,
+            sessions: { ...s.sessions, [updated.id]: metadata },
           };
+          return { state: nextState, sessionFound: true, sessionToSave: updated };
         });
       });
 
@@ -298,7 +293,7 @@ export const ChatServiceLive = Layer.effect(
 
             const title =
               Object.keys(session.messages).length === 0 && message.role === 'user' && message.content
-                ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
+                ? message.content.trim().slice(0, 40).split('\n')[0] + (message.content.length > 40 ? '...' : '')
                 : session.title;
 
             return {
@@ -376,10 +371,8 @@ export const ChatServiceLive = Layer.effect(
         }).pipe(
           Effect.catchAll((err) => {
             if (err instanceof SessionNotFoundError) return Effect.fail(err);
-            return Effect.gen(function* () {
-              yield* store.notify('error', `Failed to delete message: ${err}`);
-              return yield* Effect.fail(err);
-            });
+            const msg = (err as { message: string })?.message || String(err);
+            return store.notify('error', `Failed to delete message: ${msg}`).pipe(Effect.flatMap(() => Effect.fail(err)));
           }),
         ),
 

@@ -7,7 +7,7 @@ import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pris
 import { MERMAID_CONFIG } from '../../app/Constant';
 import { useCopy } from '../../hooks/useCopy';
 import { useStore } from '../../hooks/useStore';
-import { randomString } from '../../utilities/CommonUtil';
+import { downloadFile, randomString } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
 import { MermaidFullscreenModal } from './MermaidFullscreenModal';
 
@@ -67,13 +67,7 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
 
 const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
   const theme = useStore((s) => s.settings.theme);
-  const handleDownload = () => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([value], { type: 'text/plain' }));
-    a.download = `code-${randomString(6)}.txt`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  };
+  const handleDownload = () => downloadFile(value, `code-${randomString(6)}.txt`);
 
   return (
     <BaseMessageBlock label={language || 'code'} value={value} onDownload={handleDownload}>

@@ -97,36 +97,32 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
       case 'instruction':
         return (
-          <SectionWrapper>
-            <OverrideSection
-              description="Instruction is following global settings."
-              checked={!!session.general.overrideInstruction}
-              onChange={(checked) => handleGeneral({ overrideInstruction: checked })}
-              onDataChange={(updates) => handleConfig({ instruction: { ...session.instruction, ...updates } })}
-            >
-              {({ onChange }) => (
-                <InstructionSection
-                  instruction={session.instruction}
-                  onChange={onChange}
-                  footer="This will completely replace the global system prompt."
-                />
-              )}
-            </OverrideSection>
-          </SectionWrapper>
+          <OverrideSection
+            description="Instruction is following global settings."
+            checked={!!session.general.overrideInstruction}
+            onChange={(checked) => handleGeneral({ overrideInstruction: checked })}
+            onDataChange={(updates) => handleConfig({ instruction: { ...session.instruction, ...updates } })}
+          >
+            {({ onChange }) => (
+              <InstructionSection
+                instruction={session.instruction}
+                onChange={onChange}
+                footer="This will completely replace the global system prompt."
+              />
+            )}
+          </OverrideSection>
         );
 
       case 'persona':
         return (
-          <SectionWrapper>
-            <OverrideSection
-              description="Personalization is following global settings."
-              checked={!!session.general.overridePersonalisation}
-              onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
-              onDataChange={(updates) => handleConfig({ personalisation: { ...session.personalisation, ...updates } })}
-            >
-              {({ onChange }) => <PersonalisationSection personalisation={session.personalisation} onChange={onChange} />}
-            </OverrideSection>
-          </SectionWrapper>
+          <OverrideSection
+            description="Personalization is following global settings."
+            checked={!!session.general.overridePersonalisation}
+            onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
+            onDataChange={(updates) => handleConfig({ personalisation: { ...session.personalisation, ...updates } })}
+          >
+            {({ onChange }) => <PersonalisationSection personalisation={session.personalisation} onChange={onChange} />}
+          </OverrideSection>
         );
     }
   };

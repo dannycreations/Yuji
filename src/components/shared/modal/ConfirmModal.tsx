@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 
 import { useStore, useStoreAction } from '../../../hooks/useStore';
+import { parseBoldText } from '../../../utilities/CommonUtil';
 import { Button } from '../Button';
 import { Modal } from './Modal';
 
@@ -19,11 +20,7 @@ export const ConfirmModal: FC = () => {
         <div className="modal-header">
           <h3 className="header-title">{title}</h3>
         </div>
-        <div className="confirm-modal-message">
-          {message
-            .split(/(\*\*.*?\*\*)/)
-            .map((part, i) => (part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part))}
-        </div>
+        <div className="confirm-modal-message">{parseBoldText(message)}</div>
       </div>
 
       <div className="confirm-modal-actions">

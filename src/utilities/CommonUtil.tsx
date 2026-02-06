@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export const randomString = (size: number): string => {
   return Math.random()
     .toString(36)
@@ -35,4 +37,21 @@ export const deepMerge = <A extends object, B = A>(target: A, source: B): A => {
   });
 
   return result;
+};
+
+export const parseBoldText = (text: string): (string | ReactNode)[] => {
+  return text.split(/(\*\*.*?\*\*)/).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
+export const downloadFile = (content: string, filename: string, type = 'text/plain') => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 };
