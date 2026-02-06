@@ -232,13 +232,11 @@ export const ChatServiceLive = Layer.effect(
             };
           });
 
-          yield* storage.saveMessage(sessionId, message);
-          // If parent changed, we need to update it in storage too
           const currentSession = (yield* SubscriptionRef.get(store.state)).sessions[sessionId];
           const parent = currentSession?.messages.find((m) => m.id === message.parentId);
-          if (parent) {
-            yield* storage.saveMessage(sessionId, parent);
-          }
+          const messagesToSave = parent ? [parent, message] : [message];
+
+          yield* storage.saveMessages(sessionId, messagesToSave);
         }),
 
       updateMessage: (sessionId, messageId, content, isError) =>

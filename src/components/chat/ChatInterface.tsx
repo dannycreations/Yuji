@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
 import { Effect } from 'effect';
+import { useEffect, useMemo } from 'react';
 
 import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/SessionHelper';

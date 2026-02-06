@@ -26,7 +26,6 @@ export interface StoreService {
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
 
-
 const createNotification = (
   type: 'error' | 'warning' | 'info' | 'success',
   message: string,
@@ -113,7 +112,7 @@ export const StoreServiceLive = Layer.effect(
       ),
     );
 
-    // Persistence Loop: Sessions (Headers)
+    // Persistence Loop: Sessions
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
@@ -121,14 +120,29 @@ export const StoreServiceLive = Layer.effect(
         Stream.changes,
         Stream.debounce('2 seconds'),
         Stream.runForEach((sessions) =>
-          Effect.all(Object.values(sessions).map((s) => storage.saveSession(s as any)), {
-            discard: true,
-          }),
+          Effect.all(
+            Object.values(sessions).map((s) => storage.saveSession(s)),
+            { discard: true },
+          ),
         ),
       ),
     );
 
-    const update = (f: (state: AppState) => AppState) => SubscriptionRef.update(state, f);
+    const update = (f: (state: AppState) => AppState) =>
+      SubscriptionRef.update(state, (s) => {
+        const next = f(s);
+        // If we switch active sessions, unload messages from other sessions
+        if (next.activeSessionId !== s.activeSessionId && next.activeSessionId !== null) {
+          const sessions = { ...next.sessions };
+          Object.keys(sessions).forEach((id) => {
+            if (id !== next.activeSessionId && sessions[id].messages.length > 0) {
+              sessions[id] = { ...sessions[id], messages: [] };
+            }
+          });
+          return { ...next, sessions };
+        }
+        return next;
+      });
 
     return StoreService.of({
       state,

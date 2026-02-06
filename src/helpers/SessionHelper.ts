@@ -1,13 +1,22 @@
 import type { ChatSession, Message } from '../app/Schema';
 
 export const getMessagePath = (session: ChatSession, messageId: string): ReadonlyArray<Message> => {
-  const findPath = (currId: string): ReadonlyArray<Message> => {
-    const msg = session.messages.find((m) => m.id === currId);
-    if (!msg) return [];
-    return msg.parentId ? [...findPath(msg.parentId), msg] : [msg];
-  };
+  if (!session.messages || session.messages.length === 0) return [];
 
-  return findPath(messageId);
+  const messageMap = new Map<string, Message>();
+  session.messages.forEach((m) => messageMap.set(m.id, m));
+
+  const path: Message[] = [];
+  let currentId: string | undefined = messageId;
+
+  while (currentId) {
+    const msg = messageMap.get(currentId);
+    if (!msg) break;
+    path.unshift(msg);
+    currentId = msg.parentId;
+  }
+
+  return path;
 };
 
 export const groupSessions = (

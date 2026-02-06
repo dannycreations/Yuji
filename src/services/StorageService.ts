@@ -13,6 +13,7 @@ export interface StorageService {
 
   readonly getMessages: (sessionId: string) => Effect.Effect<ReadonlyArray<Message>>;
   readonly saveMessage: (sessionId: string, message: Message) => Effect.Effect<void>;
+  readonly saveMessages: (sessionId: string, messages: ReadonlyArray<Message>) => Effect.Effect<void>;
   readonly deleteMessages: (sessionId: string) => Effect.Effect<void>;
 }
 
@@ -98,6 +99,17 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           yield* Effect.promise(() => db.put(STORES.MESSAGES, { ...message, sessionId }));
+        }),
+
+      saveMessages: (sessionId, messages) =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          const tx = db.transaction(STORES.MESSAGES, 'readwrite');
+          yield* Effect.all(
+            messages.map((m) => Effect.promise(() => tx.store.put({ ...m, sessionId }))),
+            { discard: true },
+          );
+          yield* Effect.promise(() => tx.done);
         }),
 
       deleteMessages: (sessionId) =>
