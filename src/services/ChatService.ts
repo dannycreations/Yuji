@@ -19,6 +19,7 @@ export interface ChatService {
     messageId: string,
     content: string,
     isError?: boolean,
+    skipUpdateTimestamp?: boolean,
   ) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (sessionId: string, messageId: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
@@ -101,16 +102,37 @@ export const ChatServiceLive = Layer.effect(
         });
       });
 
+    const updateSessionFull = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
+      Effect.gen(function* () {
+        const state = yield* SubscriptionRef.get(store.state);
+        if (state.activeSessionId === sessionId && state.activeSession) {
+          return yield* updateActiveSession((session, now) => {
+            const updated = f(session, now);
+            return skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+          });
+        } else {
+          const session = yield* storage.getSession(sessionId);
+          if (!session) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+          const now = Date.now();
+          const updated = f(session, now);
+          const finalUpdated = skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+          yield* storage.saveSession(finalUpdated);
+          return yield* updateSession(sessionId, () => getMetadataFromSession(finalUpdated));
+        }
+      });
+
     const stop = (sessionId?: string) =>
-      Effect.sync(() => {
+      Effect.gen(function* () {
         if (sessionId) {
           const fiber = fibers.get(sessionId);
           if (fiber) {
-            Effect.runFork(Fiber.interrupt(fiber));
+            yield* Fiber.interrupt(fiber);
             fibers.delete(sessionId);
           }
         } else {
-          fibers.forEach((fiber) => Effect.runFork(Fiber.interrupt(fiber)));
+          for (const fiber of fibers.values()) {
+            yield* Fiber.interrupt(fiber);
+          }
           fibers.clear();
         }
       });
@@ -142,12 +164,11 @@ export const ChatServiceLive = Layer.effect(
         const streamEffect = Effect.gen(function* () {
           yield* chatService.addMessage(sessionId, assistantMessage);
 
-          const currentState = yield* SubscriptionRef.get(store.state);
-          const activeSession = currentState.activeSession;
-          if (!activeSession) return;
+          const session = yield* storage.getSession(sessionId);
+          if (!session) return;
 
-          const systemPrompt = synthesizeSystemPrompt(settings, activeSession);
-          const model = activeSession.general.model || settings.model;
+          const systemPrompt = synthesizeSystemPrompt(settings, session);
+          const model = session.general.model || settings.model;
 
           const stream = yield* llm.streamCompletion(
             messagesToProcess,
@@ -164,9 +185,11 @@ export const ChatServiceLive = Layer.effect(
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {
               fullContent += token;
-              yield* chatService.updateMessage(sessionId, id, fullContent);
+              yield* chatService.updateMessage(sessionId, id, fullContent, false, true);
             }),
           );
+          // Update timestamp once when stream is finished
+          yield* chatService.updateSession(sessionId, (s) => s);
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
@@ -240,6 +263,7 @@ export const ChatServiceLive = Layer.effect(
 
       deleteSession: (id) =>
         Effect.gen(function* () {
+          yield* stop(id);
           yield* store.update((state) => {
             const { [id]: _, ...rest } = state.sessions;
             const newActiveId = state.activeSessionId === id ? null : state.activeSessionId;
@@ -251,9 +275,7 @@ export const ChatServiceLive = Layer.effect(
       addMessage: (sessionId, message) =>
         Effect.gen(function* () {
           let messagesToSave: Message[] = [message];
-          yield* updateActiveSession((session) => {
-            if (session.id !== sessionId) return session;
-
+          yield* updateSessionFull(sessionId, (session) => {
             const messages = { ...session.messages };
             let parent: Message | undefined;
 
@@ -284,22 +306,25 @@ export const ChatServiceLive = Layer.effect(
           yield* storage.saveMessages(sessionId, messagesToSave);
         }),
 
-      updateMessage: (sessionId, messageId, content, isError) =>
+      updateMessage: (sessionId, messageId, content, isError, skipUpdateTimestamp) =>
         Effect.gen(function* () {
           let updatedMessage: Message | undefined;
-          yield* updateActiveSession((session) => {
-            if (session.id !== sessionId) return session;
-            const msg = session.messages[messageId];
-            if (!msg) return session;
-            updatedMessage = { ...msg, content, isError };
-            return {
-              ...session,
-              messages: {
-                ...session.messages,
-                [messageId]: updatedMessage!,
-              },
-            };
-          });
+          yield* updateSessionFull(
+            sessionId,
+            (session) => {
+              const msg = session.messages[messageId];
+              if (!msg) return session;
+              updatedMessage = { ...msg, content, isError };
+              return {
+                ...session,
+                messages: {
+                  ...session.messages,
+                  [messageId]: updatedMessage!,
+                },
+              };
+            },
+            skipUpdateTimestamp,
+          );
 
           if (!updatedMessage) {
             yield* Effect.fail(new MessageNotFoundError({ messageId }));
@@ -313,8 +338,7 @@ export const ChatServiceLive = Layer.effect(
           let messageToDelete: Message | undefined;
           let updatedParent: Message | undefined;
 
-          yield* updateActiveSession((session) => {
-            if (session.id !== sessionId) return session;
+          yield* updateSessionFull(sessionId, (session) => {
             messageToDelete = session.messages[messageId];
             if (!messageToDelete) return session;
 
@@ -359,20 +383,23 @@ export const ChatServiceLive = Layer.effect(
 
       getSessionPath: (sessionId, messageId) =>
         Effect.gen(function* () {
-          const { activeSession } = yield* SubscriptionRef.get(store.state);
-          if (!activeSession || activeSession.id !== sessionId) {
-            yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-            return [];
+          const state = yield* SubscriptionRef.get(store.state);
+          const session = state.activeSessionId === sessionId && state.activeSession ? state.activeSession : yield* storage.getSession(sessionId);
+
+          if (!session) {
+            return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
           }
 
-          return getMessagePath(activeSession, messageId);
+          return getMessagePath(session, messageId);
         }),
 
       branchChat: (sessionId, messageId) =>
         Effect.gen(function* () {
-          const currentState = yield* SubscriptionRef.get(store.state);
-          const sourceSession = currentState.activeSession;
-          if (!sourceSession || sourceSession.id !== sessionId) {
+          const state = yield* SubscriptionRef.get(store.state);
+          const sourceSession =
+            state.activeSessionId === sessionId && state.activeSession ? state.activeSession : yield* storage.getSession(sessionId);
+
+          if (!sourceSession) {
             return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
           }
           const targetMessage = sourceSession.messages[messageId];
@@ -408,6 +435,44 @@ export const ChatServiceLive = Layer.effect(
           return newSession;
         }),
     });
+
+    // Handle session resumption
+    yield* Effect.gen(function* () {
+      const state = yield* SubscriptionRef.get(store.state);
+      for (const sessionId of state.backgroundSessionIds) {
+        const session = yield* storage.getSession(sessionId);
+        if (!session) continue;
+
+        const messages = Object.values(session.messages).sort((a, b) => b.timestamp - a.timestamp);
+        const lastMessage = messages[0];
+        const lastUserMessage = messages.find((m) => m.role === 'user');
+
+        if (lastMessage && lastUserMessage) {
+          if (lastMessage.role === 'assistant' && !lastMessage.isError) {
+            // It was an assistant message (empty or partial) that was interrupted
+            yield* chatService.deleteMessage(sessionId, lastMessage.id);
+            const path = getMessagePath(session, lastUserMessage.id);
+            yield* chatService.generate(sessionId, path);
+          } else if (lastMessage.role === 'user') {
+            // It was a user message that hadn't triggered generate yet
+            const path = getMessagePath(session, lastMessage.id);
+            yield* chatService.generate(sessionId, path);
+          } else {
+            // Clear stale loading state for finished or errored messages
+            yield* store.update((s) => ({
+              ...s,
+              backgroundSessionIds: s.backgroundSessionIds.filter((id) => id !== sessionId),
+            }));
+          }
+        } else {
+          // No valid state to resume
+          yield* store.update((s) => ({
+            ...s,
+            backgroundSessionIds: s.backgroundSessionIds.filter((id) => id !== sessionId),
+          }));
+        }
+      }
+    }).pipe(Effect.forkDaemon);
 
     return chatService;
   }),
