@@ -12,25 +12,3 @@ export const getModelName = (availableModels: readonly Model[], modelId: string)
   if (!model) return 'Yuji';
   return model.name === model.id ? model.name : toTitleCase(model.name);
 };
-
-export const getEffectiveModelId = (
-  settings: AppRuntimeState['settings'],
-  availableModels: readonly Model[],
-  activeSession: AppRuntimeState['activeSession'],
-): string => {
-  const sessionModelId = activeSession?.general?.model;
-
-  if (sessionModelId && !settings.disabledModels.includes(sessionModelId)) {
-    return sessionModelId;
-  }
-
-  return getModelId(settings, availableModels);
-};
-
-export const getEffectiveModelName = (
-  settings: AppRuntimeState['settings'],
-  availableModels: readonly Model[],
-  activeSession: AppRuntimeState['activeSession'],
-): string => {
-  return getModelName(availableModels, getEffectiveModelId(settings, availableModels, activeSession));
-};

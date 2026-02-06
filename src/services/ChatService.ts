@@ -1,7 +1,7 @@
 import { Context, Effect, Fiber, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
-import { LLMProviderError, MessageNotFoundError, SessionNotFoundError } from '../app/Error';
+import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
 import { AppRuntimeState, ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
 import { getModelId } from '../helpers/ModelHelper';
 import { getMessagePath } from '../helpers/SessionHelper';
@@ -45,32 +45,30 @@ export const ChatServiceLive = Layer.effect(
     const llm = yield* LLMProvider;
     const fibers = new Map<string, Fiber.Fiber<void, SessionNotFoundError | MessageNotFoundError>>();
 
-    const updateSessionState = (sessionId: string, f: (state: AppRuntimeState, now: number) => { state: AppRuntimeState; sessionFound: boolean }) =>
+    const updateSessionState = (
+      sessionId: string,
+      f: (state: AppRuntimeState, now: number) => { state: AppRuntimeState; sessionFound: boolean; sessionToSave?: ChatSession | ChatMetadata },
+    ) =>
       Effect.gen(function* () {
         const now = Date.now();
+        let sessionToSave: ChatSession | ChatMetadata | undefined;
         let found = false;
+
         yield* store.update((state) => {
           const result = f(state, now);
           found = result.sessionFound;
+          sessionToSave = result.sessionToSave;
           return result.state;
         });
 
-        if (!found) {
-          yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-        } else {
-          const s = yield* SubscriptionRef.get(store.state);
-          const session = s.activeSessionId === sessionId && s.activeSession ? s.activeSession : s.sessions[sessionId];
-          if (session) {
-            // If it's a metadata, we might lose full data if we save it as session.
-            // But ChatService operations always maintain consistency.
-            yield* storage.saveSession(session);
-          }
-        }
+        if (!found) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+        if (sessionToSave) yield* storage.saveSession(sessionToSave);
       }).pipe(
         Effect.catchAll((err) => {
           if (err instanceof SessionNotFoundError) return Effect.fail(err);
+          const msg = (err as { message: string })?.message || String(err);
           return Effect.gen(function* () {
-            yield* store.notify('error', `Failed to update session: ${err}`);
+            yield* store.notify('error', `Failed to update session: ${msg}`);
             return yield* Effect.fail(err);
           });
         }),
@@ -81,20 +79,16 @@ export const ChatServiceLive = Layer.effect(
         const session = state.sessions[sessionId];
         if (!session) return { state, sessionFound: false };
         const updated = { ...f(session, now), updatedAt: now };
-        const nextState = {
-          ...state,
-          sessions: { ...state.sessions, [sessionId]: updated },
-        };
-        if (state.activeSessionId === sessionId && state.activeSession && state.activeSession.id === sessionId) {
+        const nextState = { ...state, sessions: { ...state.sessions, [sessionId]: updated } };
+        if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
           nextState.activeSession = { ...state.activeSession, ...updated };
         }
-        return { state: nextState, sessionFound: true };
+        return { state: nextState, sessionFound: true, sessionToSave: updated };
       });
 
     const updateActiveSession = (f: (session: ChatSession, now: number) => ChatSession) =>
       Effect.gen(function* () {
-        const state = yield* SubscriptionRef.get(store.state);
-        const activeId = state.activeSessionId;
+        const activeId = (yield* SubscriptionRef.get(store.state)).activeSessionId;
         if (!activeId) return yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
         return yield* updateSessionState(activeId, (s, now) => {
           if (!s.activeSession || s.activeSession.id !== activeId) return { state: s, sessionFound: false };
@@ -103,12 +97,10 @@ export const ChatServiceLive = Layer.effect(
             state: {
               ...s,
               activeSession: updated,
-              sessions: {
-                ...s.sessions,
-                [updated.id]: Schema.decodeSync(ChatMetadata)(updated),
-              },
+              sessions: { ...s.sessions, [updated.id]: Schema.decodeSync(ChatMetadata)(updated) },
             },
             sessionFound: true,
+            sessionToSave: updated,
           };
         });
       });
@@ -116,11 +108,9 @@ export const ChatServiceLive = Layer.effect(
     const updateSessionFull = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
-        const isActive = state.activeSessionId === sessionId && state.activeSession;
-
-        if (isActive) {
-          return yield* updateActiveSession((session, now) => {
-            const updated = f(session, now);
+        if (state.activeSessionId === sessionId && state.activeSession) {
+          return yield* updateActiveSession((s, now) => {
+            const updated = f(s, now);
             return skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
           });
         }
@@ -207,7 +197,7 @@ export const ChatServiceLive = Layer.effect(
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
-              const msg = err instanceof LLMProviderError ? err.message : 'Unknown error';
+              const msg = (err as { message: string })?.message || String(err);
               yield* chatService.updateMessage(sessionId, id, `*[Error: ${msg}]*`, true);
               yield* store.notify('error', `Chat error: ${msg}`);
             }),

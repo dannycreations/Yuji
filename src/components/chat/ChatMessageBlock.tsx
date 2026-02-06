@@ -68,15 +68,11 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
 const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
   const theme = useStore((s) => s.settings.theme);
   const handleDownload = () => {
-    const blob = new Blob([value], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = URL.createObjectURL(new Blob([value], { type: 'text/plain' }));
     a.download = `code-${randomString(6)}.txt`;
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(a.href);
   };
 
   return (

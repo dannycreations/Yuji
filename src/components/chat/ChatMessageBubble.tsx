@@ -58,17 +58,15 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     setIsEditing(false);
   };
 
-  const showConfirm = useConfirm();
+  const onConfirm = useConfirm();
 
-  const handleDelete = () => {
-    showConfirm({
+  const handleDelete = () =>
+    onConfirm({
       title: 'Delete Message',
       message: 'Are you sure you want to delete this message?',
       confirmLabel: 'Delete',
-      variant: 'danger',
       onConfirm: () => handleDeleteMessage(sessionId, message.id),
     });
-  };
 
   const markdownComponents = useMemo<Components>(
     () => ({
@@ -151,7 +149,13 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
               <div className="message-actions">
                 {siblings.length > 1 && (
                   <div className="message-branch-navigation">
-                    <Button variant="ghost" size="icon" disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={currentIndex === 0}
+                      onClick={() => handleSwitch(siblings[currentIndex - 1])}
+                      title="Previous Version"
+                    >
                       <Icon name="ChevronLeft" size={16} />
                     </Button>
                     <span className="message-branch-indicator">
@@ -164,6 +168,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                       size="icon"
                       disabled={currentIndex === siblings.length - 1}
                       onClick={() => handleSwitch(siblings[currentIndex + 1])}
+                      title="Next Version"
                     >
                       <Icon name="ChevronRight" size={16} />
                     </Button>

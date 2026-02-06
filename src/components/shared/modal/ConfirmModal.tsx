@@ -1,7 +1,6 @@
 import { Effect } from 'effect';
 
-import { useStore, useStoreEffect } from '../../../hooks/useStore';
-import { StoreService } from '../../../services/StoreService';
+import { useStore, useStoreAction } from '../../../hooks/useStore';
 import { Button } from '../Button';
 import { Modal } from './Modal';
 
@@ -11,25 +10,8 @@ export const ConfirmModal: FC = () => {
   const confirm = useStore((s) => s.confirm);
   const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger', isOpen } = confirm;
 
-  const onCancel = useStoreEffect(() =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      if (id) yield* store.clearConfirm(id);
-      yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-    }),
-  );
-
-  const onConfirm = useStoreEffect(() =>
-    Effect.gen(function* () {
-      const store = yield* StoreService;
-      if (id) {
-        const onConfirm = yield* store.getOnConfirm(id);
-        if (onConfirm) onConfirm();
-        yield* store.clearConfirm(id);
-      }
-      yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-    }),
-  );
+  const onCancel = useStoreAction((s) => s.update((prev) => ({ ...prev, confirm: { ...prev.confirm, isOpen: false } })));
+  const onConfirm = useStoreAction((s) => (id ? s.executeConfirm(id) : Effect.void));
 
   return (
     <Modal isOpen={isOpen} onClose={onCancel} containerClassName="confirm-modal-container">

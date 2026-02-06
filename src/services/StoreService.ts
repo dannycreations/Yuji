@@ -9,14 +9,13 @@ export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
   readonly getSnapshot: () => AppRuntimeState;
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void>;
+  readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void>;
   readonly setActiveSession: (sessionOrId: ChatSession | string | null) => Effect.Effect<void>;
   readonly updateSetting: (updates: Partial<AppRuntimeState['settings']>) => Effect.Effect<void>;
-  readonly toggleSidebar: () => Effect.Effect<void>;
-  readonly toggleSetting: () => Effect.Effect<void>;
+  readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void>;
   readonly togglePin: (sessionId: string) => Effect.Effect<void>;
   readonly setConfirm: (options: Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void }) => Effect.Effect<void>;
-  readonly getOnConfirm: (id: string) => Effect.Effect<(() => void) | undefined>;
-  readonly clearConfirm: (id: string) => Effect.Effect<void>;
+  readonly executeConfirm: (id: string) => Effect.Effect<void>;
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
   readonly clearNotification: (id: string) => Effect.Effect<void>;
   readonly loadMessages: (sessionId: string) => Effect.Effect<void>;
@@ -114,6 +113,7 @@ export const StoreServiceLive = Layer.effect(
       state,
       getSnapshot: () => SubscriptionRef.get(state).pipe(Effect.runSync),
       update,
+      patch: (updates) => update((s) => ({ ...s, ...updates })),
       setActiveSession: (activeSessionOrId) =>
         update((s) => {
           if (!activeSessionOrId) return { ...s, activeSessionId: null, activeSession: null };
@@ -124,8 +124,7 @@ export const StoreServiceLive = Layer.effect(
           return { ...s, activeSessionId: id, activeSession: session };
         }),
       updateSetting: (updates) => update((s) => ({ ...s, settings: { ...s.settings, ...updates } })),
-      toggleSidebar: () => update((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen })),
-      toggleSetting: () => update((s) => ({ ...s, isSettingOpen: !s.isSettingOpen })),
+      toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
       togglePin: (sessionId) =>
         update((s) => {
           const isPinned = s.pinnedSessionIds.includes(sessionId);
@@ -137,17 +136,15 @@ export const StoreServiceLive = Layer.effect(
           const { onConfirm, ...rest } = options;
           const id = randomString(8);
           OnConfirmStore.set(id, onConfirm);
-          yield* update((s) => ({
-            ...s,
-            confirm: {
-              ...rest,
-              id,
-              isOpen: true,
-            },
-          }));
+          yield* update((s) => ({ ...s, confirm: { ...rest, id, isOpen: true } }));
         }),
-      getOnConfirm: (id) => Effect.sync(() => OnConfirmStore.get(id)),
-      clearConfirm: (id) => Effect.sync(() => OnConfirmStore.delete(id)),
+      executeConfirm: (id) =>
+        Effect.gen(function* () {
+          const onConfirm = OnConfirmStore.get(id);
+          if (onConfirm) onConfirm();
+          OnConfirmStore.delete(id);
+          yield* update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+        }),
       notify: (type, message) =>
         update((s) => ({
           ...s,

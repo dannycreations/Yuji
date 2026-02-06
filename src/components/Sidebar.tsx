@@ -24,7 +24,6 @@ export const Sidebar: FC = () => {
   const setActiveSession = useStoreAction((s, id: string | null) => s.setActiveSession(id));
   const toggleSidebar = useToggleSidebar();
   const toggleSetting = useToggleSetting();
-
   const showConfirm = useConfirm();
 
   const { handleCreateSession, handleDeleteSession, handleTogglePin } = useChatAction();
@@ -171,45 +170,45 @@ export const Sidebar: FC = () => {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            className="dropdown-item !text-text-primary"
-            onClick={() => {
-              handleTogglePin(menuOpenId);
-              setMenuOpenId(null);
-              setMenuPosition(null);
-            }}
-          >
-            <Icon name="Pin" size={16} className={clsx('text-text-tertiary', pinnedSessionIds.includes(menuOpenId) && 'rotate-45')} />
-            <span className="flex-1 text-left">{pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}</span>
-          </button>
-          <button
-            className="dropdown-item !text-text-primary"
-            onClick={() => {
-              setSettingsOpenId(menuOpenId);
-              setMenuOpenId(null);
-              setMenuPosition(null);
-            }}
-          >
-            <Icon name="Settings" size={16} className="text-text-tertiary" />
-            <span className="flex-1 text-left">Settings</span>
-          </button>
-          <button
-            className="dropdown-item danger"
-            onClick={() => {
-              showConfirm({
-                title: 'Delete chat?',
-                message: `This will delete **${menuSessionMetadata?.title}** permanently.`,
-                confirmLabel: 'Delete',
-                onConfirm: () => handleDeleteSession(menuOpenId),
-                variant: 'danger',
-              });
-              setMenuOpenId(null);
-              setMenuPosition(null);
-            }}
-          >
-            <Icon name="Trash2" size={16} />
-            <span className="flex-1 text-left">Delete</span>
-          </button>
+          {[
+            {
+              icon: 'Pin',
+              label: pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin',
+              onClick: () => handleTogglePin(menuOpenId),
+              className: pinnedSessionIds.includes(menuOpenId) && 'rotate-45',
+            },
+            {
+              icon: 'Settings',
+              label: 'Settings',
+              onClick: () => setSettingsOpenId(menuOpenId),
+            },
+            {
+              icon: 'Trash2',
+              label: 'Delete',
+              variant: 'danger',
+              onClick: () =>
+                showConfirm({
+                  title: 'Delete chat?',
+                  message: `This will delete **${menuSessionMetadata?.title}** permanently.`,
+                  confirmLabel: 'Delete',
+                  onConfirm: () => handleDeleteSession(menuOpenId),
+                  variant: 'danger',
+                }),
+            },
+          ].map((item, idx) => (
+            <button
+              key={idx}
+              className={clsx('dropdown-item', item.variant === 'danger' ? 'danger' : '!text-text-primary')}
+              onClick={() => {
+                item.onClick();
+                setMenuOpenId(null);
+                setMenuPosition(null);
+              }}
+            >
+              <Icon name={item.icon} size={16} className={clsx(item.variant !== 'danger' && 'text-text-tertiary', item.className)} />
+              <span className="flex-1 text-left">{item.label}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

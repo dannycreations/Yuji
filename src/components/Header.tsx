@@ -2,9 +2,9 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { getEffectiveModelId, getEffectiveModelName, getModelName } from '../helpers/ModelHelper';
+import { getModelId, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useStore, useStoreEffect, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
+import { useStore, useStoreAction, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
@@ -86,26 +86,27 @@ export const Header: FC = () => {
   const toggleSidebar = useToggleSidebar();
   const updateSetting = useUpdateSetting();
 
-  const setSessionModel = useStoreEffect((model: string) =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.updateActiveSession((s) => ({
+  const setSessionModel = useStoreAction((_, model: string) =>
+    Effect.flatMap(ChatService, (chat) =>
+      chat.updateActiveSession((s) => ({
         ...s,
         general: { ...s.general, model },
-      }));
-    }),
+      })),
+    ),
   );
 
-  const sessionModel = activeSession?.general?.model;
+  const currentModelId = useMemo(() => {
+    const sessionModelId = activeSession?.general?.model;
+    if (sessionModelId && !settings.disabledModels.includes(sessionModelId)) {
+      return sessionModelId;
+    }
+    return getModelId(settings, availableModels);
+  }, [settings, availableModels, activeSession]);
 
-  const { currentModelId, currentModelName } = useMemo(() => {
-    const id = getEffectiveModelId(settings, availableModels, activeSession);
-    const name = optimisticModelId
-      ? getModelName(availableModels, optimisticModelId)
-      : getEffectiveModelName(settings, availableModels, activeSession);
-
-    return { currentModelId: id, currentModelName: name };
-  }, [availableModels, settings.model, settings.disabledModels, sessionModel, optimisticModelId, activeSession]);
+  const currentModelName = useMemo(() => {
+    const id = optimisticModelId || currentModelId;
+    return getModelName(availableModels, id);
+  }, [availableModels, currentModelId, optimisticModelId]);
 
   const handleModelSelect = (modelId: string) => {
     // 1. Immediate UI feedback (High Priority)
