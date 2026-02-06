@@ -1,11 +1,11 @@
 import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
-import { AppStoreState, MODELS } from '../app/Schema';
-import { deepMerge, randomString } from '../utilities/CommonUtil';
+import { MODELS } from '../app/Schema';
+import { randomString } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
-import type { AppState, ConfirmState } from '../app/Schema';
+import type { AppState, ChatSession, ConfirmState, Message } from '../app/Schema';
 
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppState>;
@@ -21,11 +21,11 @@ export interface StoreService {
   readonly clearConfirm: (id: string) => Effect.Effect<void>;
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
   readonly clearNotification: (id: string) => Effect.Effect<void>;
+  readonly loadMessages: (sessionId: string) => Effect.Effect<void>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
 
-const STORAGE_KEY = 'yuji-storage';
 
 const createNotification = (
   type: 'error' | 'warning' | 'info' | 'success',
@@ -72,19 +72,24 @@ export const StoreServiceLive = Layer.effect(
     const storage = yield* StorageService;
 
     const loadState = Effect.gen(function* () {
-      const stored = yield* storage.getItem(STORAGE_KEY);
-      if (stored) {
-        return yield* Effect.try({
-          try: () => JSON.parse(stored),
-          catch: () => ({}),
-        }).pipe(
-          Effect.flatMap((json) =>
-            Schema.decodeUnknown(AppStoreState)(deepMerge(INITIAL_STATE, json)).pipe(
-              Effect.map((parsed) => ({ ...INITIAL_STATE, ...parsed, isHydrated: true })),
-              Effect.orElseSucceed(() => ({ ...INITIAL_STATE, isHydrated: true })),
-            ),
-          ),
-        );
+      const metadata = yield* storage.getMetadata();
+      const sessionHeaders = yield* storage.getSessions();
+
+      if (metadata) {
+        const sessionsMap: Record<string, ChatSession> = {};
+        for (const header of sessionHeaders) {
+          sessionsMap[header.id] = { ...header, messages: [] };
+        }
+
+        return {
+          ...INITIAL_STATE,
+          activeSessionId: metadata.activeSessionId,
+          settings: metadata.settings,
+          pinnedSessionIds: metadata.pinnedSessionIds,
+          backgroundSessionIds: metadata.backgroundSessionIds,
+          sessions: sessionsMap,
+          isHydrated: true,
+        };
       }
       return { ...INITIAL_STATE, isHydrated: true };
     });
@@ -92,50 +97,34 @@ export const StoreServiceLive = Layer.effect(
     const initialState = yield* loadState;
     const state = yield* SubscriptionRef.make(initialState);
 
+    // Persistence Loop: Metadata
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
+        Stream.map((s) => ({
+          activeSessionId: s.activeSessionId,
+          settings: s.settings,
+          pinnedSessionIds: s.pinnedSessionIds,
+          backgroundSessionIds: s.backgroundSessionIds,
+        })),
+        Stream.changes,
         Stream.debounce('1 seconds'),
-        Stream.runForEach((s) => {
-          const sanitizedSessions = Object.fromEntries(
-            Object.entries(s.sessions).map(([id, session]) => {
-              const validMessages = session.messages.filter((m) => !m.isError);
-              const validIds = new Set(validMessages.map((m) => m.id));
+        Stream.runForEach((meta) => storage.saveMetadata(meta)),
+      ),
+    );
 
-              const cleanedMessages = validMessages.map((m) => ({
-                ...m,
-                childrenIds: m.childrenIds?.filter((childId) => validIds.has(childId)),
-              }));
-
-              const activeMessageId =
-                session.activeMessageId && validIds.has(session.activeMessageId)
-                  ? session.activeMessageId
-                  : cleanedMessages.length > 0
-                    ? cleanedMessages[cleanedMessages.length - 1].id
-                    : undefined;
-
-              return [
-                id,
-                {
-                  ...session,
-                  messages: cleanedMessages,
-                  activeMessageId,
-                },
-              ];
-            }),
-          );
-
-          const sanitizedState = { ...s, sessions: sanitizedSessions };
-          return Schema.encode(Schema.parseJson(AppStoreState))(sanitizedState).pipe(
-            Effect.flatMap((json) => storage.setItem(STORAGE_KEY, json)),
-            Effect.catchAll((err) =>
-              SubscriptionRef.update(state, (curr) => ({
-                ...curr,
-                notifications: createNotification('error', `Failed to save state: ${err}`, curr.notifications),
-              })),
-            ),
-          );
-        }),
+    // Persistence Loop: Sessions (Headers)
+    yield* Effect.forkDaemon(
+      state.changes.pipe(
+        Stream.drop(1),
+        Stream.map((s) => s.sessions),
+        Stream.changes,
+        Stream.debounce('2 seconds'),
+        Stream.runForEach((sessions) =>
+          Effect.all(Object.values(sessions).map((s) => storage.saveSession(s as any)), {
+            discard: true,
+          }),
+        ),
       ),
     );
 
@@ -174,6 +163,23 @@ export const StoreServiceLive = Layer.effect(
           ...s,
           notifications: s.notifications.filter((n) => n.id !== id),
         })),
+      loadMessages: (sessionId) =>
+        Effect.gen(function* () {
+          const currentState = yield* SubscriptionRef.get(state);
+          if (currentState.sessions[sessionId]?.messages.length > 0) return;
+
+          const messages = yield* storage.getMessages(sessionId);
+          yield* update((s) => ({
+            ...s,
+            sessions: {
+              ...s.sessions,
+              [sessionId]: {
+                ...s.sessions[sessionId],
+                messages: messages as Message[],
+              },
+            },
+          }));
+        }),
     });
   }),
 );

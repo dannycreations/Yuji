@@ -5,6 +5,7 @@ import { LLMProviderError, MessageNotFoundError, SessionNotFoundError } from '..
 import { getModelId } from '../helpers/ModelHelper';
 import { getMessagePath } from '../helpers/SessionHelper';
 import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
+import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
 
 import type { ChatSession, Message } from '../app/Schema';
@@ -34,6 +35,7 @@ export const ChatServiceLive = Layer.effect(
   ChatService,
   Effect.gen(function* () {
     const store = yield* StoreService;
+    const storage = yield* StorageService;
     const llm = yield* LLMProvider;
     const fibers = new Map<string, Fiber.Fiber<void, any>>();
 
@@ -201,65 +203,88 @@ export const ChatServiceLive = Layer.effect(
         }),
 
       deleteSession: (id) =>
-        store.update((state) => {
-          const { [id]: _, ...rest } = state.sessions;
-          const newActiveId = state.activeSessionId === id ? null : state.activeSessionId;
-          return { ...state, sessions: rest, activeSessionId: newActiveId };
+        Effect.gen(function* () {
+          yield* store.update((state) => {
+            const { [id]: _, ...rest } = state.sessions;
+            const newActiveId = state.activeSessionId === id ? null : state.activeSessionId;
+            return { ...state, sessions: rest, activeSessionId: newActiveId };
+          });
+          yield* storage.deleteSession(id);
         }),
 
       addMessage: (sessionId, message) =>
-        updateSession(sessionId, (session) => {
-          const messages = session.messages.map((m) =>
-            m.id === message.parentId ? { ...m, childrenIds: [...(m.childrenIds || []), message.id] } : m,
-          );
+        Effect.gen(function* () {
+          yield* updateSession(sessionId, (session) => {
+            const messages = session.messages.map((m) =>
+              m.id === message.parentId ? { ...m, childrenIds: [...(m.childrenIds || []), message.id] } : m,
+            );
 
-          const title =
-            session.messages.length === 0 && message.role === 'user' && message.content
-              ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
-              : session.title;
+            const title =
+              session.messages.length === 0 && message.role === 'user' && message.content
+                ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
+                : session.title;
 
-          return {
-            ...session,
-            messages: [...messages, message],
-            activeMessageId: message.id,
-            title,
-          };
+            return {
+              ...session,
+              messages: [...messages, message],
+              activeMessageId: message.id,
+              title,
+            };
+          });
+
+          yield* storage.saveMessage(sessionId, message);
+          // If parent changed, we need to update it in storage too
+          const currentSession = (yield* SubscriptionRef.get(store.state)).sessions[sessionId];
+          const parent = currentSession?.messages.find((m) => m.id === message.parentId);
+          if (parent) {
+            yield* storage.saveMessage(sessionId, parent);
+          }
         }),
 
       updateMessage: (sessionId, messageId, content, isError) =>
         Effect.gen(function* () {
-          let messageFound = false;
+          let updatedMessage: Message | undefined;
           yield* updateSession(sessionId, (session) => {
-            if (!session.messages.some((m) => m.id === messageId)) {
-              return session;
-            }
-            messageFound = true;
+            const msg = session.messages.find((m) => m.id === messageId);
+            if (!msg) return session;
+            updatedMessage = { ...msg, content, isError };
             return {
               ...session,
-              messages: session.messages.map((m) => (m.id === messageId ? { ...m, content, isError } : m)),
+              messages: session.messages.map((m) => (m.id === messageId ? updatedMessage! : m)),
             };
           });
 
-          if (!messageFound) {
+          if (!updatedMessage) {
             yield* Effect.fail(new MessageNotFoundError({ messageId }));
+          } else {
+            yield* storage.saveMessage(sessionId, updatedMessage);
           }
         }),
 
       deleteMessage: (sessionId, messageId) =>
-        updateSession(sessionId, (session) => {
-          const messageToDelete = session.messages.find((m) => m.id === messageId);
-          if (!messageToDelete) return session;
+        Effect.gen(function* () {
+          yield* updateSession(sessionId, (session) => {
+            const messageToDelete = session.messages.find((m) => m.id === messageId);
+            if (!messageToDelete) return session;
 
-          const newMessages = session.messages
-            .filter((m) => m.id !== messageId)
-            .map((m) => (m.id === messageToDelete.parentId ? { ...m, childrenIds: m.childrenIds?.filter((id) => id !== messageId) } : m));
+            const newMessages = session.messages
+              .filter((m) => m.id !== messageId)
+              .map((m) => (m.id === messageToDelete.parentId ? { ...m, childrenIds: m.childrenIds?.filter((id) => id !== messageId) } : m));
 
-          let activeMessageId = session.activeMessageId;
-          if (activeMessageId === messageId) {
-            activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
+            let activeMessageId = session.activeMessageId;
+            if (activeMessageId === messageId) {
+              activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
+            }
+
+            return { ...session, messages: newMessages, activeMessageId };
+          });
+          // Note: In a production app, we'd recursively delete children or handle orphaning.
+          // For now, we perform a simpler deletion consistent with previous behavior but in IDB.
+          const session = (yield* SubscriptionRef.get(store.state)).sessions[sessionId];
+          yield* storage.deleteMessages(sessionId);
+          for (const m of session.messages) {
+            yield* storage.saveMessage(sessionId, m);
           }
-
-          return { ...session, messages: newMessages, activeMessageId };
         }),
 
       renameSession: (sessionId, title) => updateSession(sessionId, (session) => ({ ...session, title })),

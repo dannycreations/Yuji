@@ -1,9 +1,11 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
+import { Effect } from 'effect';
 
 import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/SessionHelper';
 import { useChatAction } from '../../hooks/useChatAction';
-import { useStore } from '../../hooks/useStore';
+import { useStore, useStoreEffect } from '../../hooks/useStore';
+import { StoreService } from '../../services/StoreService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
@@ -18,6 +20,19 @@ export const ChatInterface: FC = () => {
   const userName = useStore((s) => s.settings.personalisation.userName);
 
   const { isLoading, handleSend, handleRegenerate, handleEdit, stop: handleStop } = useChatAction();
+
+  const loadMessages = useStoreEffect((id: string) =>
+    Effect.gen(function* () {
+      const s = yield* StoreService;
+      yield* s.loadMessages(id);
+    }),
+  );
+
+  useEffect(() => {
+    if (activeSessionId) {
+      loadMessages(activeSessionId);
+    }
+  }, [activeSessionId]);
 
   const visibleMessages = useMemo(
     () => (activeSession?.activeMessageId ? getMessagePath(activeSession, activeSession.activeMessageId) : activeSession?.messages || []),

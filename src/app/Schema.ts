@@ -12,11 +12,9 @@ export const ModelSchema = Schema.Struct({
   premium: Schema.optional(Schema.Boolean),
   isNew: Schema.optional(Schema.Boolean),
 });
-
 export type Model = Schema.Schema.Type<typeof ModelSchema>;
 
 export const Model = Data.tagged<Model>('Model');
-
 export const MODELS: ReadonlyArray<Model> = [
   Model({
     id: 'gpt-4o',
@@ -148,6 +146,20 @@ export const Notification = Schema.Struct({
   timestamp: Schema.Number,
 });
 export type Notification = Schema.Schema.Type<typeof Notification>;
+
+export const PersistedSession = Schema.Struct({
+  ...ChatSession.fields,
+  messages: Schema.optional(Schema.Array(Message)),
+});
+export type PersistedSession = Schema.Schema.Type<typeof PersistedSession>;
+
+export const StorageMetadata = Schema.Struct({
+  activeSessionId: Schema.NullOr(Schema.String),
+  settings: Settings,
+  pinnedSessionIds: Schema.Array(Schema.String),
+  backgroundSessionIds: Schema.Array(Schema.String),
+});
+export type StorageMetadata = Schema.Schema.Type<typeof StorageMetadata>;
 
 export const AppStoreState = Schema.Struct({
   sessions: Schema.Record({ key: Schema.String, value: ChatSession }),
