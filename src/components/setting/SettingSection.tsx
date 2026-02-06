@@ -3,10 +3,9 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { Model } from '../../app/Schema';
-import { getModelId } from '../../helpers/ModelHelper';
+import { getModelId, getModelName } from '../../helpers/ModelHelper';
 import { useConfirm, useStoreEffect, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
-import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
@@ -177,7 +176,7 @@ export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: read
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className={clsx('text-semibold text-sm', isEnabled ? 'text-text-primary' : 'text-text-tertiary')}>
-                      {toTitleCase(model.name)}
+                      {getModelName(availableModels, model.id)}
                     </span>
                     {effectiveModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
                     {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}

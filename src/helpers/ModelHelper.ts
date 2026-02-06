@@ -9,7 +9,8 @@ export const getModelId = (settings: AppRuntimeState['settings'], availableModel
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
   const model = availableModels.find((m) => m.id === modelId);
-  return model ? toTitleCase(model.name) : 'Yuji';
+  if (!model) return 'Yuji';
+  return model.name === model.id ? model.name : toTitleCase(model.name);
 };
 
 export const getEffectiveModelId = (

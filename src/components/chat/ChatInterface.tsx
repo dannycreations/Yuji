@@ -45,22 +45,13 @@ export const ChatInterface: FC = () => {
   );
 
   const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
+  const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
 
-  if (isTransitioning) {
-    return (
-      <div className="main-layout selection:bg-primary/20">
-        <Header />
-        <div className="chat-scroll-area" />
-        <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
-      </div>
-    );
-  }
-
-  if (!activeSession || Object.keys(activeSession.messages).length === 0) {
-    return (
-      <div className="main-layout selection:bg-primary/20">
-        <Header />
-        <div className="chat-scroll-area">
+  return (
+    <div className="main-layout selection:bg-primary/20">
+      <Header />
+      <div className="chat-scroll-area">
+        {isTransitioning ? null : isEmpty ? (
           <div className="chat-empty-container">
             <div className="mb-3 flex flex-col items-center w-full select-none">
               <div className="header-icon-wrapper">
@@ -83,29 +74,21 @@ export const ChatInterface: FC = () => {
               </div>
             )}
           </div>
-        </div>
-        <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="main-layout selection:bg-primary/20">
-      <Header />
-      <div className="chat-scroll-area">
-        <div className="message-list-container">
-          {visibleMessages.map((message, idx) => (
-            <ChatMessageBubble
-              key={message.id}
-              message={message}
-              sessionId={activeSession.id}
-              isLast={idx === visibleMessages.length - 1}
-              isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
-              onRegenerate={() => handleRegenerate(activeSession.id, message.id)}
-              onEdit={(newContent) => handleEdit(activeSession.id, message.id, newContent)}
-            />
-          ))}
-        </div>
+        ) : (
+          <div className="message-list-container">
+            {visibleMessages.map((message, idx) => (
+              <ChatMessageBubble
+                key={message.id}
+                message={message}
+                sessionId={activeSession.id}
+                isLast={idx === visibleMessages.length - 1}
+                isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
+                onRegenerate={() => handleRegenerate(activeSession.id, message.id)}
+                onEdit={(newContent) => handleEdit(activeSession.id, message.id, newContent)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />

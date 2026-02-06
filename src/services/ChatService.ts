@@ -23,6 +23,11 @@ export interface ChatService {
   readonly deleteMessage: (sessionId: string, messageId: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
   readonly updateSession: (sessionId: string, f: (session: ChatMetadata, now: number) => ChatMetadata) => Effect.Effect<void, SessionNotFoundError>;
+  readonly updateSessionFull: (
+    sessionId: string,
+    f: (session: ChatSession, now: number) => ChatSession,
+    skipUpdateTimestamp?: boolean,
+  ) => Effect.Effect<void, SessionNotFoundError>;
   readonly updateActiveSession: (f: (session: ChatSession, now: number) => ChatSession) => Effect.Effect<void, SessionNotFoundError>;
   readonly getSessionPath: (sessionId: string, messageId: string) => Effect.Effect<ReadonlyArray<ChatMessage>, SessionNotFoundError>;
   readonly branchChat: (sessionId: string, messageId: string) => Effect.Effect<ChatMetadata, SessionNotFoundError | MessageNotFoundError>;
@@ -229,6 +234,7 @@ export const ChatServiceLive = Layer.effect(
 
     const chatService: ChatService = ChatService.of({
       updateSession,
+      updateSessionFull,
       generate,
       stop,
       createSession: () =>

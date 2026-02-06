@@ -4,86 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+import { MERMAID_CONFIG } from '../../app/Constant';
 import { useCopy } from '../../hooks/useCopy';
 import { useStore } from '../../hooks/useStore';
 import { randomString } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
 import { MermaidFullscreenModal } from './MermaidFullscreenModal';
 
-import type { MermaidConfig } from 'mermaid';
 import type { FC } from 'react';
-
-const getMermaidConfig = (theme: 'dark' | 'light'): MermaidConfig => ({
-  startOnLoad: false,
-  theme: 'base',
-  fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-  themeVariables:
-    theme === 'dark'
-      ? {
-          fontSize: '14px',
-          primaryColor: '#2f2f2f',
-          primaryTextColor: '#ececec',
-          primaryBorderColor: '#424242',
-          lineColor: '#71717a',
-          secondaryColor: '#171717',
-          tertiaryColor: '#212121',
-          mainBkg: '#2f2f2f',
-          nodeBorder: '#424242',
-          clusterBkg: '#171717',
-          clusterBorder: '#424242',
-          defaultLinkColor: '#71717a',
-          titleColor: '#ececec',
-          edgeLabelBackground: '#0d0d0d',
-          nodeTextColor: '#ececec',
-
-          // Sequence diagram specific
-          noteBkgColor: '#424242',
-          noteTextColor: '#ececec',
-          noteBorderColor: '#71717a',
-          actorBkg: '#2f2f2f',
-          actorBorder: '#424242',
-          actorTextColor: '#ececec',
-          actorLineColor: '#71717a',
-          signalColor: '#ececec',
-          signalTextColor: '#ececec',
-          labelBoxBkgColor: '#2f2f2f',
-          labelBoxBorderColor: '#424242',
-          labelTextColor: '#ececec',
-          loopTextColor: '#ececec',
-        }
-      : {
-          fontSize: '14px',
-          primaryColor: '#f3f4f6',
-          primaryTextColor: '#111827',
-          primaryBorderColor: '#d1d5db',
-          lineColor: '#9ca3af',
-          secondaryColor: '#f9fafb',
-          tertiaryColor: '#ffffff',
-          mainBkg: '#f3f4f6',
-          nodeBorder: '#d1d5db',
-          clusterBkg: '#f9fafb',
-          clusterBorder: '#d1d5db',
-          defaultLinkColor: '#9ca3af',
-          titleColor: '#111827',
-          edgeLabelBackground: '#ffffff',
-          nodeTextColor: '#111827',
-
-          // Sequence diagram specific
-          noteBkgColor: '#e5e7eb',
-          noteTextColor: '#111827',
-          noteBorderColor: '#9ca3af',
-          actorBkg: '#f3f4f6',
-          actorBorder: '#d1d5db',
-          actorTextColor: '#111827',
-          actorLineColor: '#9ca3af',
-          signalColor: '#111827',
-          signalTextColor: '#111827',
-          labelBoxBkgColor: '#f3f4f6',
-          labelBoxBorderColor: '#d1d5db',
-          labelTextColor: '#111827',
-          loopTextColor: '#111827',
-        },
-});
 
 interface CodeBlockProps {
   readonly language: string;
@@ -187,7 +115,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const mermaidConfig = useMemo(() => getMermaidConfig(theme), [theme]);
+  const mermaidConfig = useMemo(() => MERMAID_CONFIG(theme), [theme]);
 
   useEffect(() => {
     let isMounted = true;

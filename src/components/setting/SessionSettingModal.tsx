@@ -5,7 +5,6 @@ import { YujiRuntime } from '../../app/Runtime';
 import { useStore, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { StorageService } from '../../services/StorageService';
-import { StoreService } from '../../services/StoreService';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
@@ -36,21 +35,10 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const updateSessionEffect = useStoreEffect((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
+      yield* chat.updateSessionFull(sessionId, f);
       const storage = yield* StorageService;
-      const state = yield* StoreService;
-
-      const currentState = state.getSnapshot();
-      if (currentState.activeSessionId === sessionId && currentState.activeSession) {
-        yield* chat.updateActiveSession(f);
-      } else {
-        const session = yield* storage.getSession(sessionId);
-        if (session) {
-          const updated = f(session, Date.now());
-          yield* storage.saveSession(updated);
-          yield* chat.updateSession(sessionId, () => updated);
-          setLocalSession(updated);
-        }
-      }
+      const session = yield* storage.getSession(sessionId);
+      if (session) setLocalSession(session);
     }),
   );
 

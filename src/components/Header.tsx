@@ -6,7 +6,6 @@ import { getEffectiveModelId, getEffectiveModelName, getModelName } from '../hel
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useStore, useStoreEffect, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
-import { toTitleCase } from '../utilities/CommonUtil';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
@@ -55,7 +54,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
               <Icon name={model.icon} size={18} />
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <span className="model-picker-item-title block">{toTitleCase(model.name)}</span>
+              <span className="model-picker-item-title block">{getModelName(availableModels, model.id)}</span>
               <div className="model-picker-item-id">{model.id}</div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
