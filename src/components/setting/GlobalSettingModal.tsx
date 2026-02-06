@@ -2,14 +2,7 @@ import { useState } from 'react';
 
 import { useStore, useToggleSetting, useUpdateSetting } from '../../hooks/useStore';
 import { SettingModal } from '../shared/modal/SettingModal';
-import {
-  ConnectionSection,
-  GeneralSection,
-  HistorySection,
-  InstructionSection,
-  ModelsSection,
-  PersonalisationSection,
-} from './SettingSection';
+import { ConnectionSection, GeneralSection, HistorySection, InstructionSection, ModelsSection, PersonalisationSection } from './SettingSection';
 
 import type { FC } from 'react';
 import type { SettingTabItem } from '../shared/modal/SettingModal';

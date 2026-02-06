@@ -1,5 +1,15 @@
 import type { ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
 
+export const sortSessionsByDate = <T extends ChatMetadata | ChatSession>(sessions: T[]): T[] => {
+  return [...sessions].sort((a, b) => b.updatedAt - a.updatedAt);
+};
+
+export const filterSessions = <T extends ChatMetadata | ChatSession>(sessions: T[], query: string): T[] => {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return sessions;
+  return sessions.filter((s) => s.title.toLowerCase().includes(normalizedQuery));
+};
+
 export const getMessagePath = (session: ChatSession, messageId: string): ReadonlyArray<ChatMessage> => {
   const path: ChatMessage[] = [];
   let currentId: string | undefined = messageId;

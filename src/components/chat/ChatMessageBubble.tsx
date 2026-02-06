@@ -119,7 +119,20 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
 
             {isEditing ? (
               <div className="chat-input-edit-container">
-                <InputTextarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="chat-input-textarea" minRows={2} />
+                <InputTextarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="chat-input-textarea"
+                  minRows={2}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      handleSaveEdit();
+                    } else if (e.key === 'Escape') {
+                      setIsEditing(false);
+                    }
+                  }}
+                  autoFocus
+                />
                 <div className="chat-input-edit-actions">
                   <Button onClick={() => setIsEditing(false)}>Cancel</Button>
                   <Button variant="primary" onClick={handleSaveEdit}>

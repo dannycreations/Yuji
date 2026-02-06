@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { useMemo, useRef, useState } from 'react';
 
-import { groupSessions } from '../helpers/SessionHelper';
+import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useConfirm, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
@@ -42,9 +42,8 @@ export const Sidebar: FC = () => {
   });
 
   const filteredSessions = useMemo(() => {
-    const allSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
-    const query = searchQuery.trim().toLowerCase();
-    return query ? allSessions.filter((s) => s.title.toLowerCase().includes(query)) : allSessions;
+    const allSessions = sortSessionsByDate(Object.values(sessions) as ChatSession[]);
+    return filterSessions(allSessions, searchQuery);
   }, [sessions, searchQuery]);
 
   const groupedSessions = useMemo(() => groupSessions(filteredSessions, pinnedSessionIds), [filteredSessions, pinnedSessionIds]);

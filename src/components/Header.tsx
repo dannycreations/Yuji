@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { getCurrentModelId, getModelName } from '../helpers/ModelHelper';
+import { filterModels, getActiveModels, getCurrentModelId, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useStore, useStoreAction, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
@@ -26,13 +26,10 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
 
   const [search, setSearch] = useState('');
 
-  const filtered = useMemo(
-    () =>
-      availableModels
-        .filter((m) => !disabledModels.includes(m.id))
-        .filter((m) => m.name.toLowerCase().includes(search.toLowerCase()) || m.id.toLowerCase().includes(search.toLowerCase())),
-    [availableModels, disabledModels, search],
-  );
+  const filtered = useMemo(() => {
+    const active = getActiveModels(availableModels, disabledModels);
+    return filterModels(active, search);
+  }, [availableModels, disabledModels, search]);
 
   return (
     <div className="model-picker-dropdown">
@@ -95,10 +92,7 @@ export const Header: FC = () => {
     ),
   );
 
-  const currentModelId = useMemo(
-    () => getCurrentModelId(activeSession, settings, availableModels),
-    [settings, availableModels, activeSession],
-  );
+  const currentModelId = useMemo(() => getCurrentModelId(activeSession, settings, availableModels), [settings, availableModels, activeSession]);
 
   const currentModelName = useMemo(() => {
     const id = optimisticModelId || currentModelId;

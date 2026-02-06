@@ -28,7 +28,10 @@ export interface ChatService {
     f: (session: ChatSession, now: number) => ChatSession,
     skipUpdateTimestamp?: boolean,
   ) => Effect.Effect<void, SessionNotFoundError>;
-  readonly updateActiveSession: (f: (session: ChatSession, now: number) => ChatSession) => Effect.Effect<void, SessionNotFoundError>;
+  readonly updateActiveSession: (
+    f: (session: ChatSession, now: number) => ChatSession,
+    skipUpdateTimestamp?: boolean,
+  ) => Effect.Effect<void, SessionNotFoundError>;
   readonly getSessionPath: (sessionId: string, messageId: string) => Effect.Effect<ReadonlyArray<ChatMessage>, SessionNotFoundError>;
   readonly branchChat: (sessionId: string, messageId: string) => Effect.Effect<ChatMetadata, SessionNotFoundError | MessageNotFoundError>;
   readonly generate: (sessionId: string, messagesToProcess: ReadonlyArray<ChatMessage>) => Effect.Effect<void>;
@@ -83,31 +86,29 @@ export const ChatServiceLive = Layer.effect(
         return { state: nextState, sessionFound: true, sessionToSave: updated };
       });
 
-    const updateActiveSession = (f: (session: ChatSession, now: number) => ChatSession) =>
+    const updateActiveSession = (f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
         const activeId = (yield* SubscriptionRef.get(store.state)).activeSessionId;
         if (!activeId) return yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
         return yield* updateSessionState(activeId, (s, now) => {
           if (!s.activeSession || s.activeSession.id !== activeId) return { state: s, sessionFound: false };
-          const updated: ChatSession = { ...f(s.activeSession, now), updatedAt: now };
-          const metadata = Schema.decodeSync(ChatMetadata)(updated);
+          const updated = f(s.activeSession, now);
+          const finalUpdated: ChatSession = skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+          const metadata = Schema.decodeSync(ChatMetadata)(finalUpdated);
           const nextState = {
             ...s,
-            activeSession: updated,
-            sessions: { ...s.sessions, [updated.id]: metadata },
+            activeSession: finalUpdated,
+            sessions: { ...s.sessions, [finalUpdated.id]: metadata },
           };
-          return { state: nextState, sessionFound: true, sessionToSave: updated };
+          return { state: nextState, sessionFound: true, sessionToSave: finalUpdated };
         });
       });
 
     const updateSessionFull = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
-        if (state.activeSessionId === sessionId && state.activeSession) {
-          return yield* updateActiveSession((s, now) => {
-            const updated = f(s, now);
-            return skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-          });
+        if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
+          return yield* updateActiveSession(f, skipUpdateTimestamp);
         }
 
         const session = yield* storage.getSession(sessionId);

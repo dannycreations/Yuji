@@ -3,12 +3,14 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { Model } from '../../app/Schema';
-import { getModelId, getModelName } from '../../helpers/ModelHelper';
+import { filterModels, getModelId, getModelName } from '../../helpers/ModelHelper';
+import { sortSessionsByDate } from '../../helpers/SessionHelper';
 import { useConfirm, useStoreEffect, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { downloadFile } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Button } from '../shared/Button';
+import { Checkbox } from '../shared/Checkbox';
 import { Icon } from '../shared/Icon';
 import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 
@@ -135,14 +137,12 @@ export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: read
   );
 
   const filteredModels = useMemo(() => {
-    const query = modelSearch.toLowerCase();
-    return availableModels
-      .filter((m: Model) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query) || m.provider.toLowerCase().includes(query))
-      .sort((a, b) => {
-        const aDisabled = settings.disabledModels.includes(a.id) ? 1 : 0;
-        const bDisabled = settings.disabledModels.includes(b.id) ? 1 : 0;
-        return aDisabled - bDisabled;
-      });
+    const filtered = filterModels([...availableModels], modelSearch);
+    return filtered.sort((a, b) => {
+      const aDisabled = settings.disabledModels.includes(a.id) ? 1 : 0;
+      const bDisabled = settings.disabledModels.includes(b.id) ? 1 : 0;
+      return aDisabled - bDisabled;
+    });
   }, [availableModels, modelSearch, settings.disabledModels]);
 
   const toggleModel = (modelId: string) => {
@@ -262,7 +262,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
     });
   };
 
-  const sortedSessions = (Object.values(sessions) as ChatSession[]).sort((a, b) => b.updatedAt - a.updatedAt);
+  const sortedSessions = sortSessionsByDate(Object.values(sessions) as ChatSession[]);
   const totalHistoryPages = Math.ceil(sortedSessions.length / ITEMS_PER_PAGE);
   const currentHistoryItems = sortedSessions.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
 
@@ -292,19 +292,15 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
       <div className="settings-history-table">
         <div className="settings-history-header">
           <div className="settings-history-checkbox-col">
-            <button
-              onClick={toggleSelectAll}
-              className={clsx(
-                'checkbox-base',
-                currentHistoryItems.length > 0 && currentHistoryItems.some((s) => selectedSessionIds.has(s.id)) && 'checked',
-              )}
-            >
-              {currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id)) ? (
-                <Icon name="Check" size={12} strokeWidth={4} />
-              ) : (
-                <Icon name="Minus" size={12} strokeWidth={4} />
-              )}
-            </button>
+            <Checkbox
+              checked={currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id))}
+              indeterminate={
+                currentHistoryItems.length > 0 &&
+                !currentHistoryItems.every((s) => selectedSessionIds.has(s.id)) &&
+                currentHistoryItems.some((s) => selectedSessionIds.has(s.id))
+              }
+              onChange={toggleSelectAll}
+            />
           </div>
           <div className="flex-1 label-caps text-text-primary">Title</div>
           <div className="flex items-center gap-2">
@@ -330,12 +326,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
             currentHistoryItems.map((session) => (
               <div key={session.id} className={clsx('settings-history-row', selectedSessionIds.has(session.id) && 'settings-history-row-active')}>
                 <div className="settings-history-checkbox-col">
-                  <button
-                    onClick={() => toggleSelectSession(session.id)}
-                    className={clsx('checkbox-base', selectedSessionIds.has(session.id) && 'checked')}
-                  >
-                    <Icon name="Check" size={12} strokeWidth={4} />
-                  </button>
+                  <Checkbox checked={selectedSessionIds.has(session.id)} onChange={() => toggleSelectSession(session.id)} />
                 </div>
                 <div className="flex-1 min-w-0 pr-3">
                   <div className="text-sm text-text-primary font-medium truncate">{session.title}</div>
