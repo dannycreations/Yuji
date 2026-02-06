@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { useRef, useState } from 'react';
 
 import { useStore } from '../../hooks/useStore';
+import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
@@ -74,18 +75,13 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
       <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={handleFileSelect} />
 
       <div className="chat-input-container shadow-xl">
-        {attachments.length > 0 && (
-          <div className="chat-input-attachments scrollbar-hide">
-            {attachments.map((att) => (
-              <div key={att.id} className="chat-input-attachment-item">
-                <img src={att.url} alt={att.name} className="chat-input-attachment-img" />
-                <button onClick={() => removeAttachment(att.id)} className="chat-input-attachment-remove">
-                  <Icon name="X" size={10} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <AttachmentGrid
+          attachments={attachments}
+          onRemove={removeAttachment}
+          className="chat-input-attachments scrollbar-hide px-3 pt-3"
+          itemClassName="chat-input-attachment-item"
+          imgClassName="chat-input-attachment-img"
+        />
 
         <InputTextarea
           ref={textareaRef}

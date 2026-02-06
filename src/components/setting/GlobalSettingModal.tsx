@@ -69,10 +69,15 @@ export const GlobalSettingModal: FC = () => {
 
   const activeTabLabel = GLOBAL_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
 
-  if (!isSettingOpen) return null;
-
   return (
-    <SettingModal tabs={GLOBAL_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={toggleSetting} title={activeTabLabel}>
+    <SettingModal
+      isOpen={isSettingOpen}
+      tabs={GLOBAL_SETTING_TABS}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      onClose={toggleSetting}
+      title={activeTabLabel}
+    >
       {renderContent()}
     </SettingModal>
   );

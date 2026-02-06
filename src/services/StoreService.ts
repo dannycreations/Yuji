@@ -104,7 +104,6 @@ export const StoreServiceLive = Layer.effect(
         Stream.drop(1),
         Stream.map(Schema.decodeSync(AppStoreState)),
         Stream.changes,
-        Stream.debounce('1 seconds'),
         Stream.runForEach((meta) => storage.saveMetadata(meta)),
       ),
     );

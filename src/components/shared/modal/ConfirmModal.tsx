@@ -1,19 +1,15 @@
-import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useRef } from 'react';
 
-import { useClickOutside } from '../../../hooks/useClickOutside';
-import { useModalAnimation } from '../../../hooks/useModalAnimation';
 import { useStore, useStoreEffect } from '../../../hooks/useStore';
 import { StoreService } from '../../../services/StoreService';
 import { Button } from '../Button';
+import { Modal } from './Modal';
 
 import type { FC } from 'react';
 
 export const ConfirmModal: FC = () => {
   const confirm = useStore((s) => s.confirm);
-  const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger' } = confirm;
-  const containerRef = useRef<HTMLDivElement>(null);
+  const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger', isOpen } = confirm;
 
   const onCancel = useStoreEffect(() =>
     Effect.gen(function* () {
@@ -35,33 +31,25 @@ export const ConfirmModal: FC = () => {
     }),
   );
 
-  const { isClosing, handleClose } = useModalAnimation(onCancel);
-
-  useClickOutside(containerRef, handleClose);
-
-  if (!confirm.isOpen) return null;
-
   return (
-    <div className={clsx('modal-overlay', isClosing ? 'animate-fade-out' : 'animate-fade-in')}>
-      <div ref={containerRef} className={clsx('confirm-modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up')}>
-        <div className="confirm-modal-content">
-          <div className="modal-header">
-            <h3 className="header-title">{title}</h3>
-          </div>
-          <div className="confirm-modal-message">
-            {message
-              .split(/(\*\*.*?\*\*)/)
-              .map((part, i) => (part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part))}
-          </div>
+    <Modal isOpen={isOpen} onClose={onCancel} containerClassName="confirm-modal-container">
+      <div className="confirm-modal-content">
+        <div className="modal-header">
+          <h3 className="header-title">{title}</h3>
         </div>
-
-        <div className="confirm-modal-actions">
-          <Button onClick={handleClose}>{cancelLabel}</Button>
-          <Button onClick={onConfirm} variant={variant === 'info' ? 'primary' : variant}>
-            {confirmLabel}
-          </Button>
+        <div className="confirm-modal-message">
+          {message
+            .split(/(\*\*.*?\*\*)/)
+            .map((part, i) => (part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part))}
         </div>
       </div>
-    </div>
+
+      <div className="confirm-modal-actions">
+        <Button onClick={onCancel}>{cancelLabel}</Button>
+        <Button onClick={onConfirm} variant={variant === 'info' ? 'primary' : variant}>
+          {confirmLabel}
+        </Button>
+      </div>
+    </Modal>
   );
 };

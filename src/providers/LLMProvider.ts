@@ -9,23 +9,16 @@ export const synthesizeSystemPrompt = (settings: GlobalSettings, session: ChatSe
   const instruction = session.general.overrideInstruction ? session.instruction.systemPrompt : settings.instruction.systemPrompt;
   const personalisation = session.general.overridePersonalisation ? session.personalisation : settings.personalisation;
 
-  const parts = [instruction, '\n\n', DEFAULT_GUIDE_PROMPT, '\n\n'];
-  const parts2 = ['## Personalisation', '\n\n'];
+  const parts = [instruction, '\n\n', DEFAULT_GUIDE_PROMPT, '\n\n## Personalisation\n\n'];
 
-  if (personalisation.userName) {
-    parts2.push(`- The user's name is ${personalisation.userName}.\n`);
-  }
-  if (personalisation.userOccupation && personalisation.userOccupation.length > 0) {
-    parts2.push(`- The user acts as ${personalisation.userOccupation.join(', ')}.\n`);
-  }
-  if (personalisation.assistantTraits && personalisation.assistantTraits.length > 0) {
-    parts2.push(`- You should act ${personalisation.assistantTraits.join(', ')}.\n`);
-  }
-  if (personalisation.additionalContext) {
-    parts2.push(`- Additional context: ${personalisation.additionalContext}\n`);
-  }
+  const { userName, userOccupation, assistantTraits, additionalContext } = personalisation;
 
-  return [...parts, ...parts2].join('').trim();
+  if (userName) parts.push(`- The user's name is ${userName}.\n`);
+  if (userOccupation?.length) parts.push(`- The user acts as ${userOccupation.join(', ')}.\n`);
+  if (assistantTraits?.length) parts.push(`- You should act ${assistantTraits.join(', ')}.\n`);
+  if (additionalContext) parts.push(`- Additional context: ${additionalContext}\n`);
+
+  return parts.join('').trim();
 };
 
 interface LLMModel {

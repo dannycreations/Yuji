@@ -118,12 +118,15 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
               description="Instruction is following global settings."
               checked={!!session.general.overrideInstruction}
               onChange={(checked) => updateGeneral({ overrideInstruction: checked })}
+              onDataChange={(updates) => updateConfig({ instruction: { ...session.instruction, ...updates } })}
             >
-              <InstructionSection
-                instruction={session.instruction}
-                onChange={(updates) => updateConfig({ instruction: { ...session.instruction, ...updates } })}
-                footer="This will completely replace the global system prompt."
-              />
+              {({ onChange }) => (
+                <InstructionSection
+                  instruction={session.instruction}
+                  onChange={onChange}
+                  footer="This will completely replace the global system prompt."
+                />
+              )}
             </OverrideSection>
           </SectionWrapper>
         );
@@ -135,11 +138,9 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
               description="Personalization is following global settings."
               checked={!!session.general.overridePersonalisation}
               onChange={(checked) => updateGeneral({ overridePersonalisation: checked })}
+              onDataChange={(updates) => updateConfig({ personalisation: { ...session.personalisation, ...updates } })}
             >
-              <PersonalisationSection
-                personalisation={session.personalisation}
-                onChange={(updates) => updateConfig({ personalisation: { ...session.personalisation, ...updates } })}
-              />
+              {({ onChange }) => <PersonalisationSection personalisation={session.personalisation} onChange={onChange} />}
             </OverrideSection>
           </SectionWrapper>
         );

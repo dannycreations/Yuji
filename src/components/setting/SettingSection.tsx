@@ -397,18 +397,16 @@ interface InstructionSectionProps {
 }
 
 export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, onChange, footer }) => (
-  <SectionWrapper className="space-y-3">
-    <SettingField label="System Instruction">
-      <InputTextarea
-        value={instruction.systemPrompt || ''}
-        onChange={(e) => onChange({ systemPrompt: e.target.value })}
-        placeholder="Enter system instructions..."
-        minRows={8}
-        maxRows={8}
-      />
-      {footer && <p className="settings-footer-note">{footer}</p>}
-    </SettingField>
-  </SectionWrapper>
+  <SettingField label="System Instruction" className="animate-fade-in">
+    <InputTextarea
+      value={instruction.systemPrompt || ''}
+      onChange={(e) => onChange({ systemPrompt: e.target.value })}
+      placeholder="Enter system instructions..."
+      minRows={8}
+      maxRows={8}
+    />
+    {footer && <p className="settings-footer-note">{footer}</p>}
+  </SettingField>
 );
 
 interface PersonalisationSectionProps {
@@ -417,7 +415,7 @@ interface PersonalisationSectionProps {
 }
 
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
-  <SectionWrapper className="space-y-3">
+  <div className="space-y-3 animate-fade-in">
     <SettingField label="What should Yuji call you?">
       <InputText
         value={personalisation.userName || ''}
@@ -448,17 +446,18 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         maxRows={5}
       />
     </SettingField>
-  </SectionWrapper>
+  </div>
 );
 
 interface OverrideSectionProps {
   readonly description: string;
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
-  readonly children?: ReactNode;
+  readonly children: (f: { onChange: (updates: any) => void }) => ReactNode;
+  readonly onDataChange: (updates: any) => void;
 }
 
-export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children }) => {
+export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children, onDataChange }) => {
   if (!checked) {
     return (
       <div className="override-empty-state">
@@ -471,5 +470,5 @@ export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked
     );
   }
 
-  return <div className="space-y-3 animate-fade-in">{children}</div>;
+  return <div className="space-y-3">{children({ onChange: onDataChange })}</div>;
 };

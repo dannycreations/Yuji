@@ -8,6 +8,7 @@ import remarkMath from 'remark-math';
 import { useChatAction } from '../../hooks/useChatAction';
 import { useCopy } from '../../hooks/useCopy';
 import { useConfirm, useStore } from '../../hooks/useStore';
+import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
@@ -111,15 +112,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
       <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
         <div className={clsx('message-container', isUser ? 'user' : 'assistant')}>
           <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
-            {message.attachments && message.attachments.length > 0 && (
-              <div className="message-attachment-grid">
-                {message.attachments.map((att) => (
-                  <div key={att.id} className="message-attachment-item">
-                    <img src={att.url} alt={att.name} className="message-attachment-img" />
-                  </div>
-                ))}
-              </div>
-            )}
+            <AttachmentGrid
+              attachments={message.attachments || []}
+              className="message-attachment-grid mb-2"
+              itemClassName="message-attachment-item"
+              imgClassName="message-attachment-img"
+            />
 
             {isEditing ? (
               <div className="chat-input-edit-container">

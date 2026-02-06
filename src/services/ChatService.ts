@@ -111,20 +111,23 @@ export const ChatServiceLive = Layer.effect(
     const updateSessionFull = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
-        if (state.activeSessionId === sessionId && state.activeSession) {
+        const isActive = state.activeSessionId === sessionId && state.activeSession;
+
+        if (isActive) {
           return yield* updateActiveSession((session, now) => {
             const updated = f(session, now);
             return skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
           });
-        } else {
-          const session = yield* storage.getSession(sessionId);
-          if (!session) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-          const now = Date.now();
-          const updated = f(session, now);
-          const finalUpdated = skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-          yield* storage.saveSession(finalUpdated);
-          return yield* updateSession(sessionId, () => Schema.decodeSync(ChatMetadata)(finalUpdated));
         }
+
+        const session = yield* storage.getSession(sessionId);
+        if (!session) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+        const now = Date.now();
+        const updated = f(session, now);
+        const finalUpdated = skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+
+        yield* storage.saveSession(finalUpdated);
+        return yield* updateSession(sessionId, () => Schema.decodeSync(ChatMetadata)(finalUpdated));
       });
 
     const stop = (sessionId?: string) =>
@@ -233,6 +236,7 @@ export const ChatServiceLive = Layer.effect(
           const now = Date.now();
           const id = crypto.randomUUID();
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
+          const { personalisation } = settings;
 
           const newSession: ChatSession = {
             id,
@@ -247,9 +251,9 @@ export const ChatServiceLive = Layer.effect(
             },
             instruction: { systemPrompt: DEFAULT_SYSTEM_PROMPT },
             personalisation: {
-              ...settings.personalisation,
-              userOccupation: [...settings.personalisation.userOccupation],
-              assistantTraits: [...settings.personalisation.assistantTraits],
+              ...personalisation,
+              userOccupation: [...personalisation.userOccupation],
+              assistantTraits: [...personalisation.assistantTraits],
             },
           };
 
