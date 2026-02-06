@@ -4,7 +4,7 @@ import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 import { useStore, useStoreEffect } from './useStore';
 
-import type { Attachment, Message } from '../app/Schema';
+import type { Attachment, ChatMessage } from '../app/Schema';
 
 export const useChatAction = () => {
   const activeSessionId = useStore((s) => s.activeSessionId);
@@ -23,7 +23,7 @@ export const useChatAction = () => {
         currentSessionId = session.id;
       }
 
-      const userMessage: Message = {
+      const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'user',
         content,

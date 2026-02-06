@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
-import { DEFAULT_SETTINGS } from '../app/Constant';
-import { MODELS } from '../app/Schema';
+import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
+import { AppStoreState } from '../app/Schema';
 import { randomString } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
@@ -16,9 +16,7 @@ export interface StoreService {
   readonly toggleSidebar: () => Effect.Effect<void>;
   readonly toggleSetting: () => Effect.Effect<void>;
   readonly togglePin: (sessionId: string) => Effect.Effect<void>;
-  readonly setConfirm: (
-    options: Omit<Schema.Schema.Type<typeof ConfirmState>, 'isOpen' | 'id'> & { readonly onConfirm: () => void },
-  ) => Effect.Effect<void>;
+  readonly setConfirm: (options: Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void }) => Effect.Effect<void>;
   readonly getOnConfirm: (id: string) => Effect.Effect<(() => void) | undefined>;
   readonly clearConfirm: (id: string) => Effect.Effect<void>;
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
@@ -31,7 +29,7 @@ export const StoreService = Context.GenericTag<StoreService>('@services/StoreSer
 const createNotification = (
   type: 'error' | 'warning' | 'info' | 'success',
   message: string,
-  existingNotifications: ReadonlyArray<AppRuntimeState['notifications'][number]>,
+  existingNotifications: readonly AppRuntimeState['notifications'][number][],
 ): AppRuntimeState['notifications'] => {
   const existing = existingNotifications.find((n) => n.message === message && n.type === type);
   const filtered = existing ? existingNotifications.filter((n) => n.id !== existing.id) : existingNotifications;
@@ -90,11 +88,8 @@ export const StoreServiceLive = Layer.effect(
 
         return {
           ...INITIAL_STATE,
-          activeSessionId: metadata.activeSessionId,
+          ...metadata,
           activeSession,
-          settings: metadata.settings,
-          pinnedSessionIds: metadata.pinnedSessionIds,
-          backgroundSessionIds: metadata.backgroundSessionIds,
           sessions: sessionsMap,
           isHydrated: true,
         };
@@ -109,15 +104,10 @@ export const StoreServiceLive = Layer.effect(
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
-        Stream.map((s) => ({
-          activeSessionId: s.activeSessionId,
-          settings: s.settings,
-          pinnedSessionIds: s.pinnedSessionIds,
-          backgroundSessionIds: s.backgroundSessionIds,
-        })),
+        Stream.map(Schema.decodeSync(AppStoreState)),
         Stream.changes,
         Stream.debounce('1 seconds'),
-        Stream.runForEach((meta) => storage.saveMetadata(meta as any)),
+        Stream.runForEach((meta) => storage.saveMetadata(meta)),
       ),
     );
 

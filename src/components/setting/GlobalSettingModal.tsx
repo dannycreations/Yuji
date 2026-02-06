@@ -17,7 +17,7 @@ import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history';
 
-const GLOBAL_SETTING_TABS: ReadonlyArray<SettingTabItem> = [
+const GLOBAL_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
   { icon: 'Link', id: 'connection', label: 'Connection' },
   { icon: 'Cpu', id: 'models', label: 'Models' },

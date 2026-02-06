@@ -1,19 +1,11 @@
-import type { ChatMetadata, ChatSession, Message } from '../app/Schema';
+import type { ChatMessage, ChatSession } from '../app/Schema';
 
-export const getMetadataFromSession = (session: ChatSession): ChatMetadata => ({
-  id: session.id,
-  title: session.title,
-  activeMessageId: session.activeMessageId,
-  createdAt: session.createdAt,
-  updatedAt: session.updatedAt,
-});
-
-export const getMessagePath = (session: ChatSession, messageId: string): ReadonlyArray<Message> => {
-  const path: Message[] = [];
+export const getMessagePath = (session: ChatSession, messageId: string): ChatMessage[] => {
+  const path: ChatMessage[] = [];
   let currentId: string | undefined = messageId;
 
   while (currentId) {
-    const msg: Message | undefined = session.messages[currentId];
+    const msg: ChatMessage | undefined = session.messages[currentId];
     if (!msg) break;
     path.unshift(msg);
     currentId = msg.parentId;
@@ -22,10 +14,7 @@ export const getMessagePath = (session: ChatSession, messageId: string): Readonl
   return path;
 };
 
-export const groupSessions = (
-  sessionsList: ReadonlyArray<ChatSession>,
-  pinnedSessionIds: ReadonlyArray<string> = [],
-): Record<string, ReadonlyArray<ChatSession>> => {
+export const groupSessions = (sessionsList: ChatSession[], pinnedSessionIds: ReadonlyArray<string> = []): Record<string, ChatSession[]> => {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
 

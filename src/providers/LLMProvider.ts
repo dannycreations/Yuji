@@ -3,7 +3,7 @@ import { Context, Effect, Stream } from 'effect';
 import { DEFAULT_GUIDE_PROMPT } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
 
-import type { ChatSession, GlobalSettings, Message, ModelConfig } from '../app/Schema';
+import type { ChatMessage, ChatSession, GlobalSettings, ModelConfig } from '../app/Schema';
 
 export const synthesizeSystemPrompt = (settings: GlobalSettings, session: ChatSession): string => {
   const instruction = session.general.overrideInstruction ? session.instruction.systemPrompt : settings.instruction.systemPrompt;
@@ -34,12 +34,12 @@ interface LLMModel {
 
 export interface LLMProvider {
   readonly streamCompletion: (
-    messages: ReadonlyArray<Message>,
+    messages: readonly ChatMessage[],
     settings: GlobalSettings,
     config: ModelConfig,
     systemPrompt: string,
   ) => Effect.Effect<Stream.Stream<string, LLMProviderError>, LLMProviderError>;
-  readonly fetchModels: (settings: GlobalSettings) => Effect.Effect<{ readonly data: ReadonlyArray<LLMModel> }, LLMProviderError>;
+  readonly fetchModels: (settings: GlobalSettings) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
 }
 
 export const LLMProvider = Context.GenericTag<LLMProvider>('@providers/LLMProvider');

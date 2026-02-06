@@ -2,19 +2,19 @@ import { toTitleCase } from '../utilities/CommonUtil';
 
 import type { AppRuntimeState, Model } from '../app/Schema';
 
-export const getModelId = (settings: AppRuntimeState['settings'], availableModels: AppRuntimeState['availableModels']): string => {
+export const getModelId = (settings: AppRuntimeState['settings'], availableModels: readonly Model[]): string => {
   const active = availableModels.filter((m) => !settings.disabledModels.includes(m.id));
   return active.find((m) => m.id === settings.model)?.id || active[0]?.id || 'gpt-4o';
 };
 
-export const getModelName = (availableModels: ReadonlyArray<Model>, modelId: string): string => {
+export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
   const model = availableModels.find((m) => m.id === modelId);
   return model ? toTitleCase(model.name) : 'Yuji';
 };
 
 export const getEffectiveModelId = (
   settings: AppRuntimeState['settings'],
-  availableModels: AppRuntimeState['availableModels'],
+  availableModels: readonly Model[],
   activeSession: AppRuntimeState['activeSession'],
 ): string => {
   const sessionModelId = activeSession?.general?.model;
@@ -28,7 +28,7 @@ export const getEffectiveModelId = (
 
 export const getEffectiveModelName = (
   settings: AppRuntimeState['settings'],
-  availableModels: AppRuntimeState['availableModels'],
+  availableModels: readonly Model[],
   activeSession: AppRuntimeState['activeSession'],
 ): string => {
   return getModelName(availableModels, getEffectiveModelId(settings, availableModels, activeSession));

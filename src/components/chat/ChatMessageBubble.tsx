@@ -15,10 +15,10 @@ import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
 import type { Components } from 'react-markdown';
-import type { Message } from '../../app/Schema';
+import type { ChatMessage } from '../../app/Schema';
 
 interface ChatMessageBubbleProps {
-  readonly message: Message;
+  readonly message: ChatMessage;
   readonly sessionId: string;
   readonly isLast: boolean;
   readonly isThinking?: boolean;

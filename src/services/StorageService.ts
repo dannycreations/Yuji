@@ -1,20 +1,22 @@
-import { Context, Effect, Layer } from 'effect';
+import { Context, Effect, Layer, Schema } from 'effect';
 import { openDB } from 'idb';
 
-import type { AppStoreState, ChatMetadata, ChatSession, Message } from '../app/Schema';
+import { ChatMetadata } from '../app/Schema';
+
+import type { AppStoreState, ChatMessage, ChatSession } from '../app/Schema';
 
 export interface StorageService {
   readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getSessionsMetadata: () => Effect.Effect<ReadonlyArray<ChatMetadata>>;
+  readonly getSessionsMetadata: () => Effect.Effect<ChatMetadata[]>;
   readonly getSession: (id: string) => Effect.Effect<ChatSession | null>;
   readonly saveSession: (session: ChatSession | ChatMetadata) => Effect.Effect<void>;
   readonly deleteSession: (id: string) => Effect.Effect<void>;
 
-  readonly getMessages: (sessionId: string) => Effect.Effect<ReadonlyArray<Message>>;
-  readonly saveMessage: (sessionId: string, message: Message) => Effect.Effect<void>;
-  readonly saveMessages: (sessionId: string, messages: ReadonlyArray<Message>) => Effect.Effect<void>;
+  readonly getMessages: (sessionId: string) => Effect.Effect<ChatMessage[]>;
+  readonly saveMessage: (sessionId: string, message: ChatMessage) => Effect.Effect<void>;
+  readonly saveMessages: (sessionId: string, messages: ChatMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
   readonly deleteMessages: (sessionId: string) => Effect.Effect<void>;
 }
@@ -67,14 +69,8 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const sessions = yield* Effect.promise(() => db.getAll(STORES.SESSIONS));
-          // Strip heavy config and messages for metadata list
-          return sessions.map((s) => ({
-            id: s.id,
-            title: s.title,
-            activeMessageId: s.activeMessageId,
-            createdAt: s.createdAt,
-            updatedAt: s.updatedAt,
-          }));
+          const decode = Schema.decodeSync(ChatMetadata);
+          return sessions.map((s) => decode(s));
         }),
 
       getSession: (id) =>
@@ -83,8 +79,8 @@ export const StorageServiceLive = Layer.effect(
           const session = yield* Effect.promise(() => db.get(STORES.SESSIONS, id));
           if (!session) return null;
 
-          const messages = (yield* storage.getMessages(id)) as ReadonlyArray<Message>;
-          const messagesRecord: Record<string, Message> = {};
+          const messages = (yield* storage.getMessages(id)) as ChatMessage[];
+          const messagesRecord: Record<string, ChatMessage> = {};
           messages.forEach((m) => (messagesRecord[m.id] = m));
 
           return { ...session, messages: messagesRecord } as ChatSession;

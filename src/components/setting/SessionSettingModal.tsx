@@ -16,7 +16,7 @@ interface SessionSettingModalProps {
   readonly onClose: () => void;
 }
 
-const SESSION_SETTING_TABS: ReadonlyArray<SettingTabItem> = [
+const SESSION_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
   { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
   { icon: 'User', id: 'persona', label: 'Personalization' },

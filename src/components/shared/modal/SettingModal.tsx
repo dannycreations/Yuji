@@ -15,7 +15,7 @@ export interface SettingTabItem {
 }
 
 interface SettingModalProps {
-  readonly tabs: ReadonlyArray<SettingTabItem>;
+  readonly tabs: SettingTabItem[];
   readonly activeTab: string;
   readonly onTabChange: (id: any) => void;
   readonly onClose: () => void;

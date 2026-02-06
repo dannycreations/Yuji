@@ -103,31 +103,29 @@ export const ConnectionSection: FC<{ settings: GlobalSettings }> = ({ settings }
   );
 };
 
-export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: ReadonlyArray<Model> }> = ({ settings, availableModels }) => {
+export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: readonly Model[] }> = ({ settings, availableModels }) => {
   const updateStore = useUpdateStore();
   const updateSetting = useUpdateSetting();
   const [modelSearch, setModelSearch] = useState('');
 
-  const setAvailableModels = (models: ReadonlyArray<Model>) => updateStore((s) => ({ ...s, availableModels: models }));
+  const setAvailableModels = (models: Model[]) => updateStore((s) => ({ ...s, availableModels: models }));
 
   const handleRefreshModels = useStoreEffect(() =>
     Effect.gen(function* () {
       const llm = yield* LLMProvider;
       const result = yield* llm.fetchModels(settings);
 
-      const apiModels: ReadonlyArray<Model> = result.data.map((m) =>
-        Model({
-          id: m.id,
-          name: m.id,
-          description: `Fetched from ${settings.baseUrl}`,
-          provider: 'OpenAI Compatible',
-          icon: 'Cpu',
-          color: 'text-text-tertiary',
-          tags: ['API'],
-          isNew: false,
-          premium: false,
-        }),
-      );
+      const apiModels: Model[] = result.data.map((m) => ({
+        id: m.id,
+        name: m.id,
+        description: `Fetched from ${settings.baseUrl}`,
+        provider: 'OpenAI Compatible',
+        icon: 'Cpu',
+        color: 'text-text-tertiary',
+        tags: ['API'],
+        isNew: false,
+        premium: false,
+      }));
 
       const staticIds = new Set(availableModels.map((m) => m.id));
       const newModels = apiModels.filter((m) => !staticIds.has(m.id));
