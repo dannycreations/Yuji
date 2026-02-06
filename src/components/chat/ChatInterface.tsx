@@ -44,6 +44,18 @@ export const ChatInterface: FC = () => {
     [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id],
   );
 
+  const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
+
+  if (isTransitioning) {
+    return (
+      <div className="main-layout selection:bg-primary/20">
+        <Header />
+        <div className="chat-scroll-area" />
+        <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
+      </div>
+    );
+  }
+
   if (!activeSession || Object.keys(activeSession.messages).length === 0) {
     return (
       <div className="main-layout selection:bg-primary/20">

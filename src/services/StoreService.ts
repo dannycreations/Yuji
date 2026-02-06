@@ -174,16 +174,22 @@ export const StoreServiceLive = Layer.effect(
       loadMessages: (sessionId) =>
         Effect.gen(function* () {
           const currentState = yield* SubscriptionRef.get(state);
+          // Only skip if both ID matches and the session object is correctly populated
           if (currentState.activeSessionId === sessionId && currentState.activeSession?.id === sessionId) return;
 
           const session = yield* storage.getSession(sessionId);
           if (!session) return;
 
-          yield* update((s) => ({
-            ...s,
-            activeSessionId: sessionId,
-            activeSession: session,
-          }));
+          yield* update((s) => {
+            // Ensure we only update if the user hasn't switched to another session in the meantime
+            if (s.activeSessionId !== sessionId) return s;
+
+            return {
+              ...s,
+              activeSessionId: sessionId,
+              activeSession: session,
+            };
+          });
         }),
     });
   }),
