@@ -1,7 +1,7 @@
 import { Effect, Fiber, Stream } from 'effect';
 import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
-import { YujiRuntime } from '../app/Yuji';
+import { YujiRuntime } from '../app/Runtime';
 import { StoreService } from '../services/StoreService';
 
 import type { AppRuntimeState, ConfirmState } from '../app/Schema';
@@ -55,16 +55,12 @@ export const useStoreEffect = <A extends unknown[], R, E>(effectFn: (...args: A)
   );
 };
 
-const useStoreAction = <A extends unknown[], R, E>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, any>) => {
+export const useStoreAction = <A extends unknown[], R, E>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, any>) => {
   return useStoreEffect((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
 };
 
 export const useUpdateStore = () => useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
-
 export const useToggleSidebar = () => useStoreAction((s) => s.toggleSidebar());
-
 export const useToggleSetting = () => useStoreAction((s) => s.toggleSetting());
-
 export const useUpdateSetting = () => useStoreAction((s, updates: Partial<AppRuntimeState['settings']>) => s.updateSetting(updates));
-
 export const useConfirm = () => useStoreAction((s, config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) => s.setConfirm(config));

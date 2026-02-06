@@ -1,8 +1,7 @@
 import { Effect } from 'effect';
 
 import { ChatService } from '../services/ChatService';
-import { StoreService } from '../services/StoreService';
-import { useStore, useStoreEffect } from './useStore';
+import { useStore, useStoreAction, useStoreEffect } from './useStore';
 
 import type { Attachment, ChatMessage } from '../app/Schema';
 
@@ -13,7 +12,7 @@ export const useChatAction = () => {
 
   const isLoading = activeSessionId ? backgroundSessionIds.includes(activeSessionId) : false;
 
-  const handleSend = useStoreEffect((content: string, attachments: Attachment[] = []) =>
+  const handleSend = useStoreEffect((content: string, attachments: ReadonlyArray<Attachment> = []) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
       let currentSessionId = activeSessionId;
@@ -95,7 +94,7 @@ export const useChatAction = () => {
     }),
   );
 
-  const handleTogglePin = useStoreEffect((sessionId: string) => Effect.flatMap(StoreService, (s) => s.togglePin(sessionId)));
+  const handleTogglePin = useStoreAction((s, sessionId: string) => s.togglePin(sessionId));
 
   const handleCreateSession = useStoreEffect(() =>
     Effect.gen(function* () {

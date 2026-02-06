@@ -1,13 +1,10 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { YujiRuntime } from '../app/Yuji';
 import { groupSessions } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useConfirm, useStore, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
-import { StoreService } from '../services/StoreService';
+import { useConfirm, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
@@ -24,7 +21,7 @@ export const Sidebar: FC = () => {
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
   const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
 
-  const setActiveSession = (id: string | null) => Effect.flatMap(StoreService, (s) => s.setActiveSession(id)).pipe(YujiRuntime.runSync);
+  const setActiveSession = useStoreAction((s, id: string | null) => s.setActiveSession(id));
   const toggleSidebar = useToggleSidebar();
   const toggleSetting = useToggleSetting();
 

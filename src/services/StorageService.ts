@@ -1,20 +1,18 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { openDB } from 'idb';
 
-import { ChatMetadata } from '../app/Schema';
-
-import type { AppStoreState, ChatMessage, ChatSession } from '../app/Schema';
+import { AppStoreState, ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
 
 export interface StorageService {
   readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getSessionsMetadata: () => Effect.Effect<ChatMetadata[]>;
+  readonly getSessionsMetadata: () => Effect.Effect<ReadonlyArray<ChatMetadata>>;
   readonly getSession: (id: string) => Effect.Effect<ChatSession | null>;
   readonly saveSession: (session: ChatSession | ChatMetadata) => Effect.Effect<void>;
   readonly deleteSession: (id: string) => Effect.Effect<void>;
 
-  readonly getMessages: (sessionId: string) => Effect.Effect<ChatMessage[]>;
+  readonly getMessages: (sessionId: string) => Effect.Effect<ReadonlyArray<ChatMessage>>;
   readonly saveMessage: (sessionId: string, message: ChatMessage) => Effect.Effect<void>;
   readonly saveMessages: (sessionId: string, messages: ChatMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
@@ -69,8 +67,7 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const sessions = yield* Effect.promise(() => db.getAll(STORES.SESSIONS));
-          const decode = Schema.decodeSync(ChatMetadata);
-          return sessions.map((s) => decode(s));
+          return Schema.decodeSync(Schema.Array(ChatMetadata))(sessions);
         }),
 
       getSession: (id) =>
@@ -79,11 +76,10 @@ export const StorageServiceLive = Layer.effect(
           const session = yield* Effect.promise(() => db.get(STORES.SESSIONS, id));
           if (!session) return null;
 
-          const messages = (yield* storage.getMessages(id)) as ChatMessage[];
-          const messagesRecord: Record<string, ChatMessage> = {};
-          messages.forEach((m) => (messagesRecord[m.id] = m));
+          const messages = yield* storage.getMessages(id);
+          const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
-          return { ...session, messages: messagesRecord } as ChatSession;
+          return Schema.decodeSync(ChatSession)({ ...session, messages: messagesRecord });
         }),
 
       saveSession: (session) =>
@@ -113,7 +109,8 @@ export const StorageServiceLive = Layer.effect(
       getMessages: (sessionId) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          return yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
+          const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
+          return Schema.decodeSync(Schema.Array(ChatMessage))(messages);
         }),
 
       saveMessage: (sessionId, message) =>

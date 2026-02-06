@@ -1,9 +1,7 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useEffect } from 'react';
 
-import { useStore, useStoreEffect } from '../../hooks/useStore';
-import { StoreService } from '../../services/StoreService';
+import { useStore, useStoreAction } from '../../hooks/useStore';
 import { Icon } from './Icon';
 
 import type { Notification } from '../../app/Schema';
@@ -67,7 +65,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
 
 export const NotificationToast = () => {
   const notifications = useStore((s) => s.notifications);
-  const clearNotification = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.clearNotification(id)));
+  const clearNotification = useStoreAction((s, id: string) => s.clearNotification(id));
 
   return (
     <div className="fixed top-4 right-4 z-notification flex flex-col gap-2 pointer-events-none w-notification">

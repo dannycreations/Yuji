@@ -34,7 +34,7 @@ interface LLMModel {
 
 export interface LLMProvider {
   readonly streamCompletion: (
-    messages: readonly ChatMessage[],
+    messages: ReadonlyArray<ChatMessage>,
     settings: GlobalSettings,
     config: ModelConfig,
     systemPrompt: string,

@@ -1,6 +1,6 @@
-import type { ChatMessage, ChatSession } from '../app/Schema';
+import type { ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
 
-export const getMessagePath = (session: ChatSession, messageId: string): ChatMessage[] => {
+export const getMessagePath = (session: ChatSession, messageId: string): ReadonlyArray<ChatMessage> => {
   const path: ChatMessage[] = [];
   let currentId: string | undefined = messageId;
 
@@ -14,7 +14,10 @@ export const getMessagePath = (session: ChatSession, messageId: string): ChatMes
   return path;
 };
 
-export const groupSessions = (sessionsList: ChatSession[], pinnedSessionIds: ReadonlyArray<string> = []): Record<string, ChatSession[]> => {
+export const groupSessions = (
+  sessionsList: ReadonlyArray<ChatMetadata | ChatSession>,
+  pinnedSessionIds: ReadonlyArray<string> = [],
+): Record<string, ReadonlyArray<ChatMetadata | ChatSession>> => {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
 
@@ -22,7 +25,7 @@ export const groupSessions = (sessionsList: ChatSession[], pinnedSessionIds: Rea
   const yesterdayStart = todayStart - dayMs;
   const last7DaysStart = todayStart - 7 * dayMs;
 
-  const groups: Record<string, ChatSession[]> = {
+  const groups: Record<string, Array<ChatMetadata | ChatSession>> = {
     Pinned: [],
     Today: [],
     Yesterday: [],

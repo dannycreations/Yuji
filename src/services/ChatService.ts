@@ -24,9 +24,9 @@ export interface ChatService {
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
   readonly updateSession: (sessionId: string, f: (session: ChatMetadata, now: number) => ChatMetadata) => Effect.Effect<void, SessionNotFoundError>;
   readonly updateActiveSession: (f: (session: ChatSession, now: number) => ChatSession) => Effect.Effect<void, SessionNotFoundError>;
-  readonly getSessionPath: (sessionId: string, messageId: string) => Effect.Effect<ChatMessage[], SessionNotFoundError>;
+  readonly getSessionPath: (sessionId: string, messageId: string) => Effect.Effect<ReadonlyArray<ChatMessage>, SessionNotFoundError>;
   readonly branchChat: (sessionId: string, messageId: string) => Effect.Effect<ChatMetadata, SessionNotFoundError | MessageNotFoundError>;
-  readonly generate: (sessionId: string, messagesToProcess: ChatMessage[]) => Effect.Effect<void>;
+  readonly generate: (sessionId: string, messagesToProcess: ReadonlyArray<ChatMessage>) => Effect.Effect<void>;
   readonly stop: (sessionId?: string) => Effect.Effect<void>;
 }
 
@@ -55,7 +55,11 @@ export const ChatServiceLive = Layer.effect(
         } else {
           const s = yield* SubscriptionRef.get(store.state);
           const session = s.activeSessionId === sessionId && s.activeSession ? s.activeSession : s.sessions[sessionId];
-          if (session) yield* storage.saveSession(session);
+          if (session) {
+            // If it's a metadata, we might lose full data if we save it as session.
+            // But ChatService operations always maintain consistency.
+            yield* storage.saveSession(session);
+          }
         }
       }).pipe(
         Effect.catchAll((err) => {
@@ -139,7 +143,7 @@ export const ChatServiceLive = Layer.effect(
         }
       });
 
-    const generate = (sessionId: string, messagesToProcess: ChatMessage[]) =>
+    const generate = (sessionId: string, messagesToProcess: ReadonlyArray<ChatMessage>) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
         const settings = state.settings;

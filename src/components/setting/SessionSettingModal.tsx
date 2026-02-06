@@ -1,8 +1,11 @@
 import { Effect } from 'effect';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { YujiRuntime } from '../../app/Runtime';
 import { useStore, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
+import { StorageService } from '../../services/StorageService';
+import { StoreService } from '../../services/StoreService';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
@@ -24,10 +27,31 @@ const SESSION_SETTING_TABS: SettingTabItem[] = [
 
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
   const activeSession = useStore((s) => s.activeSession);
-  const session = activeSession && activeSession.id === sessionId ? activeSession : null;
+  const [localSession, setLocalSession] = useState<ChatSession | null>(null);
 
   const updateActiveSessionEffect = useStoreEffect((f: (s: ChatSession, now: number) => ChatSession) =>
     Effect.flatMap(ChatService, (chat) => chat.updateActiveSession(f)),
+  );
+
+  const updateSessionEffect = useStoreEffect((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
+    Effect.gen(function* () {
+      const chat = yield* ChatService;
+      const storage = yield* StorageService;
+      const state = yield* StoreService;
+
+      const currentState = state.getSnapshot();
+      if (currentState.activeSessionId === sessionId && currentState.activeSession) {
+        yield* chat.updateActiveSession(f);
+      } else {
+        const session = yield* storage.getSession(sessionId);
+        if (session) {
+          const updated = f(session, Date.now());
+          yield* storage.saveSession(updated);
+          yield* chat.updateSession(sessionId, () => updated);
+          setLocalSession(updated);
+        }
+      }
+    }),
   );
 
   const updateSessionMetaEffect = useStoreEffect((sessionId: string, f: (s: ChatMetadata, now: number) => ChatMetadata) =>
@@ -36,9 +60,31 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
   const [activeTab, setActiveTab] = useState('general');
 
+  useEffect(() => {
+    if (activeSession && activeSession.id === sessionId) {
+      setLocalSession(null);
+      return;
+    }
+
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const storage = yield* StorageService;
+        const session = yield* storage.getSession(sessionId);
+        if (session) {
+          setLocalSession(session);
+        }
+      }),
+    );
+  }, [sessionId, activeSession?.id]);
+
+  const session = activeSession && activeSession.id === sessionId ? activeSession : localSession;
+
   if (!session) return null;
 
-  const updateSession = (updates: Partial<ChatSession>) => updateActiveSessionEffect((s) => ({ ...s, ...updates }));
+  const updateSession = (updates: Partial<ChatSession>) =>
+    activeSession?.id === sessionId
+      ? updateActiveSessionEffect((s) => ({ ...s, ...updates }))
+      : updateSessionEffect(sessionId, (s) => ({ ...s, ...updates }));
   const updateSessionMeta = (updates: Partial<ChatMetadata>) => updateSessionMetaEffect(sessionId, (s) => ({ ...s, ...updates }));
   const updateConfig = (updates: Partial<ChatSession>) => updateSession({ ...session, ...updates });
   const updateGeneral = (updates: Partial<ChatSession['general']>) => updateConfig({ general: { ...session.general, ...updates } });

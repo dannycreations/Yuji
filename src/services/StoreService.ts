@@ -1,11 +1,9 @@
 import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
-import { AppStoreState } from '../app/Schema';
+import { AppRuntimeState, AppStoreState, ChatMetadata, ChatSession, ConfirmState } from '../app/Schema';
 import { randomString } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
-
-import type { AppRuntimeState, ChatMetadata, ChatSession, ConfirmState } from '../app/Schema';
 
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
@@ -86,13 +84,13 @@ export const StoreServiceLive = Layer.effect(
           activeSession = yield* storage.getSession(metadata.activeSessionId);
         }
 
-        return {
+        return Schema.decodeSync(AppRuntimeState)({
           ...INITIAL_STATE,
           ...metadata,
           activeSession,
           sessions: sessionsMap,
           isHydrated: true,
-        };
+        });
       }
       return { ...INITIAL_STATE, isHydrated: true };
     });

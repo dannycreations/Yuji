@@ -1,7 +1,6 @@
 import './styles.css';
 
-import { FetchHttpClient } from '@effect/platform';
-import { Effect, Fiber, Layer, ManagedRuntime, Stream, SubscriptionRef } from 'effect';
+import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { useEffect, useState } from 'react';
 
 import { ChatInterface } from '../components/chat/ChatInterface';
@@ -10,19 +9,8 @@ import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
 import { NotificationToast } from '../components/shared/NotificationToast';
 import { Sidebar } from '../components/Sidebar';
 import { StoreContext, useStore } from '../hooks/useStore';
-import { OpenAIProviderLive } from '../providers/OpenAIProvider';
-import { ChatServiceLive } from '../services/ChatService';
-import { StorageServiceLive } from '../services/StorageService';
-import { StoreService, StoreServiceLive } from '../services/StoreService';
-
-const MainLayer = ChatServiceLive.pipe(
-  Layer.provideMerge(OpenAIProviderLive),
-  Layer.provideMerge(StoreServiceLive),
-  Layer.provideMerge(StorageServiceLive),
-  Layer.provide(FetchHttpClient.layer),
-).pipe(Layer.orDie);
-
-export const YujiRuntime = ManagedRuntime.make(MainLayer);
+import { StoreService } from '../services/StoreService';
+import { YujiRuntime } from './Runtime';
 
 const YujiLayout = () => {
   const theme = useStore((s) => s.settings.theme);
