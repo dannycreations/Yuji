@@ -8,7 +8,7 @@ import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
 
 import type { FC } from 'react';
-import type { ChatSession } from '../../app/Schema';
+import type { ChatMetadata, ChatSession } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 interface SessionSettingModalProps {
@@ -26,7 +26,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const sessions = useStore((s) => s.sessions);
   const session = sessions[sessionId];
 
-  const updateSessionEffect = useStoreEffect((sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
+  const updateSessionEffect = useStoreEffect((sessionId: string, f: (s: ChatMetadata, now: number) => ChatMetadata) =>
     Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f)),
   );
 
@@ -34,7 +34,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
   if (!session) return null;
 
-  const updateSession = (updates: Partial<ChatSession>) => updateSessionEffect(sessionId, (s) => ({ ...s, ...updates }));
+  const updateSession = (updates: Partial<ChatMetadata>) => updateSessionEffect(sessionId, (s) => ({ ...s, ...updates }));
   const updateGeneral = (updates: Partial<ChatSession['general']>) => updateSession({ general: { ...session.general, ...updates } });
 
   const renderContent = () => {

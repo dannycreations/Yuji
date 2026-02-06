@@ -22,7 +22,11 @@ export const Sidebar: FC = () => {
 
   const updateStore = useUpdateStore();
 
-  const setActiveSession = (id: string | null) => updateStore((s) => ({ ...s, activeSessionId: id }));
+  const setActiveSession = (id: string | null) =>
+    updateStore((s) => {
+      if (id === null) return { ...s, activeSessionId: null, activeSession: null };
+      return { ...s, activeSessionId: id };
+    });
   const toggleSidebar = useToggleSidebar();
   const toggleSetting = useToggleSetting();
 
@@ -51,7 +55,7 @@ export const Sidebar: FC = () => {
 
   const groupedSessions = useMemo(() => groupSessions(filteredSessions, pinnedSessionIds), [filteredSessions, pinnedSessionIds]);
 
-  const menuSession = menuOpenId ? sessions[menuOpenId] : null;
+  const menuSessionMetadata = menuOpenId ? sessions[menuOpenId] : null;
 
   if (!isSidebarOpen) return null;
 
@@ -160,7 +164,7 @@ export const Sidebar: FC = () => {
       </div>
       {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 
-      {menuOpenId && menuPosition && menuSession && (
+      {menuOpenId && menuPosition && menuSessionMetadata && (
         <div
           ref={menuRef}
           className="dropdown-menu fixed w-44 py-1 origin-top-right"
@@ -197,7 +201,7 @@ export const Sidebar: FC = () => {
             onClick={() => {
               showConfirm({
                 title: 'Delete chat?',
-                message: `This will delete **${menuSession.title}** permanently.`,
+                message: `This will delete **${menuSessionMetadata?.title}** permanently.`,
                 confirmLabel: 'Delete',
                 onConfirm: () => handleDeleteSession(menuOpenId),
                 variant: 'danger',

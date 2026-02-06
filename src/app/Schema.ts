@@ -77,23 +77,20 @@ export const ModelConfig = Schema.Struct({
 });
 export type ModelConfig = Schema.Schema.Type<typeof ModelConfig>;
 
-export const InstructionSchema = Schema.Struct({
-  systemPrompt: Schema.String,
-});
-export type Instruction = Schema.Schema.Type<typeof InstructionSchema>;
+export const Instruction = Schema.Struct({ systemPrompt: Schema.String });
+export type Instruction = Schema.Schema.Type<typeof Instruction>;
 
-export const PersonalisationSchema = Schema.Struct({
+export const Personalisation = Schema.Struct({
   userName: Schema.String,
   userOccupation: Schema.Array(Schema.String),
   assistantTraits: Schema.Array(Schema.String),
   additionalContext: Schema.String,
 });
-export type Personalisation = Schema.Schema.Type<typeof PersonalisationSchema>;
+export type Personalisation = Schema.Schema.Type<typeof Personalisation>;
 
-export const ChatSession = Schema.Struct({
+export const ChatMetadata = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
-  messages: Schema.Record({ key: Schema.String, value: Message }),
   activeMessageId: Schema.optional(Schema.String),
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
@@ -112,6 +109,14 @@ export const ChatSession = Schema.Struct({
     additionalContext: Schema.optional(Schema.String),
   }),
 });
+export type ChatMetadata = Schema.Schema.Type<typeof ChatMetadata>;
+
+export const ChatSession = Schema.extend(
+  ChatMetadata,
+  Schema.Struct({
+    messages: Schema.Record({ key: Schema.String, value: Message }),
+  }),
+);
 export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
 
 export const Settings = Schema.Struct({
@@ -122,8 +127,8 @@ export const Settings = Schema.Struct({
   enterToSend: Schema.Boolean,
   expandCodeblock: Schema.Boolean,
   showSuggestions: Schema.Boolean,
-  instruction: InstructionSchema,
-  personalisation: PersonalisationSchema,
+  instruction: Instruction,
+  personalisation: Personalisation,
   disabledModels: Schema.Array(Schema.String),
 });
 export type Settings = Schema.Schema.Type<typeof Settings>;
@@ -147,32 +152,26 @@ export const Notification = Schema.Struct({
 });
 export type Notification = Schema.Schema.Type<typeof Notification>;
 
-export const PersistedSession = Schema.Struct({
-  ...ChatSession.fields,
-  messages: Schema.optional(Schema.Record({ key: Schema.String, value: Message })),
-});
-export type PersistedSession = Schema.Schema.Type<typeof PersistedSession>;
-
-export const StorageMetadata = Schema.Struct({
-  activeSessionId: Schema.NullOr(Schema.String),
-  settings: Settings,
-  pinnedSessionIds: Schema.Array(Schema.String),
-  backgroundSessionIds: Schema.Array(Schema.String),
-});
-export type StorageMetadata = Schema.Schema.Type<typeof StorageMetadata>;
-
 export const AppStoreState = Schema.Struct({
-  sessions: Schema.Record({ key: Schema.String, value: ChatSession }),
   activeSessionId: Schema.NullOr(Schema.String),
   settings: Settings,
-  availableModels: Schema.Array(ModelSchema),
   pinnedSessionIds: Schema.Array(Schema.String),
   backgroundSessionIds: Schema.Array(Schema.String),
 });
 export type AppStoreState = Schema.Schema.Type<typeof AppStoreState>;
 
-export const AppState = Schema.extend(
+export const AppDomainState = Schema.extend(
   AppStoreState,
+  Schema.Struct({
+    sessions: Schema.Record({ key: Schema.String, value: ChatMetadata }),
+    activeSession: Schema.NullOr(ChatSession),
+    availableModels: Schema.Array(ModelSchema),
+  }),
+);
+export type AppDomainState = Schema.Schema.Type<typeof AppDomainState>;
+
+export const AppRuntimeState = Schema.extend(
+  AppDomainState,
   Schema.Struct({
     isSidebarOpen: Schema.Boolean,
     isSettingOpen: Schema.Boolean,
@@ -181,4 +180,4 @@ export const AppState = Schema.extend(
     notifications: Schema.Array(Notification),
   }),
 );
-export type AppState = Schema.Schema.Type<typeof AppState>;
+export type AppRuntimeState = Schema.Schema.Type<typeof AppRuntimeState>;

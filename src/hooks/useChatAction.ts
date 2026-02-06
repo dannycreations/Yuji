@@ -4,12 +4,12 @@ import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 import { useStore, useStoreEffect } from './useStore';
 
-import type { AppState, Attachment, Message } from '../app/Schema';
+import type { AppRuntimeState, Attachment, Message } from '../app/Schema';
 
 export const useChatAction = () => {
   const activeSessionId = useStore((s) => s.activeSessionId);
+  const activeSession = useStore((s) => s.activeSession);
   const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
-  const sessions = useStore((s) => s.sessions);
 
   const isLoading = activeSessionId ? backgroundSessionIds.includes(activeSessionId) : false;
 
@@ -23,7 +23,6 @@ export const useChatAction = () => {
         currentSessionId = session.id;
       }
 
-      const activeSession = sessions[currentSessionId];
       const userMessage: Message = {
         id: crypto.randomUUID(),
         role: 'user',
@@ -42,10 +41,9 @@ export const useChatAction = () => {
   const handleRegenerate = useStoreEffect((sessionId: string, messageId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      const session = sessions[sessionId];
-      if (!session) return;
+      if (!activeSession || activeSession.id !== sessionId) return;
 
-      const originalMessage = session.messages[messageId];
+      const originalMessage = activeSession.messages[messageId];
       if (!originalMessage) return;
 
       const history =
@@ -80,10 +78,10 @@ export const useChatAction = () => {
     }),
   );
 
-  const handleSwitchBranch = useStoreEffect((sessionId: string, messageId: string) =>
+  const handleSwitchBranch = useStoreEffect((_sessionId: string, messageId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.updateSession(sessionId, (session) => ({
+      yield* chat.updateActiveSession((session) => ({
         ...session,
         activeMessageId: messageId,
       }));
@@ -100,7 +98,7 @@ export const useChatAction = () => {
   const handleTogglePin = useStoreEffect((sessionId: string) =>
     Effect.gen(function* () {
       const store = yield* StoreService;
-      yield* store.update((s: AppState) => {
+      yield* store.update((s: AppRuntimeState) => {
         const isPinned = s.pinnedSessionIds.includes(sessionId);
         const pinnedSessionIds = isPinned ? s.pinnedSessionIds.filter((id: string) => id !== sessionId) : [...s.pinnedSessionIds, sessionId];
         return { ...s, pinnedSessionIds };

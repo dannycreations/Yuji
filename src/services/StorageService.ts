@@ -1,14 +1,14 @@
 import { Context, Effect, Layer } from 'effect';
 import { openDB } from 'idb';
 
-import type { Message, PersistedSession, StorageMetadata } from '../app/Schema';
+import type { AppStoreState, ChatMetadata, Message } from '../app/Schema';
 
 export interface StorageService {
-  readonly getMetadata: () => Effect.Effect<StorageMetadata | null>;
-  readonly saveMetadata: (metadata: StorageMetadata) => Effect.Effect<void>;
+  readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
+  readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getSessions: () => Effect.Effect<ReadonlyArray<PersistedSession>>;
-  readonly saveSession: (session: PersistedSession) => Effect.Effect<void>;
+  readonly getSessions: () => Effect.Effect<ReadonlyArray<ChatMetadata>>;
+  readonly saveSession: (session: ChatMetadata) => Effect.Effect<void>;
   readonly deleteSession: (id: string) => Effect.Effect<void>;
 
   readonly getMessages: (sessionId: string) => Effect.Effect<ReadonlyArray<Message>>;
@@ -71,9 +71,7 @@ export const StorageServiceLive = Layer.effect(
       saveSession: (session) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          // We don't store messages in the session store to keep header retrieval fast
-          const { messages: _, ...header } = session;
-          yield* Effect.promise(() => db.put(STORES.SESSIONS, header));
+          yield* Effect.promise(() => db.put(STORES.SESSIONS, session));
         }),
 
       deleteSession: (id) =>

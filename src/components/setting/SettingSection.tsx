@@ -12,7 +12,7 @@ import { Icon } from '../shared/Icon';
 import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
-import type { ChatSession, Instruction, Personalisation, Settings } from '../../app/Schema';
+import type { ChatMetadata, ChatSession, Instruction, Personalisation, Settings } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
@@ -202,7 +202,7 @@ export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyAr
   );
 };
 
-export const HistorySection: FC<{ sessions: Record<string, ChatSession> }> = ({ sessions }) => {
+export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({ sessions }) => {
   const updateStore = useUpdateStore();
   const setConfirm = useConfirm();
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());

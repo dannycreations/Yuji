@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from
 import { YujiRuntime } from '../app/Yuji';
 import { StoreService } from '../services/StoreService';
 
-import type { AppState, ConfirmState } from '../app/Schema';
+import type { AppRuntimeState, ConfirmState } from '../app/Schema';
 
 export const StoreContext = createContext<StoreService | null>(null);
 
@@ -16,7 +16,7 @@ export const useStoreService = (): StoreService => {
   return service;
 };
 
-export const useStore = <T>(selector: (state: AppState) => T): T => {
+export const useStore = <T>(selector: (state: AppRuntimeState) => T): T => {
   const storeService = useStoreService();
 
   const subscribe = useMemo(() => {
@@ -59,12 +59,12 @@ const useStoreAction = <A extends unknown[], R, E>(effectFn: (service: StoreServ
   return useStoreEffect((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
 };
 
-export const useUpdateStore = () => useStoreAction((s, f: (state: AppState) => AppState) => s.update(f));
+export const useUpdateStore = () => useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
 
 export const useToggleSidebar = () => useStoreAction((s) => s.toggleSidebar());
 
 export const useToggleSetting = () => useStoreAction((s) => s.toggleSetting());
 
-export const useUpdateSetting = () => useStoreAction((s, updates: Partial<AppState['settings']>) => s.updateSetting(updates));
+export const useUpdateSetting = () => useStoreAction((s, updates: Partial<AppRuntimeState['settings']>) => s.updateSetting(updates));
 
 export const useConfirm = () => useStoreAction((s, config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) => s.setConfirm(config));

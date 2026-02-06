@@ -29,8 +29,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   const isUser = message.role === 'user';
   const childrenIds = useStore((s) => {
     if (!message.parentId) return undefined;
-    const session = s.sessions[sessionId];
-    if (!session) return undefined;
+    const session = s.activeSession;
+    if (!session || session.id !== sessionId) return undefined;
     return session.messages[message.parentId!]?.childrenIds;
   });
 

@@ -16,8 +16,9 @@ export const deepMerge = <A extends object, B = A>(target: A, source: B): A => {
   if (!source || typeof source !== 'object' || Array.isArray(source)) return result;
 
   Object.keys(source).forEach((key) => {
-    const targetValue = (result as any)[key];
-    const sourceValue = (source as any)[key];
+    const resultAs = result as Record<string, unknown>;
+    const targetValue = resultAs[key];
+    const sourceValue = (source as typeof resultAs)[key];
 
     if (
       sourceValue !== null &&
@@ -27,9 +28,9 @@ export const deepMerge = <A extends object, B = A>(target: A, source: B): A => {
       typeof targetValue === 'object' &&
       !Array.isArray(targetValue)
     ) {
-      (result as any)[key] = deepMerge(targetValue, sourceValue);
+      resultAs[key] = deepMerge(targetValue, sourceValue);
     } else if (sourceValue !== undefined) {
-      (result as any)[key] = sourceValue;
+      resultAs[key] = sourceValue;
     }
   });
 

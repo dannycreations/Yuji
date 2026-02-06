@@ -1,8 +1,8 @@
 import { toTitleCase } from '../utilities/CommonUtil';
 
-import type { AppState, Model } from '../app/Schema';
+import type { AppRuntimeState, Model } from '../app/Schema';
 
-export const getModelId = (settings: AppState['settings'], availableModels: AppState['availableModels']): string => {
+export const getModelId = (settings: AppRuntimeState['settings'], availableModels: AppRuntimeState['availableModels']): string => {
   const active = availableModels.filter((m) => !settings.disabledModels.includes(m.id));
   return active.find((m) => m.id === settings.model)?.id || active[0]?.id || 'gpt-4o';
 };
@@ -13,9 +13,9 @@ export const getModelName = (availableModels: ReadonlyArray<Model>, modelId: str
 };
 
 export const getEffectiveModelId = (
-  settings: AppState['settings'],
-  availableModels: AppState['availableModels'],
-  sessions: AppState['sessions'],
+  settings: AppRuntimeState['settings'],
+  availableModels: AppRuntimeState['availableModels'],
+  sessions: AppRuntimeState['sessions'],
   sessionId: string | null,
 ): string => {
   const session = sessionId ? sessions[sessionId] : null;
@@ -29,9 +29,9 @@ export const getEffectiveModelId = (
 };
 
 export const getEffectiveModelName = (
-  settings: AppState['settings'],
-  availableModels: AppState['availableModels'],
-  sessions: AppState['sessions'],
+  settings: AppRuntimeState['settings'],
+  availableModels: AppRuntimeState['availableModels'],
+  sessions: AppRuntimeState['sessions'],
   sessionId: string | null,
 ): string => {
   return getModelName(availableModels, getEffectiveModelId(settings, availableModels, sessions, sessionId));

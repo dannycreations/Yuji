@@ -15,7 +15,7 @@ import type { FC } from 'react';
 
 export const ChatInterface: FC = () => {
   const activeSessionId = useStore((s) => s.activeSessionId);
-  const activeSession = useStore((s) => (activeSessionId ? s.sessions[activeSessionId] : null));
+  const activeSession = useStore((s) => s.activeSession);
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 

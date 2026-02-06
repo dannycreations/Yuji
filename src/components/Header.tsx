@@ -11,7 +11,7 @@ import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { ChatSession, Model } from '../app/Schema';
+import type { ChatMetadata, Model } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -89,7 +89,7 @@ export const Header: FC = () => {
   const setSessionModel = useStoreEffect((sessionId: string, model: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.updateSession(sessionId, (s: ChatSession) => ({
+      yield* chat.updateSession(sessionId, (s: ChatMetadata) => ({
         ...s,
         general: { ...s.general, model },
       }));
