@@ -64,6 +64,10 @@ export const ChatServiceLive = Layer.effect(
 
         if (!sessionFound) {
           yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+        } else {
+          const s = yield* SubscriptionRef.get(store.state);
+          const meta = s.sessions[sessionId];
+          if (meta) yield* storage.saveSession(meta);
         }
       }).pipe(
         Effect.catchAll((err) => {
@@ -102,13 +106,22 @@ export const ChatServiceLive = Layer.effect(
             activeSession: updated,
             sessions: {
               ...state.sessions,
-              [updated.id]: updated,
+              [updated.id]: {
+                id: updated.id,
+                title: updated.title,
+                activeMessageId: updated.activeMessageId,
+                createdAt: updated.createdAt,
+                updatedAt: updated.updatedAt,
+              },
             },
           };
         });
 
         if (!sessionFound) {
           yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
+        } else {
+          const s = yield* SubscriptionRef.get(store.state);
+          if (s.activeSession) yield* storage.saveSession(s.activeSession);
         }
       }).pipe(
         Effect.catchAll((err) => {
@@ -234,14 +247,23 @@ export const ChatServiceLive = Layer.effect(
             },
           };
 
+          const metadata: ChatMetadata = {
+            id,
+            title: newSession.title,
+            createdAt: now,
+            updatedAt: now,
+          };
+
           yield* store.update((state) => ({
             ...state,
-            sessions: { [id]: newSession, ...state.sessions },
+            sessions: { [id]: metadata, ...state.sessions },
             activeSessionId: id,
             activeSession: newSession,
           }));
 
-          return newSession;
+          yield* storage.saveSession(newSession);
+
+          return metadata;
         }),
 
       deleteSession: (id) =>

@@ -25,7 +25,8 @@ export const Sidebar: FC = () => {
   const setActiveSession = (id: string | null) =>
     updateStore((s) => {
       if (id === null) return { ...s, activeSessionId: null, activeSession: null };
-      return { ...s, activeSessionId: id };
+      if (id === s.activeSessionId && s.activeSession?.id === id) return s;
+      return { ...s, activeSessionId: id, activeSession: null };
     });
   const toggleSidebar = useToggleSidebar();
   const toggleSetting = useToggleSetting();

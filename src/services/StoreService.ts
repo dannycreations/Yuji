@@ -5,7 +5,7 @@ import { MODELS } from '../app/Schema';
 import { randomString } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
-import type { AppRuntimeState, ChatMetadata, ChatSession, ConfirmState, Message } from '../app/Schema';
+import type { AppRuntimeState, ChatMetadata, ChatSession, ConfirmState } from '../app/Schema';
 
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
@@ -74,7 +74,7 @@ export const StoreServiceLive = Layer.effect(
 
     const loadState = Effect.gen(function* () {
       const metadata = yield* storage.getMetadata();
-      const sessionHeaders = yield* storage.getSessions();
+      const sessionHeaders = yield* storage.getSessionsMetadata();
 
       if (metadata) {
         const sessionsMap: Record<string, ChatMetadata> = {};
@@ -83,12 +83,8 @@ export const StoreServiceLive = Layer.effect(
         }
 
         let activeSession: ChatSession | null = null;
-        if (metadata.activeSessionId && sessionsMap[metadata.activeSessionId]) {
-          const header = sessionsMap[metadata.activeSessionId];
-          const messages = yield* storage.getMessages(header.id);
-          const messagesRecord: Record<string, Message> = {};
-          messages.forEach((m) => (messagesRecord[m.id] = m));
-          activeSession = { ...header, messages: messagesRecord };
+        if (metadata.activeSessionId) {
+          activeSession = yield* storage.getSession(metadata.activeSessionId);
         }
 
         return {
@@ -121,37 +117,6 @@ export const StoreServiceLive = Layer.effect(
         Stream.changes,
         Stream.debounce('1 seconds'),
         Stream.runForEach((meta) => storage.saveMetadata(meta as any)),
-      ),
-    );
-
-    // Persistence Loop: Sessions
-    yield* Effect.forkDaemon(
-      state.changes.pipe(
-        Stream.drop(1),
-        Stream.zipWithPrevious,
-        Stream.map(([maybePrev, curr]) => {
-          if (maybePrev._tag === 'None') return Object.keys(curr.sessions);
-          const prev = maybePrev.value;
-          return Object.keys(curr.sessions).filter((id) => {
-            const p = prev.sessions[id];
-            const c = curr.sessions[id];
-            return p !== c;
-          });
-        }),
-        Stream.filter((ids) => ids.length > 0),
-        Stream.debounce('1 seconds'),
-        Stream.runForEach((ids) =>
-          Effect.gen(function* () {
-            const current = yield* SubscriptionRef.get(state);
-            yield* Effect.all(
-              ids
-                .map((id) => current.sessions[id])
-                .filter((s): s is ChatMetadata => !!s)
-                .map((s) => storage.saveSession(s)),
-              { discard: true },
-            );
-          }),
-        ),
       ),
     );
 
@@ -194,17 +159,15 @@ export const StoreServiceLive = Layer.effect(
       loadMessages: (sessionId) =>
         Effect.gen(function* () {
           const currentState = yield* SubscriptionRef.get(state);
-          const header = currentState.sessions[sessionId];
-          if (!header || (currentState.activeSessionId === sessionId && currentState.activeSession)) return;
+          if (currentState.activeSessionId === sessionId && currentState.activeSession?.id === sessionId) return;
 
-          const messages = yield* storage.getMessages(sessionId);
-          const messagesRecord: Record<string, Message> = {};
-          messages.forEach((m) => (messagesRecord[m.id] = m));
+          const session = yield* storage.getSession(sessionId);
+          if (!session) return;
 
           yield* update((s) => ({
             ...s,
             activeSessionId: sessionId,
-            activeSession: { ...header, messages: messagesRecord },
+            activeSession: session,
           }));
         }),
     });

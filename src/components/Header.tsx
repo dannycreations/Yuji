@@ -11,7 +11,7 @@ import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { ChatMetadata, Model } from '../app/Schema';
+import type { Model } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -79,34 +79,33 @@ export const Header: FC = () => {
 
   const settings = useStore((s) => s.settings);
   const activeSessionId = useStore((s) => s.activeSessionId);
-  const sessions = useStore((s) => s.sessions);
+  const activeSession = useStore((s) => s.activeSession);
   const availableModels = useStore((s) => s.availableModels);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
 
   const toggleSidebar = useToggleSidebar();
   const updateSetting = useUpdateSetting();
 
-  const setSessionModel = useStoreEffect((sessionId: string, model: string) =>
+  const setSessionModel = useStoreEffect((model: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.updateSession(sessionId, (s: ChatMetadata) => ({
+      yield* chat.updateActiveSession((s) => ({
         ...s,
         general: { ...s.general, model },
       }));
     }),
   );
 
-  const activeSession = activeSessionId ? sessions[activeSessionId] : null;
-  const sessionModel = activeSession?.general.model;
+  const sessionModel = activeSession?.general?.model;
 
   const { currentModelId, currentModelName } = useMemo(() => {
-    const id = getEffectiveModelId(settings, availableModels, sessions, activeSessionId);
+    const id = getEffectiveModelId(settings, availableModels, activeSession);
     const name = optimisticModelId
       ? getModelName(availableModels, optimisticModelId)
-      : getEffectiveModelName(settings, availableModels, sessions, activeSessionId);
+      : getEffectiveModelName(settings, availableModels, activeSession);
 
     return { currentModelId: id, currentModelName: name };
-  }, [availableModels, settings.model, settings.disabledModels, sessionModel, optimisticModelId, activeSessionId]);
+  }, [availableModels, settings.model, settings.disabledModels, sessionModel, optimisticModelId, activeSession]);
 
   const handleModelSelect = (modelId: string) => {
     // 1. Immediate UI feedback (High Priority)
@@ -117,7 +116,7 @@ export const Header: FC = () => {
     setTimeout(() => {
       updateSetting({ model: modelId });
       if (activeSessionId) {
-        setSessionModel(activeSessionId, modelId);
+        setSessionModel(modelId);
       }
     }, 0);
   };

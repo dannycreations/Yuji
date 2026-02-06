@@ -15,11 +15,9 @@ export const getModelName = (availableModels: ReadonlyArray<Model>, modelId: str
 export const getEffectiveModelId = (
   settings: AppRuntimeState['settings'],
   availableModels: AppRuntimeState['availableModels'],
-  sessions: AppRuntimeState['sessions'],
-  sessionId: string | null,
+  activeSession: AppRuntimeState['activeSession'],
 ): string => {
-  const session = sessionId ? sessions[sessionId] : null;
-  const sessionModelId = session?.general.model;
+  const sessionModelId = activeSession?.general?.model;
 
   if (sessionModelId && !settings.disabledModels.includes(sessionModelId)) {
     return sessionModelId;
@@ -31,8 +29,7 @@ export const getEffectiveModelId = (
 export const getEffectiveModelName = (
   settings: AppRuntimeState['settings'],
   availableModels: AppRuntimeState['availableModels'],
-  sessions: AppRuntimeState['sessions'],
-  sessionId: string | null,
+  activeSession: AppRuntimeState['activeSession'],
 ): string => {
-  return getModelName(availableModels, getEffectiveModelId(settings, availableModels, sessions, sessionId));
+  return getModelName(availableModels, getEffectiveModelId(settings, availableModels, activeSession));
 };

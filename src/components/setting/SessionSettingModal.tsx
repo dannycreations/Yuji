@@ -23,10 +23,14 @@ const SESSION_SETTING_TABS: ReadonlyArray<SettingTabItem> = [
 ];
 
 export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
-  const sessions = useStore((s) => s.sessions);
-  const session = sessions[sessionId];
+  const activeSession = useStore((s) => s.activeSession);
+  const session = activeSession && activeSession.id === sessionId ? activeSession : null;
 
-  const updateSessionEffect = useStoreEffect((sessionId: string, f: (s: ChatMetadata, now: number) => ChatMetadata) =>
+  const updateActiveSessionEffect = useStoreEffect((f: (s: ChatSession, now: number) => ChatSession) =>
+    Effect.flatMap(ChatService, (chat) => chat.updateActiveSession(f)),
+  );
+
+  const updateSessionMetaEffect = useStoreEffect((sessionId: string, f: (s: ChatMetadata, now: number) => ChatMetadata) =>
     Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f)),
   );
 
@@ -34,8 +38,10 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
 
   if (!session) return null;
 
-  const updateSession = (updates: Partial<ChatMetadata>) => updateSessionEffect(sessionId, (s) => ({ ...s, ...updates }));
-  const updateGeneral = (updates: Partial<ChatSession['general']>) => updateSession({ general: { ...session.general, ...updates } });
+  const updateSession = (updates: Partial<ChatSession>) => updateActiveSessionEffect((s) => ({ ...s, ...updates }));
+  const updateSessionMeta = (updates: Partial<ChatMetadata>) => updateSessionMetaEffect(sessionId, (s) => ({ ...s, ...updates }));
+  const updateConfig = (updates: Partial<ChatSession>) => updateSession({ ...session, ...updates });
+  const updateGeneral = (updates: Partial<ChatSession['general']>) => updateConfig({ general: { ...session.general, ...updates } });
 
   const renderContent = () => {
     switch (activeTab) {
@@ -43,7 +49,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
         return (
           <SectionWrapper className="space-y-3">
             <SettingField label="Chat Title">
-              <InputText value={session.title} onChange={(e) => updateSession({ title: e.target.value })} placeholder="Enter chat title..." />
+              <InputText value={session.title} onChange={(e) => updateSessionMeta({ title: e.target.value })} placeholder="Enter chat title..." />
             </SettingField>
 
             <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group mt-2 pt-2">
@@ -69,7 +75,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
             >
               <InstructionSection
                 instruction={session.instruction}
-                onChange={(updates) => updateSession({ instruction: { ...session.instruction, ...updates } })}
+                onChange={(updates) => updateConfig({ instruction: { ...session.instruction, ...updates } })}
                 footer="This will completely replace the global system prompt."
               />
             </OverrideSection>
@@ -86,7 +92,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
             >
               <PersonalisationSection
                 personalisation={session.personalisation}
-                onChange={(updates) => updateSession({ personalisation: { ...session.personalisation, ...updates } })}
+                onChange={(updates) => updateConfig({ personalisation: { ...session.personalisation, ...updates } })}
               />
             </OverrideSection>
           </SectionWrapper>

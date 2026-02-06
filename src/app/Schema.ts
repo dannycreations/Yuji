@@ -88,38 +88,7 @@ export const Personalisation = Schema.Struct({
 });
 export type Personalisation = Schema.Schema.Type<typeof Personalisation>;
 
-export const ChatMetadata = Schema.Struct({
-  id: Schema.String,
-  title: Schema.String,
-  activeMessageId: Schema.optional(Schema.String),
-  createdAt: Schema.Number,
-  updatedAt: Schema.Number,
-  general: Schema.Struct({
-    model: Schema.optional(Schema.String),
-    overrideInstruction: Schema.optional(Schema.Boolean),
-    overridePersonalisation: Schema.optional(Schema.Boolean),
-  }),
-  instruction: Schema.Struct({
-    systemPrompt: Schema.optional(Schema.String),
-  }),
-  personalisation: Schema.Struct({
-    userName: Schema.optional(Schema.String),
-    userOccupation: Schema.optional(Schema.Array(Schema.String)),
-    assistantTraits: Schema.optional(Schema.Array(Schema.String)),
-    additionalContext: Schema.optional(Schema.String),
-  }),
-});
-export type ChatMetadata = Schema.Schema.Type<typeof ChatMetadata>;
-
-export const ChatSession = Schema.extend(
-  ChatMetadata,
-  Schema.Struct({
-    messages: Schema.Record({ key: Schema.String, value: Message }),
-  }),
-);
-export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
-
-export const Settings = Schema.Struct({
+export const GlobalSettings = Schema.Struct({
   apiKey: Schema.String,
   baseUrl: Schema.String,
   model: Schema.String,
@@ -131,7 +100,38 @@ export const Settings = Schema.Struct({
   personalisation: Personalisation,
   disabledModels: Schema.Array(Schema.String),
 });
-export type Settings = Schema.Schema.Type<typeof Settings>;
+export type GlobalSettings = Schema.Schema.Type<typeof GlobalSettings>;
+
+export const SessionSettings = Schema.Struct({
+  general: Schema.Struct({
+    model: Schema.optional(Schema.String),
+    overrideInstruction: Schema.optional(Schema.Boolean),
+    overridePersonalisation: Schema.optional(Schema.Boolean),
+  }),
+  instruction: Instruction,
+  personalisation: Personalisation,
+});
+export type SessionSettings = Schema.Schema.Type<typeof SessionSettings>;
+
+export const ChatMetadata = Schema.Struct({
+  id: Schema.String,
+  title: Schema.String,
+  activeMessageId: Schema.optional(Schema.String),
+  createdAt: Schema.Number,
+  updatedAt: Schema.Number,
+});
+export type ChatMetadata = Schema.Schema.Type<typeof ChatMetadata>;
+
+export const ChatSession = Schema.extend(
+  ChatMetadata,
+  Schema.extend(
+    SessionSettings,
+    Schema.Struct({
+      messages: Schema.Record({ key: Schema.String, value: Message }),
+    }),
+  ),
+);
+export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
 
 export const ConfirmState = Schema.Struct({
   isOpen: Schema.Boolean,
@@ -154,7 +154,7 @@ export type Notification = Schema.Schema.Type<typeof Notification>;
 
 export const AppStoreState = Schema.Struct({
   activeSessionId: Schema.NullOr(Schema.String),
-  settings: Settings,
+  settings: GlobalSettings,
   pinnedSessionIds: Schema.Array(Schema.String),
   backgroundSessionIds: Schema.Array(Schema.String),
 });

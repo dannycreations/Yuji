@@ -12,7 +12,7 @@ import { Icon } from '../shared/Icon';
 import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
-import type { ChatMetadata, ChatSession, Instruction, Personalisation, Settings } from '../../app/Schema';
+import type { ChatMetadata, ChatSession, GlobalSettings, Instruction, Personalisation } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
@@ -40,7 +40,7 @@ export const SettingField: FC<{ label: string; children: ReactNode; className?: 
   </div>
 );
 
-export const GeneralSection: FC<{ settings: Settings }> = ({ settings }) => {
+export const GeneralSection: FC<{ settings: GlobalSettings }> = ({ settings }) => {
   const updateSetting = useUpdateSetting();
   return (
     <SectionWrapper>
@@ -70,7 +70,7 @@ export const GeneralSection: FC<{ settings: Settings }> = ({ settings }) => {
   );
 };
 
-export const ConnectionSection: FC<{ settings: Settings }> = ({ settings }) => {
+export const ConnectionSection: FC<{ settings: GlobalSettings }> = ({ settings }) => {
   const updateSetting = useUpdateSetting();
   return (
     <SectionWrapper className="space-y-3">
@@ -102,7 +102,7 @@ export const ConnectionSection: FC<{ settings: Settings }> = ({ settings }) => {
   );
 };
 
-export const ModelsSection: FC<{ settings: Settings; availableModels: ReadonlyArray<Model> }> = ({ settings, availableModels }) => {
+export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: ReadonlyArray<Model> }> = ({ settings, availableModels }) => {
   const updateStore = useUpdateStore();
   const updateSetting = useUpdateSetting();
   const [modelSearch, setModelSearch] = useState('');
