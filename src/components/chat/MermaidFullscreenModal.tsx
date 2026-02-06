@@ -83,7 +83,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
         onMouseLeave={handleMouseUp}
       >
         <div
-          className="flex-center absolute inset-0 transition-transform duration-75 ease-out"
+          className="mermaid-fullscreen-container flex-center absolute inset-0 transition-transform duration-75 ease-out"
           style={{
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: 'center',
