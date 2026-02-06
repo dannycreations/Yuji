@@ -2,20 +2,21 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { Model } from '../../app/Schema';
-import { filterModels, getModelId, getModelName } from '../../helpers/ModelHelper';
+import { filterModels, getModelId } from '../../helpers/ModelHelper';
 import { sortSessionsByDate } from '../../helpers/SessionHelper';
-import { useConfirm, useStoreEffect, useUpdateSetting, useUpdateStore } from '../../hooks/useStore';
+import { useConfirm, useStoreEffect, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
+import { ChatService } from '../../services/ChatService';
 import { downloadFile } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { Button } from '../shared/Button';
 import { Checkbox } from '../shared/Checkbox';
 import { Icon } from '../shared/Icon';
 import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
+import { ModelItem } from '../shared/ModelItem';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
-import type { ChatMetadata, ChatSession, GlobalSettings, Instruction, Personalisation } from '../../app/Schema';
+import type { ChatMetadata, ChatSession, GlobalSettings, Instruction, Model, Personalisation } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
@@ -43,14 +44,18 @@ export const SettingField: FC<{ label: string; children: ReactNode; className?: 
   </div>
 );
 
-export const GeneralSection: FC<{ settings: GlobalSettings }> = ({ settings }) => {
-  const updateSetting = useUpdateSetting();
+interface SettingSectionProps {
+  readonly settings: GlobalSettings;
+  readonly onChange: (updates: Partial<GlobalSettings> | ((s: GlobalSettings) => GlobalSettings)) => void;
+}
+
+export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) => {
   return (
     <SectionWrapper>
       <SettingItem label="Appearance">
         <InputSelect
           value={settings.theme}
-          onChange={(e) => updateSetting({ theme: e.target.value as 'dark' | 'light' })}
+          onChange={(e) => onChange({ theme: e.target.value as 'dark' | 'light' })}
           className="!py-1.5 !text-xs min-w-[100px]"
         >
           <option value="dark">Dark</option>
@@ -59,22 +64,21 @@ export const GeneralSection: FC<{ settings: GlobalSettings }> = ({ settings }) =
       </SettingItem>
 
       <SettingItem label="Enter to send" description="Send the message by pressing the Enter key.">
-        <InputSwitch checked={settings.enterToSend} onChange={(checked) => updateSetting({ enterToSend: checked })} />
+        <InputSwitch checked={settings.enterToSend} onChange={(checked) => onChange({ enterToSend: checked })} />
       </SettingItem>
 
       <SettingItem label="Expand code blocks" description="Automatically expand code blocks to show full content.">
-        <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => updateSetting({ expandCodeblock: checked })} />
+        <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => onChange({ expandCodeblock: checked })} />
       </SettingItem>
 
       <SettingItem label="Show suggestions" description="Show prompt suggestions on the initial chat page.">
-        <InputSwitch checked={settings.showSuggestions} onChange={(checked) => updateSetting({ showSuggestions: checked })} />
+        <InputSwitch checked={settings.showSuggestions} onChange={(checked) => onChange({ showSuggestions: checked })} />
       </SettingItem>
     </SectionWrapper>
   );
 };
 
-export const ConnectionSection: FC<{ settings: GlobalSettings }> = ({ settings }) => {
-  const updateSetting = useUpdateSetting();
+export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange }) => {
   return (
     <SectionWrapper className="space-y-3">
       <SettingField label="API Provider">
@@ -87,7 +91,7 @@ export const ConnectionSection: FC<{ settings: GlobalSettings }> = ({ settings }
         <InputText
           leftIcon="Link"
           value={settings.baseUrl}
-          onChange={(e) => updateSetting({ baseUrl: e.target.value })}
+          onChange={(e) => onChange({ baseUrl: e.target.value })}
           placeholder="http://localhost:11434/v1"
         />
       </SettingField>
@@ -97,7 +101,7 @@ export const ConnectionSection: FC<{ settings: GlobalSettings }> = ({ settings }
           type="password"
           leftIcon="Key"
           value={settings.apiKey}
-          onChange={(e) => updateSetting({ apiKey: e.target.value })}
+          onChange={(e) => onChange({ apiKey: e.target.value })}
           placeholder="sk-..."
         />
       </SettingField>
@@ -105,9 +109,8 @@ export const ConnectionSection: FC<{ settings: GlobalSettings }> = ({ settings }
   );
 };
 
-export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: readonly Model[] }> = ({ settings, availableModels }) => {
+export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly Model[] }> = ({ settings, availableModels, onChange }) => {
   const updateStore = useUpdateStore();
-  const updateSetting = useUpdateSetting();
   const [modelSearch, setModelSearch] = useState('');
 
   const setAvailableModels = (models: Model[]) => updateStore((s) => ({ ...s, availableModels: models }));
@@ -148,7 +151,7 @@ export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: read
   const toggleModel = (modelId: string) => {
     const isDisabled = settings.disabledModels.includes(modelId);
     const newDisabledModels = isDisabled ? settings.disabledModels.filter((id) => id !== modelId) : [...settings.disabledModels, modelId];
-    updateSetting({ disabledModels: newDisabledModels });
+    onChange({ disabledModels: newDisabledModels });
   };
 
   const effectiveModelId = getModelId(settings, availableModels);
@@ -167,27 +170,18 @@ export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: read
 
       <div className="flex-1 min-h-0 space-y-2">
         {filteredModels.length > 0 ? (
-          filteredModels.map((model: Model) => {
+          filteredModels.map((model) => {
             const isEnabled = !settings.disabledModels.includes(model.id);
             return (
-              <div key={model.id} className={clsx('settings-model-card', isEnabled ? 'enabled' : 'disabled')}>
-                <div className={clsx('settings-model-icon-wrapper', isEnabled ? model.color || 'text-text-tertiary' : 'disabled')}>
-                  <Icon name={model.icon} size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={clsx('text-semibold text-sm', isEnabled ? 'text-text-primary' : 'text-text-tertiary')}>
-                      {getModelName(availableModels, model.id)}
-                    </span>
-                    {effectiveModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
-                    {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
-                  </div>
-                  <div className="text-xs text-text-tertiary font-mono">{model.id}</div>
-                  {model.description && <p className="text-xs text-text-tertiary line-clamp-1 mt-1">{model.description}</p>}
-                </div>
-
-                <InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />
-              </div>
+              <ModelItem
+                key={model.id}
+                model={model}
+                availableModels={availableModels}
+                isEnabled={isEnabled}
+                isDefault={effectiveModelId === model.id}
+                className={clsx('settings-model-card !p-3 cursor-default', isEnabled ? 'enabled' : 'disabled')}
+                rightContent={<InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />}
+              />
             );
           })
         ) : (
@@ -202,25 +196,16 @@ export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: read
 };
 
 export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({ sessions }) => {
-  const updateStore = useUpdateStore();
-  const setConfirm = useConfirm();
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
   const [historyPage, setHistoryPage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 6;
 
-  const importSessions = (newSessions: Record<string, ChatSession>) => updateStore((s) => ({ ...s, sessions: { ...s.sessions, ...newSessions } }));
-
-  const deleteSessions = (ids: Set<string>) =>
-    updateStore((s) => {
-      const nextSessions = { ...s.sessions };
-      ids.forEach((id) => delete nextSessions[id]);
-      return {
-        ...s,
-        sessions: nextSessions,
-        activeSessionId: ids.has(s.activeSessionId || '') ? null : s.activeSessionId,
-      };
-    });
+  const showConfirm = useConfirm();
+  const importSessions = useStoreEffect((newSessions: Record<string, ChatSession>) =>
+    Effect.flatMap(ChatService, (chat) => chat.importSessions(newSessions)),
+  );
+  const deleteSessions = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteSessions(ids)));
 
   const handleExport = () => {
     let dataToExport = sessions;
@@ -250,7 +235,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
 
   const handleDeleteSelected = () => {
     if (selectedSessionIds.size === 0) return;
-    setConfirm({
+    showConfirm({
       title: 'Delete History',
       message: `Are you sure you want to delete **${selectedSessionIds.size}** selected session${selectedSessionIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
       confirmLabel: 'Delete',

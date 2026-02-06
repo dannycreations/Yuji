@@ -32,11 +32,11 @@ export const GlobalSettingModal: FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'general':
-        return <GeneralSection settings={settings} />;
+        return <GeneralSection settings={settings} onChange={updateSetting} />;
       case 'connection':
-        return <ConnectionSection settings={settings} />;
+        return <ConnectionSection settings={settings} onChange={updateSetting} />;
       case 'models':
-        return <ModelsSection settings={settings} availableModels={availableModels} />;
+        return <ModelsSection settings={settings} availableModels={availableModels} onChange={updateSetting} />;
       case 'instruction':
         return (
           <InstructionSection
@@ -57,17 +57,8 @@ export const GlobalSettingModal: FC = () => {
     }
   };
 
-  const activeTabLabel = GLOBAL_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
-
   return (
-    <SettingModal
-      isOpen={isSettingOpen}
-      tabs={GLOBAL_SETTING_TABS}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      onClose={toggleSetting}
-      title={activeTabLabel}
-    >
+    <SettingModal isOpen={isSettingOpen} tabs={GLOBAL_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={toggleSetting}>
       {renderContent()}
     </SettingModal>
   );

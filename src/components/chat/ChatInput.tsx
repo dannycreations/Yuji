@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { useRef, useState } from 'react';
 
 import { useStore } from '../../hooks/useStore';
+import { uuid } from '../../utilities/CommonUtil';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
@@ -52,7 +53,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           reader.onload = (loadEvent) => {
             if (loadEvent.target?.result) {
               const newAttachment: Attachment = {
-                id: crypto.randomUUID(),
+                id: uuid(),
                 type: 'image',
                 url: loadEvent.target.result as string,
                 name: file.name,

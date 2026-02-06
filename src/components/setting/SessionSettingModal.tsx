@@ -10,7 +10,7 @@ import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
 
 import type { FC } from 'react';
-import type { ChatMetadata, ChatSession } from '../../app/Schema';
+import type { ChatSession } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 interface SessionSettingModalProps {
@@ -28,50 +28,34 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const activeSession = useStore((s) => s.activeSession);
   const [localSession, setLocalSession] = useState<ChatSession | null>(null);
 
-  const updateActiveSession = useStoreAction((_, f: (s: ChatSession, now: number) => ChatSession) =>
-    Effect.flatMap(ChatService, (chat) => chat.updateActiveSession(f)),
-  );
-  const updateSession = useStoreAction((_, sessionId: string, f: (s: ChatSession, now: number) => ChatSession) =>
+  const updateTargetSession = useStoreAction((_, targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.updateSessionFull(sessionId, f);
-      const storage = yield* StorageService;
-      const session = yield* storage.getSession(sessionId);
-      if (session) setLocalSession(session);
+      yield* chat.updateSession(targetId, f, { metadataOnly: metadataOnly as boolean });
+      if (!metadataOnly) {
+        const storage = yield* StorageService;
+        const session = yield* storage.getSession(targetId);
+        if (session) setLocalSession(session);
+      }
     }),
-  );
-  const updateSessionMeta = useStoreAction((_, sessionId: string, f: (s: ChatMetadata, now: number) => ChatMetadata) =>
-    Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f)),
   );
 
   const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
-    if (activeSession && activeSession.id === sessionId) {
+    if (activeSession?.id === sessionId) {
       setLocalSession(null);
-      return;
+    } else {
+      YujiRuntime.runPromise(Effect.flatMap(StorageService, (storage) => storage.getSession(sessionId))).then((s) => s && setLocalSession(s));
     }
-
-    YujiRuntime.runPromise(
-      Effect.gen(function* () {
-        const storage = yield* StorageService;
-        const session = yield* storage.getSession(sessionId);
-        if (session) {
-          setLocalSession(session);
-        }
-      }),
-    );
   }, [sessionId, activeSession?.id]);
 
-  const session = activeSession && activeSession.id === sessionId ? activeSession : localSession;
-
+  const session = activeSession?.id === sessionId ? activeSession : localSession;
   if (!session) return null;
 
-  const handleSession = (updates: Partial<ChatSession>) =>
-    activeSession?.id === sessionId ? updateActiveSession((s) => ({ ...s, ...updates })) : updateSession(sessionId, (s) => ({ ...s, ...updates }));
-  const handleSessionMeta = (updates: Partial<ChatMetadata>) => updateSessionMeta(sessionId, (s) => ({ ...s, ...updates }));
-  const handleConfig = (updates: Partial<ChatSession>) => handleSession({ ...session, ...updates });
-  const handleGeneral = (updates: Partial<ChatSession['general']>) => handleConfig({ general: { ...session.general, ...updates } });
+  const patchSession = (f: (s: ChatSession) => ChatSession, metadataOnly = false) => updateTargetSession(sessionId, (s) => f(s), metadataOnly);
+
+  const handleGeneral = (updates: Partial<ChatSession['general']>) => patchSession((s) => ({ ...s, general: { ...s.general, ...updates } }));
 
   const renderContent = () => {
     switch (activeTab) {
@@ -79,7 +63,11 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
         return (
           <SectionWrapper className="space-y-3">
             <SettingField label="Chat Title">
-              <InputText value={session.title} onChange={(e) => handleSessionMeta({ title: e.target.value })} placeholder="Enter chat title..." />
+              <InputText
+                value={session.title}
+                onChange={(e) => patchSession((s) => ({ ...s, title: e.target.value }), true)}
+                placeholder="Enter chat title..."
+              />
             </SettingField>
 
             <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group mt-2 pt-2">
@@ -101,7 +89,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
             description="Instruction is following global settings."
             checked={!!session.general.overrideInstruction}
             onChange={(checked) => handleGeneral({ overrideInstruction: checked })}
-            onDataChange={(updates) => handleConfig({ instruction: { ...session.instruction, ...updates } })}
+            onDataChange={(updates) => patchSession((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
           >
             {({ onChange }) => (
               <InstructionSection
@@ -119,7 +107,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
             description="Personalization is following global settings."
             checked={!!session.general.overridePersonalisation}
             onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
-            onDataChange={(updates) => handleConfig({ personalisation: { ...session.personalisation, ...updates } })}
+            onDataChange={(updates) => patchSession((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
           >
             {({ onChange }) => <PersonalisationSection personalisation={session.personalisation} onChange={onChange} />}
           </OverrideSection>
@@ -127,10 +115,8 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     }
   };
 
-  const activeTabLabel = SESSION_SETTING_TABS.find((t) => t.id === activeTab)?.label || '';
-
   return (
-    <SettingModal tabs={SESSION_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose} title={activeTabLabel}>
+    <SettingModal tabs={SESSION_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
       {renderContent()}
     </SettingModal>
   );

@@ -24,6 +24,8 @@ interface SettingModalProps {
 }
 
 export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activeTab, onTabChange, onClose, children, sidebarBottom, title }) => {
+  const activeTabLabel = title || tabs.find((t) => t.id === activeTab)?.label || '';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} containerClassName="w-full max-w-settings h-settings bg-sidebar flex overflow-hidden origin-bottom">
       {/* Sidebar */}
@@ -47,7 +49,7 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
       {/* Main Content */}
       <div className="settings-main-content bg-background">
         <div className="modal-header">
-          <div className="header-title">{title}</div>
+          <div className="header-title">{activeTabLabel}</div>
         </div>
 
         <div className="flex-1 min-h-0">

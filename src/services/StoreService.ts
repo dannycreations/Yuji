@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect'
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
 import { AppRuntimeState, AppStoreState, ChatMetadata, ChatSession, ConfirmState } from '../app/Schema';
-import { randomString } from '../utilities/CommonUtil';
+import { randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
 export interface StoreService {
@@ -11,7 +11,9 @@ export interface StoreService {
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void>;
   readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void>;
   readonly setActiveSession: (sessionOrId: ChatSession | string | null) => Effect.Effect<void>;
-  readonly updateSetting: (updates: Partial<AppRuntimeState['settings']>) => Effect.Effect<void>;
+  readonly updateSetting: (
+    updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings']),
+  ) => Effect.Effect<void>;
   readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void>;
   readonly togglePin: (sessionId: string) => Effect.Effect<void>;
   readonly setConfirm: (options: Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void }) => Effect.Effect<void>;
@@ -33,7 +35,7 @@ const createNotification = (
 
   return [
     {
-      id: randomString(8),
+      id: randomId(8),
       type,
       message,
       timestamp: Date.now(),
@@ -123,7 +125,11 @@ export const StoreServiceLive = Layer.effect(
           const session = typeof activeSessionOrId === 'string' ? null : activeSessionOrId;
           return { ...s, activeSessionId: id, activeSession: session };
         }),
-      updateSetting: (updates) => update((s) => ({ ...s, settings: { ...s.settings, ...updates } })),
+      updateSetting: (updates) =>
+        update((s) => ({
+          ...s,
+          settings: typeof updates === 'function' ? updates(s.settings) : { ...s.settings, ...updates },
+        })),
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
       togglePin: (sessionId) =>
         update((s) => {
@@ -134,7 +140,7 @@ export const StoreServiceLive = Layer.effect(
       setConfirm: (options) =>
         Effect.gen(function* () {
           const { onConfirm, ...rest } = options;
-          const id = randomString(8);
+          const id = randomId(8);
           OnConfirmStore.set(id, onConfirm);
           yield* update((s) => ({ ...s, confirm: { ...rest, id, isOpen: true } }));
         }),

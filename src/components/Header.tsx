@@ -1,4 +1,3 @@
-import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
@@ -9,9 +8,9 @@ import { ChatService } from '../services/ChatService';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
+import { ModelItem } from './shared/ModelItem';
 
 import type { FC } from 'react';
-import type { Model } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -38,28 +37,19 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
       </div>
 
       <div className="model-picker-list">
-        {filtered.map((model: Model) => (
-          <button
+        {filtered.map((model) => (
+          <ModelItem
             key={model.id}
+            model={model}
+            availableModels={availableModels}
+            isActive={currentModel === model.id}
+            showDescription={false}
             onClick={() => {
               onSelect(model.id);
               onClose();
             }}
-            className={clsx('model-picker-item group items-center', currentModel === model.id && 'active')}
-          >
-            <div className={clsx('flex-shrink-0', model.color)}>
-              <Icon name={model.icon} size={18} />
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <span className="model-picker-item-title block">{getModelName(availableModels, model.id)}</span>
-              <div className="model-picker-item-id">{model.id}</div>
-            </div>
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {model.premium && <Icon name="Gem" size={12} className="text-rose-500" />}
-              {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
-              {currentModel === model.id && <Icon name="Check" size={18} className="text-primary" />}
-            </div>
-          </button>
+            rightContent={currentModel === model.id && <Icon name="Check" size={18} className="text-primary" />}
+          />
         ))}
         {filtered.length === 0 && <div className="p-3 text-center text-xs text-text-tertiary">No models found</div>}
       </div>

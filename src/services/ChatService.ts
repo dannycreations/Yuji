@@ -2,16 +2,19 @@ import { Context, Effect, Fiber, Layer, Schema, Stream, SubscriptionRef } from '
 
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { MessageNotFoundError, SessionNotFoundError } from '../app/Error';
-import { AppRuntimeState, ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
+import { ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
 import { getModelId } from '../helpers/ModelHelper';
 import { getMessagePath } from '../helpers/SessionHelper';
 import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
+import { truncate, uuid } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
 
 export interface ChatService {
   readonly createSession: () => Effect.Effect<ChatMetadata>;
   readonly deleteSession: (id: string) => Effect.Effect<void>;
+  readonly deleteSessions: (ids: Set<string>) => Effect.Effect<void>;
+  readonly importSessions: (sessions: Record<string, ChatSession>) => Effect.Effect<void>;
   readonly addMessage: (sessionId: string, message: ChatMessage) => Effect.Effect<void, SessionNotFoundError>;
   readonly updateMessage: (
     sessionId: string,
@@ -22,11 +25,13 @@ export interface ChatService {
   ) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (sessionId: string, messageId: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
-  readonly updateSession: (sessionId: string, f: (session: ChatMetadata, now: number) => ChatMetadata) => Effect.Effect<void, SessionNotFoundError>;
-  readonly updateSessionFull: (
+  readonly updateSession: (
     sessionId: string,
     f: (session: ChatSession, now: number) => ChatSession,
-    skipUpdateTimestamp?: boolean,
+    options?: {
+      readonly skipUpdateTimestamp?: boolean;
+      readonly metadataOnly?: boolean;
+    },
   ) => Effect.Effect<void, SessionNotFoundError>;
   readonly updateActiveSession: (
     f: (session: ChatSession, now: number) => ChatSession,
@@ -48,77 +53,50 @@ export const ChatServiceLive = Layer.effect(
     const llm = yield* LLMProvider;
     const fibers = new Map<string, Fiber.Fiber<void, SessionNotFoundError | MessageNotFoundError>>();
 
-    const updateSessionState = (
+    const updateSession = (
       sessionId: string,
-      f: (state: AppRuntimeState, now: number) => { state: AppRuntimeState; sessionFound: boolean; sessionToSave?: ChatSession | ChatMetadata },
+      f: (session: ChatSession, now: number) => ChatSession,
+      options: { readonly skipUpdateTimestamp?: boolean; readonly metadataOnly?: boolean } = {},
     ) =>
       Effect.gen(function* () {
         const now = Date.now();
-        let sessionToSave: ChatSession | ChatMetadata | undefined;
-        let found = false;
+        const state = yield* SubscriptionRef.get(store.state);
+        let session: ChatSession | null = null;
 
-        yield* store.update((state) => {
-          const result = f(state, now);
-          found = result.sessionFound;
-          sessionToSave = result.sessionToSave;
-          return result.state;
-        });
+        if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
+          session = state.activeSession;
+        } else if (!options.metadataOnly) {
+          session = yield* storage.getSession(sessionId);
+        } else if (state.sessions[sessionId]) {
+          // Cast metadata to session for the mapper function, assuming mapper only touches shared fields
+          session = state.sessions[sessionId] as unknown as ChatSession;
+        }
 
-        if (!found) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-        if (sessionToSave) yield* storage.saveSession(sessionToSave);
+        if (!session) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
+
+        const updated = f(session, now);
+        const finalUpdated: ChatSession = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+        const metadata = Schema.decodeSync(ChatMetadata)(finalUpdated);
+
+        yield* store.update((s) => ({
+          ...s,
+          sessions: { ...s.sessions, [sessionId]: metadata },
+          activeSession: s.activeSessionId === sessionId && s.activeSession?.id === sessionId ? finalUpdated : s.activeSession,
+        }));
+
+        yield* storage.saveSession(options.metadataOnly ? metadata : finalUpdated);
       }).pipe(
         Effect.catchAll((err) => {
           if (err instanceof SessionNotFoundError) return Effect.fail(err);
-          const msg = (err as { message: string })?.message || String(err);
-          return store.notify('error', `Failed to update session: ${msg}`).pipe(Effect.flatMap(() => Effect.fail(err)));
+          return store.notify('error', (err as { message: string })?.message || String(err)).pipe(Effect.flatMap(() => Effect.fail(err)));
         }),
       );
-
-    const updateSession = (sessionId: string, f: (session: ChatMetadata, now: number) => ChatMetadata) =>
-      updateSessionState(sessionId, (state, now) => {
-        const session = state.sessions[sessionId];
-        if (!session) return { state, sessionFound: false };
-        const updated: ChatMetadata = { ...f(session, now), updatedAt: now };
-        const nextState = { ...state, sessions: { ...state.sessions, [sessionId]: updated } };
-        if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
-          nextState.activeSession = { ...state.activeSession, ...updated };
-        }
-        return { state: nextState, sessionFound: true, sessionToSave: updated };
-      });
 
     const updateActiveSession = (f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
         const activeId = (yield* SubscriptionRef.get(store.state)).activeSessionId;
         if (!activeId) return yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
-        return yield* updateSessionState(activeId, (s, now) => {
-          if (!s.activeSession || s.activeSession.id !== activeId) return { state: s, sessionFound: false };
-          const updated = f(s.activeSession, now);
-          const finalUpdated: ChatSession = skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-          const metadata = Schema.decodeSync(ChatMetadata)(finalUpdated);
-          const nextState = {
-            ...s,
-            activeSession: finalUpdated,
-            sessions: { ...s.sessions, [finalUpdated.id]: metadata },
-          };
-          return { state: nextState, sessionFound: true, sessionToSave: finalUpdated };
-        });
-      });
-
-    const updateSessionFull = (sessionId: string, f: (session: ChatSession, now: number) => ChatSession, skipUpdateTimestamp = false) =>
-      Effect.gen(function* () {
-        const state = yield* SubscriptionRef.get(store.state);
-        if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
-          return yield* updateActiveSession(f, skipUpdateTimestamp);
-        }
-
-        const session = yield* storage.getSession(sessionId);
-        if (!session) return yield* Effect.fail(new SessionNotFoundError({ sessionId }));
-        const now = Date.now();
-        const updated = f(session, now);
-        const finalUpdated = skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-
-        yield* storage.saveSession(finalUpdated);
-        return yield* updateSession(sessionId, () => Schema.decodeSync(ChatMetadata)(finalUpdated));
+        return yield* updateSession(activeId, f, { skipUpdateTimestamp });
       });
 
     const stop = (sessionId?: string) =>
@@ -220,13 +198,12 @@ export const ChatServiceLive = Layer.effect(
 
     const chatService: ChatService = ChatService.of({
       updateSession,
-      updateSessionFull,
       generate,
       stop,
       createSession: () =>
         Effect.gen(function* () {
           const now = Date.now();
-          const id = crypto.randomUUID();
+          const id = uuid();
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
           const { personalisation } = settings;
 
@@ -267,17 +244,55 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           yield* stop(id);
           yield* store.update((state) => {
-            const { [id]: _, ...rest } = state.sessions;
-            const newActiveId = state.activeSessionId === id ? null : state.activeSessionId;
-            return { ...state, sessions: rest, activeSessionId: newActiveId };
+            const { [id]: _, ...sessions } = state.sessions;
+            return {
+              ...state,
+              sessions,
+              activeSessionId: state.activeSessionId === id ? null : state.activeSessionId,
+              activeSession: state.activeSessionId === id ? null : state.activeSession,
+            };
           });
           yield* storage.deleteSession(id);
+        }),
+
+      deleteSessions: (ids) =>
+        Effect.gen(function* () {
+          for (const id of ids) {
+            yield* stop(id);
+          }
+          yield* store.update((state) => {
+            const sessions = { ...state.sessions };
+            ids.forEach((id) => delete sessions[id]);
+            const isActiveDeleted = state.activeSessionId && ids.has(state.activeSessionId);
+            return {
+              ...state,
+              sessions,
+              activeSessionId: isActiveDeleted ? null : state.activeSessionId,
+              activeSession: isActiveDeleted ? null : state.activeSession,
+            };
+          });
+          for (const id of ids) {
+            yield* storage.deleteSession(id);
+          }
+        }),
+
+      importSessions: (sessions) =>
+        Effect.gen(function* () {
+          const metadatas: Record<string, ChatMetadata> = {};
+          for (const [id, session] of Object.entries(sessions)) {
+            metadatas[id] = Schema.decodeSync(ChatMetadata)(session);
+            yield* storage.saveSession(session);
+          }
+          yield* store.update((s) => ({
+            ...s,
+            sessions: { ...s.sessions, ...metadatas },
+          }));
         }),
 
       addMessage: (sessionId, message) =>
         Effect.gen(function* () {
           let messagesToSave: ChatMessage[] = [message];
-          yield* updateSessionFull(sessionId, (session) => {
+          yield* updateSession(sessionId, (session) => {
             const messages = { ...session.messages };
             let parent: ChatMessage | undefined;
 
@@ -294,7 +309,7 @@ export const ChatServiceLive = Layer.effect(
 
             const title =
               Object.keys(session.messages).length === 0 && message.role === 'user' && message.content
-                ? message.content.trim().slice(0, 40).split('\n')[0] + (message.content.length > 40 ? '...' : '')
+                ? truncate(message.content.split('\n')[0], 40)
                 : session.title;
 
             return {
@@ -311,7 +326,7 @@ export const ChatServiceLive = Layer.effect(
       updateMessage: (sessionId, messageId, content, isError, skipUpdateTimestamp) =>
         Effect.gen(function* () {
           let updatedMessage: ChatMessage | undefined;
-          yield* updateSessionFull(
+          yield* updateSession(
             sessionId,
             (session) => {
               const msg = session.messages[messageId];
@@ -325,7 +340,7 @@ export const ChatServiceLive = Layer.effect(
                 },
               };
             },
-            skipUpdateTimestamp,
+            { skipUpdateTimestamp },
           );
 
           if (!updatedMessage) {
@@ -340,7 +355,7 @@ export const ChatServiceLive = Layer.effect(
           let messageToDelete: ChatMessage | undefined;
           let updatedParent: ChatMessage | undefined;
 
-          yield* updateSessionFull(sessionId, (session) => {
+          yield* updateSession(sessionId, (session) => {
             messageToDelete = session.messages[messageId];
             if (!messageToDelete) return session;
 
@@ -377,7 +392,7 @@ export const ChatServiceLive = Layer.effect(
           }),
         ),
 
-      renameSession: (sessionId, title) => updateSession(sessionId, (session) => ({ ...session, title })),
+      renameSession: (sessionId, title) => updateSession(sessionId, (session) => ({ ...session, title }), { metadataOnly: true }),
 
       updateActiveSession,
 
@@ -408,7 +423,7 @@ export const ChatServiceLive = Layer.effect(
           }
 
           const now = Date.now();
-          const id = crypto.randomUUID();
+          const id = uuid();
 
           // We only take the path to this message
           const path = getMessagePath(sourceSession, messageId);
@@ -431,6 +446,8 @@ export const ChatServiceLive = Layer.effect(
             activeSessionId: id,
             activeSession: newSession,
           }));
+
+          yield* storage.saveSession(newSession);
 
           return newSession;
         }),

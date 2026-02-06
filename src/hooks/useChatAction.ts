@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 
 import { ChatService } from '../services/ChatService';
+import { uuid } from '../utilities/CommonUtil';
 import { useStore, useStoreAction, useStoreEffect } from './useStore';
 
 import type { Attachment, ChatMessage } from '../app/Schema';
@@ -23,7 +24,7 @@ export const useChatAction = () => {
       }
 
       const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: uuid(),
         role: 'user',
         content,
         attachments,

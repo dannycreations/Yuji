@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useModalAnimation } from '../../../hooks/useModalAnimation';
@@ -19,6 +19,15 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, className, co
   const { isClosing, handleClose } = useModalAnimation(onClose);
 
   useClickOutside(containerRef, handleClose);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 

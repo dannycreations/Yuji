@@ -1,7 +1,8 @@
 import { useEffect, useMemo } from 'react';
 
-import { INITIAL_GREETING, INITIAL_SUGGESTIONS } from '../../app/Constant';
+import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/SessionHelper';
+import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
 import { useStore, useStoreAction } from '../../hooks/useStore';
 import { Header } from '../Header';
@@ -27,15 +28,11 @@ export const ChatInterface: FC = () => {
     }
   }, [activeSessionId]);
 
-  const visibleMessages = useMemo(
-    () =>
-      activeSession?.activeMessageId
-        ? getMessagePath(activeSession, activeSession.activeMessageId)
-        : activeSession
-          ? Object.values(activeSession.messages).sort((a, b) => a.timestamp - b.timestamp)
-          : [],
-    [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id],
-  );
+  const visibleMessages = useMemo(() => {
+    if (!activeSession) return [];
+    if (activeSession.activeMessageId) return getMessagePath(activeSession, activeSession.activeMessageId);
+    return Object.values(activeSession.messages).sort((a, b) => a.timestamp - b.timestamp);
+  }, [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id]);
 
   const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
   const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
@@ -50,9 +47,7 @@ export const ChatInterface: FC = () => {
               <div className="header-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
-              <h1 className="chat-empty-title selection:bg-primary/20">
-                {INITIAL_GREETING.replace('{{0}}', userName.trim() ? `, ${userName.trim().split(/\s+/)[0]}` : ' today')}
-              </h1>
+              <h1 className="chat-empty-title selection:bg-primary/20">{getGreeting(userName)}</h1>
             </div>
 
             {showSuggestions && (

@@ -7,7 +7,7 @@ import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/pris
 import { MERMAID_CONFIG } from '../../app/Constant';
 import { useCopy } from '../../hooks/useCopy';
 import { useStore } from '../../hooks/useStore';
-import { downloadFile, randomString } from '../../utilities/CommonUtil';
+import { downloadFile, randomId } from '../../utilities/CommonUtil';
 import { Icon } from '../shared/Icon';
 import { MermaidFullscreenModal } from './MermaidFullscreenModal';
 
@@ -67,7 +67,7 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
 
 const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
   const theme = useStore((s) => s.settings.theme);
-  const handleDownload = () => downloadFile(value, `code-${randomString(6)}.txt`);
+  const handleDownload = () => downloadFile(value, `code-${randomId(6)}.txt`);
 
   return (
     <BaseMessageBlock label={language || 'code'} value={value} onDownload={handleDownload}>
@@ -112,7 +112,7 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
     const render = async () => {
       try {
         mermaid.initialize(mermaidConfig);
-        const id = `mermaid-${randomString(8)}`;
+        const id = `mermaid-${randomId(8)}`;
         const { svg } = await mermaid.render(id, code);
         if (isMounted) {
           setSvg(svg);

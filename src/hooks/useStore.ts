@@ -63,5 +63,10 @@ export const useUpdateStore = () => useStoreAction((s, f: (state: AppRuntimeStat
 export const useToggleStore = (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => useStoreAction((s) => s.toggle(key));
 export const useToggleSidebar = () => useToggleStore('isSidebarOpen');
 export const useToggleSetting = () => useToggleStore('isSettingOpen');
-export const useUpdateSetting = () => useStoreAction((s, updates: Partial<AppRuntimeState['settings']>) => s.updateSetting(updates));
+export const useUpdateSetting = () =>
+  useStoreAction((s, updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings'])) =>
+    s.updateSetting(updates),
+  );
 export const useConfirm = () => useStoreAction((s, config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) => s.setConfirm(config));
+
+export const useNotify = () => useStoreAction((s, type: 'error' | 'warning' | 'info' | 'success', message: string) => s.notify(type, message));
