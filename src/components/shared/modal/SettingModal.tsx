@@ -1,7 +1,9 @@
 import clsx from 'clsx';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
+import { useModalAnimation } from '../../../hooks/useModalAnimation';
+import { Button } from '../Button';
 import { Icon } from '../Icon';
 
 import type { FC, ReactNode } from 'react';
@@ -24,13 +26,7 @@ interface SettingModalProps {
 
 export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChange, onClose, children, sidebarBottom, title }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isClosing, setIsClosing] = useState(false);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    // Slightly shorter than animation to ensure state update happens before animation finish
-    setTimeout(onClose, 180);
-  };
+  const { isClosing, handleClose } = useModalAnimation(onClose);
 
   useClickOutside(containerRef, handleClose);
 
@@ -46,9 +42,9 @@ export const SettingModal: FC<SettingModalProps> = ({ tabs, activeTab, onTabChan
         {/* Sidebar */}
         <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator/50">
           <div className="flex justify-between items-center px-1 mb-2">
-            <button onClick={handleClose} className="btn-icon">
+            <Button variant="ghost" size="icon" onClick={handleClose}>
               <Icon name="X" size={18} />
-            </button>
+            </Button>
           </div>
           <div className="flex-1 overflow-y-auto space-y-1">
             {tabs.map((tab) => (

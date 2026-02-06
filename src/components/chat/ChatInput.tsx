@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { useRef, useState } from 'react';
 
 import { useStore } from '../../hooks/useStore';
+import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
 
@@ -99,13 +100,13 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
         <div className="chat-input-actions">
           <div className="chat-input-action-group">
-            <button onClick={() => fileInputRef.current?.click()} className="btn-icon" title="Attach Image">
+            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Attach Image">
               <Icon name="Plus" size={22} />
-            </button>
+            </Button>
 
-            <button className="btn-icon" title="Search">
+            <Button variant="ghost" size="icon" title="Search">
               <Icon name="Globe" size={18} />
-            </button>
+            </Button>
           </div>
 
           <button

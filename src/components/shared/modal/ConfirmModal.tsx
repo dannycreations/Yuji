@@ -1,20 +1,18 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
+import { useModalAnimation } from '../../../hooks/useModalAnimation';
 import { useStore, useStoreEffect } from '../../../hooks/useStore';
 import { StoreService } from '../../../services/StoreService';
+import { Button } from '../Button';
 
 import type { FC } from 'react';
 
 export const ConfirmModal: FC = () => {
   const confirm = useStore((s) => s.confirm);
-
-  const [isClosing, setIsClosing] = useState(false);
-
   const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger' } = confirm;
-
   const containerRef = useRef<HTMLDivElement>(null);
 
   const onCancel = useStoreEffect(() =>
@@ -22,7 +20,6 @@ export const ConfirmModal: FC = () => {
       const store = yield* StoreService;
       if (id) yield* store.clearConfirm(id);
       yield* store.update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
-      setIsClosing(false);
     }),
   );
 
@@ -38,17 +35,9 @@ export const ConfirmModal: FC = () => {
     }),
   );
 
-  const handleCancel = () => {
-    setIsClosing(true);
-    // Slightly shorter than animation to ensure state update happens before animation finish
-    setTimeout(onCancel, 180);
-  };
+  const { isClosing, handleClose } = useModalAnimation(onCancel);
 
-  const handleConfirm = () => {
-    onConfirm();
-  };
-
-  useClickOutside(containerRef, handleCancel);
+  useClickOutside(containerRef, handleClose);
 
   if (!confirm.isOpen) return null;
 
@@ -67,15 +56,10 @@ export const ConfirmModal: FC = () => {
         </div>
 
         <div className="confirm-modal-actions">
-          <button onClick={handleCancel} className="btn-secondary">
-            {cancelLabel}
-          </button>
-          <button
-            onClick={handleConfirm}
-            className={clsx(variant === 'danger' && 'btn-danger', variant === 'warning' && 'btn-warning', variant === 'info' && 'btn-primary')}
-          >
+          <Button onClick={handleClose}>{cancelLabel}</Button>
+          <Button onClick={onConfirm} variant={variant === 'info' ? 'primary' : variant}>
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

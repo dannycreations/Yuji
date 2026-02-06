@@ -1,11 +1,15 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
+import { YujiRuntime } from '../app/Yuji';
 import { groupSessions } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useConfirm, useStore, useToggleSetting, useToggleSidebar, useUpdateStore } from '../hooks/useStore';
+import { useConfirm, useStore, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
+import { StoreService } from '../services/StoreService';
 import { SessionSettingModal } from './setting/SessionSettingModal';
+import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
@@ -20,14 +24,7 @@ export const Sidebar: FC = () => {
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
   const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
 
-  const updateStore = useUpdateStore();
-
-  const setActiveSession = (id: string | null) =>
-    updateStore((s) => {
-      if (id === null) return { ...s, activeSessionId: null, activeSession: null };
-      if (id === s.activeSessionId && s.activeSession?.id === id) return s;
-      return { ...s, activeSessionId: id, activeSession: null };
-    });
+  const setActiveSession = (id: string | null) => Effect.flatMap(StoreService, (s) => s.setActiveSession(id)).pipe(YujiRuntime.runSync);
   const toggleSidebar = useToggleSidebar();
   const toggleSetting = useToggleSetting();
 
@@ -63,9 +60,9 @@ export const Sidebar: FC = () => {
   return (
     <div className="sidebar-container">
       <div className="sidebar-header relative">
-        <button onClick={toggleSidebar} className="btn-icon z-chat-input" title="Close Sidebar">
+        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />
-        </button>
+        </Button>
 
         <div className="abs-center flex-center pointer-events-none">
           <button onClick={() => setActiveSession(null)} className="sidebar-logo">
@@ -74,9 +71,9 @@ export const Sidebar: FC = () => {
           </button>
         </div>
 
-        <button onClick={handleCreateSession} className="btn-icon z-chat-input" title="New Chat">
+        <Button variant="ghost" size="icon" onClick={handleCreateSession} className="z-chat-input" title="New Chat">
           <Icon name="SquarePen" size={20} />
-        </button>
+        </Button>
       </div>
 
       <div className="px-3 mb-2">
@@ -127,9 +124,11 @@ export const Sidebar: FC = () => {
                             </div>
                           )
                         )}
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className={clsx(
-                            'btn-icon !p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
+                            '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
                             menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                           )}
                           onClick={(e) => {
@@ -140,7 +139,7 @@ export const Sidebar: FC = () => {
                           }}
                         >
                           <Icon name="MoreHorizontal" size={16} />
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -151,7 +150,7 @@ export const Sidebar: FC = () => {
       </div>
 
       <div className="sidebar-footer">
-        <button onClick={toggleSetting} className="btn-sidebar">
+        <Button variant="sidebar" onClick={toggleSetting}>
           <div className="avatar-sm bg-surface-hover flex-center">
             {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
           </div>
@@ -161,7 +160,7 @@ export const Sidebar: FC = () => {
           <div className="text-text-tertiary flex items-center">
             <Icon name="Settings" size={16} />
           </div>
-        </button>
+        </Button>
       </div>
       {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 

@@ -3,12 +3,12 @@ import { Context, Effect, Fiber, Layer, Stream, SubscriptionRef } from 'effect';
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { LLMProviderError, MessageNotFoundError, SessionNotFoundError } from '../app/Error';
 import { getModelId } from '../helpers/ModelHelper';
-import { getMessagePath } from '../helpers/SessionHelper';
+import { getMessagePath, getMetadataFromSession } from '../helpers/SessionHelper';
 import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
 import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
 
-import type { ChatMetadata, ChatSession, Message } from '../app/Schema';
+import type { AppRuntimeState, ChatMetadata, ChatSession, Message } from '../app/Schema';
 
 export interface ChatService {
   readonly createSession: () => Effect.Effect<ChatMetadata>;
@@ -40,34 +40,22 @@ export const ChatServiceLive = Layer.effect(
     const llm = yield* LLMProvider;
     const fibers = new Map<string, Fiber.Fiber<void, any>>();
 
-    const updateSession = (sessionId: string, f: (session: ChatMetadata, now: number) => ChatMetadata) =>
+    const updateSessionState = (sessionId: string, f: (state: AppRuntimeState, now: number) => { state: AppRuntimeState; sessionFound: boolean }) =>
       Effect.gen(function* () {
         const now = Date.now();
-        let sessionFound = false;
+        let found = false;
         yield* store.update((state) => {
-          const session = state.sessions[sessionId];
-          if (!session) return state;
-          sessionFound = true;
-          const updated = { ...f(session, now), updatedAt: now };
-          const nextState = {
-            ...state,
-            sessions: {
-              ...state.sessions,
-              [sessionId]: updated,
-            },
-          };
-          if (state.activeSessionId === sessionId && state.activeSession) {
-            nextState.activeSession = { ...state.activeSession, ...updated };
-          }
-          return nextState;
+          const result = f(state, now);
+          found = result.sessionFound;
+          return result.state;
         });
 
-        if (!sessionFound) {
+        if (!found) {
           yield* Effect.fail(new SessionNotFoundError({ sessionId }));
         } else {
           const s = yield* SubscriptionRef.get(store.state);
-          const meta = s.sessions[sessionId];
-          if (meta) yield* storage.saveSession(meta);
+          const session = s.activeSessionId === sessionId && s.activeSession ? s.activeSession : s.sessions[sessionId];
+          if (session) yield* storage.saveSession(session);
         }
       }).pipe(
         Effect.catchAll((err) => {
@@ -78,6 +66,40 @@ export const ChatServiceLive = Layer.effect(
           });
         }),
       );
+
+    const updateSession = (sessionId: string, f: (session: ChatMetadata, now: number) => ChatMetadata) =>
+      updateSessionState(sessionId, (state, now) => {
+        const session = state.sessions[sessionId];
+        if (!session) return { state, sessionFound: false };
+        const updated = { ...f(session, now), updatedAt: now };
+        const nextState = {
+          ...state,
+          sessions: { ...state.sessions, [sessionId]: updated },
+        };
+        if (state.activeSessionId === sessionId && state.activeSession && state.activeSession.id === sessionId) {
+          nextState.activeSession = { ...state.activeSession, ...updated };
+        }
+        return { state: nextState, sessionFound: true };
+      });
+
+    const updateActiveSession = (f: (session: ChatSession, now: number) => ChatSession) =>
+      Effect.gen(function* () {
+        const state = yield* SubscriptionRef.get(store.state);
+        const activeId = state.activeSessionId;
+        if (!activeId) return yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
+        return yield* updateSessionState(activeId, (s, now) => {
+          if (!s.activeSession || s.activeSession.id !== activeId) return { state: s, sessionFound: false };
+          const updated = { ...f(s.activeSession, now), updatedAt: now };
+          return {
+            state: {
+              ...s,
+              activeSession: updated,
+              sessions: { ...s.sessions, [updated.id]: getMetadataFromSession(updated) },
+            },
+            sessionFound: true,
+          };
+        });
+      });
 
     const stop = (sessionId?: string) =>
       Effect.sync(() => {
@@ -92,46 +114,6 @@ export const ChatServiceLive = Layer.effect(
           fibers.clear();
         }
       });
-
-    const updateActiveSession = (f: (session: ChatSession, now: number) => ChatSession) =>
-      Effect.gen(function* () {
-        const now = Date.now();
-        let sessionFound = false;
-        yield* store.update((state) => {
-          if (!state.activeSession) return state;
-          sessionFound = true;
-          const updated = { ...f(state.activeSession, now), updatedAt: now };
-          return {
-            ...state,
-            activeSession: updated,
-            sessions: {
-              ...state.sessions,
-              [updated.id]: {
-                id: updated.id,
-                title: updated.title,
-                activeMessageId: updated.activeMessageId,
-                createdAt: updated.createdAt,
-                updatedAt: updated.updatedAt,
-              },
-            },
-          };
-        });
-
-        if (!sessionFound) {
-          yield* Effect.fail(new SessionNotFoundError({ sessionId: 'active' }));
-        } else {
-          const s = yield* SubscriptionRef.get(store.state);
-          if (s.activeSession) yield* storage.saveSession(s.activeSession);
-        }
-      }).pipe(
-        Effect.catchAll((err) => {
-          if (err instanceof SessionNotFoundError) return Effect.fail(err);
-          return Effect.gen(function* () {
-            yield* store.notify('error', `Failed to update active session: ${err}`);
-            return yield* Effect.fail(err);
-          });
-        }),
-      );
 
     const generate = (sessionId: string, messagesToProcess: ReadonlyArray<Message>) =>
       Effect.gen(function* () {
@@ -223,8 +205,6 @@ export const ChatServiceLive = Layer.effect(
           const id = crypto.randomUUID();
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
 
-          const effectiveModel = getModelId(settings, availableModels);
-
           const newSession: ChatSession = {
             id,
             title: 'New Chat',
@@ -232,27 +212,19 @@ export const ChatServiceLive = Layer.effect(
             createdAt: now,
             updatedAt: now,
             general: {
-              model: effectiveModel,
+              model: getModelId(settings, availableModels),
               overrideInstruction: false,
               overridePersonalisation: false,
             },
-            instruction: {
-              systemPrompt: DEFAULT_SYSTEM_PROMPT,
-            },
+            instruction: { systemPrompt: DEFAULT_SYSTEM_PROMPT },
             personalisation: {
-              userName: settings.personalisation.userName,
+              ...settings.personalisation,
               userOccupation: [...settings.personalisation.userOccupation],
               assistantTraits: [...settings.personalisation.assistantTraits],
-              additionalContext: settings.personalisation.additionalContext,
             },
           };
 
-          const metadata: ChatMetadata = {
-            id,
-            title: newSession.title,
-            createdAt: now,
-            updatedAt: now,
-          };
+          const metadata = getMetadataFromSession(newSession);
 
           yield* store.update((state) => ({
             ...state,
@@ -428,7 +400,7 @@ export const ChatServiceLive = Layer.effect(
 
           yield* store.update((state) => ({
             ...state,
-            sessions: { [id]: newSession, ...state.sessions },
+            sessions: { [id]: getMetadataFromSession(newSession), ...state.sessions },
             activeSessionId: id,
             activeSession: newSession,
           }));

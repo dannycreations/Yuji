@@ -11,10 +11,11 @@ export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
   readonly getSnapshot: () => AppRuntimeState;
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void>;
-  readonly setActiveSession: (session: ChatSession | null) => Effect.Effect<void>;
+  readonly setActiveSession: (sessionOrId: ChatSession | string | null) => Effect.Effect<void>;
   readonly updateSetting: (updates: Partial<AppRuntimeState['settings']>) => Effect.Effect<void>;
   readonly toggleSidebar: () => Effect.Effect<void>;
   readonly toggleSetting: () => Effect.Effect<void>;
+  readonly togglePin: (sessionId: string) => Effect.Effect<void>;
   readonly setConfirm: (
     options: Omit<Schema.Schema.Type<typeof ConfirmState>, 'isOpen' | 'id'> & { readonly onConfirm: () => void },
   ) => Effect.Effect<void>;
@@ -126,10 +127,24 @@ export const StoreServiceLive = Layer.effect(
       state,
       getSnapshot: () => SubscriptionRef.get(state).pipe(Effect.runSync),
       update,
-      setActiveSession: (activeSession) => update((s) => ({ ...s, activeSession, activeSessionId: activeSession?.id ?? null })),
+      setActiveSession: (activeSessionOrId) =>
+        update((s) => {
+          if (!activeSessionOrId) return { ...s, activeSessionId: null, activeSession: null };
+          const id = typeof activeSessionOrId === 'string' ? activeSessionOrId : activeSessionOrId.id;
+          if (id === s.activeSessionId && s.activeSession?.id === id) return s;
+
+          const session = typeof activeSessionOrId === 'string' ? null : activeSessionOrId;
+          return { ...s, activeSessionId: id, activeSession: session };
+        }),
       updateSetting: (updates) => update((s) => ({ ...s, settings: { ...s.settings, ...updates } })),
       toggleSidebar: () => update((s) => ({ ...s, isSidebarOpen: !s.isSidebarOpen })),
       toggleSetting: () => update((s) => ({ ...s, isSettingOpen: !s.isSettingOpen })),
+      togglePin: (sessionId) =>
+        update((s) => {
+          const isPinned = s.pinnedSessionIds.includes(sessionId);
+          const pinnedSessionIds = isPinned ? s.pinnedSessionIds.filter((id) => id !== sessionId) : [...s.pinnedSessionIds, sessionId];
+          return { ...s, pinnedSessionIds };
+        }),
       setConfirm: (options) =>
         Effect.gen(function* () {
           const { onConfirm, ...rest } = options;

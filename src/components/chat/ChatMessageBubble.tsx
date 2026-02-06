@@ -8,6 +8,7 @@ import remarkMath from 'remark-math';
 import { useChatAction } from '../../hooks/useChatAction';
 import { useCopy } from '../../hooks/useCopy';
 import { useConfirm, useStore } from '../../hooks/useStore';
+import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
@@ -124,12 +125,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
               <div className="chat-input-edit-container">
                 <InputTextarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="chat-input-textarea" minRows={2} />
                 <div className="chat-input-edit-actions">
-                  <button onClick={() => setIsEditing(false)} className="btn-secondary">
-                    Cancel
-                  </button>
-                  <button onClick={handleSaveEdit} className="btn-primary">
+                  <Button onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <Button variant="primary" onClick={handleSaveEdit}>
                     Save
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -154,50 +153,52 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
               <div className="message-actions">
                 {siblings.length > 1 && (
                   <div className="message-branch-navigation">
-                    <button disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} className="btn-icon">
+                    <Button variant="ghost" size="icon" disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])}>
                       <Icon name="ChevronLeft" size={16} />
-                    </button>
+                    </Button>
                     <span className="message-branch-indicator">
                       {currentIndex + 1}
                       <span className="text-text-tertiary mx-0.5">/</span>
                       {siblings.length}
                     </span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       disabled={currentIndex === siblings.length - 1}
                       onClick={() => handleSwitch(siblings[currentIndex + 1])}
-                      className="btn-icon"
                     >
                       <Icon name="ChevronRight" size={16} />
-                    </button>
+                    </Button>
                   </div>
                 )}
 
-                <button onClick={() => handleBranch(sessionId, message.id)} className="btn-icon" title="Branch">
+                <Button variant="ghost" size="icon" onClick={() => handleBranch(sessionId, message.id)} title="Branch">
                   <Icon name="GitFork" size={16} />
-                </button>
+                </Button>
 
-                <button onClick={onRegenerate} className="btn-icon" title="Regenerate">
+                <Button variant="ghost" size="icon" onClick={onRegenerate} title="Regenerate">
                   <Icon name="RefreshCw" size={16} />
-                </button>
+                </Button>
 
-                <button onClick={handleCopy} className="btn-icon" title="Copy">
+                <Button variant="ghost" size="icon" onClick={handleCopy} title="Copy">
                   <Icon name={copied ? 'Check' : 'Copy'} size={16} />
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => {
                     setEditContent(message.content);
                     setIsEditing(true);
                   }}
-                  className="btn-icon"
                   title="Edit"
                 >
                   <Icon name="Pencil" size={16} />
-                </button>
+                </Button>
 
-                <button onClick={handleDelete} className="btn-icon hover:!text-danger" title="Delete">
+                <Button variant="ghost" size="icon" onClick={handleDelete} className="hover:!text-danger" title="Delete">
                   <Icon name="Trash2" size={16} />
-                </button>
+                </Button>
               </div>
             </div>
           )}

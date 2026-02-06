@@ -8,6 +8,7 @@ import { useConfirm, useStoreEffect, useUpdateSetting, useUpdateStore } from '..
 import { LLMProvider } from '../../providers/LLMProvider';
 import { toTitleCase } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
+import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 
@@ -160,10 +161,10 @@ export const ModelsSection: FC<{ settings: GlobalSettings; availableModels: Read
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <button onClick={handleRefreshModels} className="badge-outline whitespace-nowrap" title="Refresh Library">
+        <Button variant="ghost" className="badge-outline whitespace-nowrap" onClick={handleRefreshModels} title="Refresh Library">
           <Icon name="RefreshCw" size={14} />
           <span>Refresh</span>
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 min-h-0 space-y-2">
@@ -316,19 +317,19 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
           <div className="flex-1 label-caps text-text-primary">Title</div>
           <div className="flex items-center gap-2">
             {selectedSessionIds.size > 0 && (
-              <button onClick={handleDeleteSelected} className="badge-outline !bg-danger/10 !text-danger border-danger/20">
+              <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline !bg-danger/10 !text-danger border-danger/20">
                 <Icon name="Trash2" size={12} />
                 Delete ({selectedSessionIds.size})
-              </button>
+              </Button>
             )}
-            <button onClick={handleExport} className="badge-outline !text-text-tertiary">
+            <Button variant="ghost" onClick={handleExport} className="badge-outline !text-text-tertiary">
               <Icon name="Upload" size={12} />
               Export {selectedSessionIds.size > 0 ? `(${selectedSessionIds.size})` : ''}
-            </button>
-            <button onClick={() => fileInputRef.current?.click()} className="badge-outline !text-text-tertiary">
+            </Button>
+            <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline !text-text-tertiary">
               <Icon name="Download" size={12} />
               Import
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -366,22 +367,24 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
             Page {historyPage + 1} of {totalHistoryPages}
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
               disabled={historyPage === 0}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <Icon name="ChevronLeft" size={12} />
               Prev
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages - 1, p + 1))}
               disabled={historyPage >= totalHistoryPages - 1}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               Next
               <Icon name="ChevronRight" size={12} />
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -463,9 +466,9 @@ export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked
       <div className="override-empty-state">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
-        <button onClick={() => onChange(true)} className="override-enable-btn">
+        <Button variant="ghost" onClick={() => onChange(true)} className="override-enable-btn">
           Enable Override
-        </button>
+        </Button>
       </div>
     );
   }

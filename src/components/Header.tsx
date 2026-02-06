@@ -7,6 +7,7 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import { useStore, useStoreEffect, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { toTitleCase } from '../utilities/CommonUtil';
+import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
@@ -129,9 +130,9 @@ export const Header: FC = () => {
     <div className="sticky-header">
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
-          <button onClick={toggleSidebar} className="btn-icon" title="Open Sidebar">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Open Sidebar">
             <Icon name="PanelLeftOpen" size={20} />
-          </button>
+          </Button>
         )}
 
         <div className="relative" ref={pickerRef}>

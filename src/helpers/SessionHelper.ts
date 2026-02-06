@@ -1,4 +1,12 @@
-import type { ChatSession, Message } from '../app/Schema';
+import type { ChatMetadata, ChatSession, Message } from '../app/Schema';
+
+export const getMetadataFromSession = (session: ChatSession): ChatMetadata => ({
+  id: session.id,
+  title: session.title,
+  activeMessageId: session.activeMessageId,
+  createdAt: session.createdAt,
+  updatedAt: session.updatedAt,
+});
 
 export const getMessagePath = (session: ChatSession, messageId: string): ReadonlyArray<Message> => {
   const path: Message[] = [];
