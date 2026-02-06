@@ -77,7 +77,7 @@ export const StoreServiceLive = Layer.effect(
       if (metadata) {
         const sessionsMap: Record<string, ChatSession> = {};
         for (const header of sessionHeaders) {
-          sessionsMap[header.id] = { ...header, messages: [] };
+          sessionsMap[header.id] = { ...header, messages: {} };
         }
 
         return {
@@ -112,18 +112,34 @@ export const StoreServiceLive = Layer.effect(
       ),
     );
 
-    // Persistence Loop: Sessions
+    // Persistence Loop: Sessions (Differential Persistence)
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
-        Stream.map((s) => s.sessions),
-        Stream.changes,
+        Stream.zipWithPrevious,
+        Stream.map(([maybePrev, curr]) => {
+          if (maybePrev._tag === 'None') return Object.keys(curr.sessions);
+          const prev = maybePrev.value;
+          return Object.keys(curr.sessions).filter((id) => {
+            const p = prev.sessions[id];
+            const c = curr.sessions[id];
+            // Only save if session object changed (reference check)
+            return p !== c;
+          });
+        }),
+        Stream.filter((ids) => ids.length > 0),
         Stream.debounce('2 seconds'),
-        Stream.runForEach((sessions) =>
-          Effect.all(
-            Object.values(sessions).map((s) => storage.saveSession(s)),
-            { discard: true },
-          ),
+        Stream.runForEach((ids) =>
+          Effect.gen(function* () {
+            const current = yield* SubscriptionRef.get(state);
+            yield* Effect.all(
+              ids
+                .map((id) => current.sessions[id])
+                .filter((s): s is ChatSession => !!s)
+                .map((s) => storage.saveSession(s)),
+              { discard: true },
+            );
+          }),
         ),
       ),
     );
@@ -135,8 +151,8 @@ export const StoreServiceLive = Layer.effect(
         if (next.activeSessionId !== s.activeSessionId && next.activeSessionId !== null) {
           const sessions = { ...next.sessions };
           Object.keys(sessions).forEach((id) => {
-            if (id !== next.activeSessionId && sessions[id].messages.length > 0) {
-              sessions[id] = { ...sessions[id], messages: [] };
+            if (id !== next.activeSessionId && Object.keys(sessions[id].messages).length > 0) {
+              sessions[id] = { ...sessions[id], messages: {} };
             }
           });
           return { ...next, sessions };
@@ -180,16 +196,20 @@ export const StoreServiceLive = Layer.effect(
       loadMessages: (sessionId) =>
         Effect.gen(function* () {
           const currentState = yield* SubscriptionRef.get(state);
-          if (currentState.sessions[sessionId]?.messages.length > 0) return;
+          const session = currentState.sessions[sessionId];
+          if (!session || Object.keys(session.messages).length > 0) return;
 
           const messages = yield* storage.getMessages(sessionId);
+          const messagesRecord: Record<string, Message> = {};
+          messages.forEach((m) => (messagesRecord[m.id] = m));
+
           yield* update((s) => ({
             ...s,
             sessions: {
               ...s.sessions,
               [sessionId]: {
                 ...s.sessions[sessionId],
-                messages: messages as Message[],
+                messages: messagesRecord,
               },
             },
           }));

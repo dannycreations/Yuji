@@ -174,7 +174,7 @@ export const ChatServiceLive = Layer.effect(
           const newSession: ChatSession = {
             id,
             title: 'New Chat',
-            messages: [],
+            messages: {},
             createdAt: now,
             updatedAt: now,
             general: {
@@ -215,25 +215,34 @@ export const ChatServiceLive = Layer.effect(
       addMessage: (sessionId, message) =>
         Effect.gen(function* () {
           yield* updateSession(sessionId, (session) => {
-            const messages = session.messages.map((m) =>
-              m.id === message.parentId ? { ...m, childrenIds: [...(m.childrenIds || []), message.id] } : m,
-            );
+            const messages = { ...session.messages };
+            let parent: Message | undefined;
+
+            if (message.parentId && messages[message.parentId]) {
+              parent = {
+                ...messages[message.parentId],
+                childrenIds: [...(messages[message.parentId].childrenIds || []), message.id],
+              };
+              messages[message.parentId] = parent;
+            }
+
+            messages[message.id] = message;
 
             const title =
-              session.messages.length === 0 && message.role === 'user' && message.content
+              Object.keys(session.messages).length === 0 && message.role === 'user' && message.content
                 ? message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '')
                 : session.title;
 
             return {
               ...session,
-              messages: [...messages, message],
+              messages,
               activeMessageId: message.id,
               title,
             };
           });
 
           const currentSession = (yield* SubscriptionRef.get(store.state)).sessions[sessionId];
-          const parent = currentSession?.messages.find((m) => m.id === message.parentId);
+          const parent = message.parentId ? currentSession?.messages[message.parentId] : undefined;
           const messagesToSave = parent ? [parent, message] : [message];
 
           yield* storage.saveMessages(sessionId, messagesToSave);
@@ -243,12 +252,15 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           let updatedMessage: Message | undefined;
           yield* updateSession(sessionId, (session) => {
-            const msg = session.messages.find((m) => m.id === messageId);
+            const msg = session.messages[messageId];
             if (!msg) return session;
             updatedMessage = { ...msg, content, isError };
             return {
               ...session,
-              messages: session.messages.map((m) => (m.id === messageId ? updatedMessage! : m)),
+              messages: {
+                ...session.messages,
+                [messageId]: updatedMessage!,
+              },
             };
           });
 
@@ -261,29 +273,49 @@ export const ChatServiceLive = Layer.effect(
 
       deleteMessage: (sessionId, messageId) =>
         Effect.gen(function* () {
+          let messageToDelete: Message | undefined;
           yield* updateSession(sessionId, (session) => {
-            const messageToDelete = session.messages.find((m) => m.id === messageId);
+            messageToDelete = session.messages[messageId];
             if (!messageToDelete) return session;
 
-            const newMessages = session.messages
-              .filter((m) => m.id !== messageId)
-              .map((m) => (m.id === messageToDelete.parentId ? { ...m, childrenIds: m.childrenIds?.filter((id) => id !== messageId) } : m));
+            const messages = { ...session.messages };
+            delete messages[messageId];
+
+            if (messageToDelete.parentId && messages[messageToDelete.parentId]) {
+              messages[messageToDelete.parentId] = {
+                ...messages[messageToDelete.parentId],
+                childrenIds: messages[messageToDelete.parentId].childrenIds?.filter((id) => id !== messageId),
+              };
+            }
 
             let activeMessageId = session.activeMessageId;
             if (activeMessageId === messageId) {
-              activeMessageId = messageToDelete.parentId || (newMessages.length > 0 ? newMessages[newMessages.length - 1].id : undefined);
+              activeMessageId = messageToDelete.parentId || Object.keys(messages)[Object.keys(messages).length - 1];
             }
 
-            return { ...session, messages: newMessages, activeMessageId };
+            return { ...session, messages, activeMessageId };
           });
-          // Note: In a production app, we'd recursively delete children or handle orphaning.
-          // For now, we perform a simpler deletion consistent with previous behavior but in IDB.
-          const session = (yield* SubscriptionRef.get(store.state)).sessions[sessionId];
-          yield* storage.deleteMessages(sessionId);
-          for (const m of session.messages) {
-            yield* storage.saveMessage(sessionId, m);
+
+          if (messageToDelete) {
+            // Surgical IDB deletion
+            yield* storage.deleteMessage(messageId);
+            if (messageToDelete.parentId) {
+              const currentSession = (yield* SubscriptionRef.get(store.state)).sessions[sessionId];
+              const updatedParent = currentSession?.messages[messageToDelete.parentId];
+              if (updatedParent) {
+                yield* storage.saveMessage(sessionId, updatedParent);
+              }
+            }
           }
-        }),
+        }).pipe(
+          Effect.catchAll((err: any) => {
+            if (err instanceof SessionNotFoundError || err instanceof MessageNotFoundError) return Effect.fail(err);
+            return Effect.gen(function* () {
+              yield* store.notify('error', `Failed to delete message: ${err}`);
+              return yield* Effect.fail(err);
+            });
+          }),
+        ),
 
       renameSession: (sessionId, title) => updateSession(sessionId, (session) => ({ ...session, title })),
 
@@ -305,20 +337,25 @@ export const ChatServiceLive = Layer.effect(
           if (!sourceSession) {
             yield* Effect.fail(new SessionNotFoundError({ sessionId }));
           }
-          const messageIndex = sourceSession.messages.findIndex((m) => m.id === messageId);
-          if (messageIndex === -1) {
+          const targetMessage = sourceSession.messages[messageId];
+          if (!targetMessage) {
             yield* Effect.fail(new MessageNotFoundError({ messageId }));
           }
 
           const now = Date.now();
           const id = crypto.randomUUID();
-          const branchedMessages = sourceSession.messages.slice(0, messageIndex + 1);
+
+          // We only take the path to this message
+          const path = getMessagePath(sourceSession, messageId);
+          const branchedMessages: Record<string, Message> = {};
+          path.forEach((m) => (branchedMessages[m.id] = m));
 
           const newSession: ChatSession = {
             ...sourceSession,
             id,
             title: `${sourceSession.title} (Branch)`,
             messages: branchedMessages,
+            activeMessageId: messageId,
             createdAt: now,
             updatedAt: now,
           };

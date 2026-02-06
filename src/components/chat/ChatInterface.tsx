@@ -35,11 +35,16 @@ export const ChatInterface: FC = () => {
   }, [activeSessionId]);
 
   const visibleMessages = useMemo(
-    () => (activeSession?.activeMessageId ? getMessagePath(activeSession, activeSession.activeMessageId) : activeSession?.messages || []),
+    () =>
+      activeSession?.activeMessageId
+        ? getMessagePath(activeSession, activeSession.activeMessageId)
+        : activeSession
+          ? Object.values(activeSession.messages).sort((a, b) => a.timestamp - b.timestamp)
+          : [],
     [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id],
   );
 
-  if (!activeSession || activeSession.messages.length === 0) {
+  if (!activeSession || Object.keys(activeSession.messages).length === 0) {
     return (
       <div className="main-layout selection:bg-primary/20">
         <Header />

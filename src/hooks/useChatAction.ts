@@ -45,7 +45,7 @@ export const useChatAction = () => {
       const session = sessions[sessionId];
       if (!session) return;
 
-      const originalMessage = session.messages.find((m) => m.id === messageId);
+      const originalMessage = session.messages[messageId];
       if (!originalMessage) return;
 
       const history =

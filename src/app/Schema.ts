@@ -93,7 +93,7 @@ export type Personalisation = Schema.Schema.Type<typeof PersonalisationSchema>;
 export const ChatSession = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
-  messages: Schema.Array(Message),
+  messages: Schema.Record({ key: Schema.String, value: Message }),
   activeMessageId: Schema.optional(Schema.String),
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
@@ -149,7 +149,7 @@ export type Notification = Schema.Schema.Type<typeof Notification>;
 
 export const PersistedSession = Schema.Struct({
   ...ChatSession.fields,
-  messages: Schema.optional(Schema.Array(Message)),
+  messages: Schema.optional(Schema.Record({ key: Schema.String, value: Message })),
 });
 export type PersistedSession = Schema.Schema.Type<typeof PersistedSession>;
 

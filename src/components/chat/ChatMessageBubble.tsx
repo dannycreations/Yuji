@@ -31,7 +31,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
     if (!message.parentId) return undefined;
     const session = s.sessions[sessionId];
     if (!session) return undefined;
-    return session.messages.find((m) => m.id === message.parentId)?.childrenIds;
+    return session.messages[message.parentId!]?.childrenIds;
   });
 
   const [copied, setCopy] = useCopy();
