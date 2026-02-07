@@ -1,11 +1,14 @@
+import { Effect } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
+import { YujiRuntime } from '../../app/Runtime';
 import { getMessagePath } from '../../helpers/SessionHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
 import { useStore, useStoreAction } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
+import { StoreService } from '../../services/StoreService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
@@ -19,7 +22,7 @@ export const ChatInterface: FC = () => {
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 
-  const { isLoading, handleSend, handleRegenerate, handleEdit, stop: handleStop } = useChatAction();
+  const { isLoading, handleSend, stop: handleStop } = useChatAction();
 
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
 
@@ -49,18 +52,45 @@ export const ChatInterface: FC = () => {
     }
   }, [activeSession?.activeMessageId, isLoading]);
 
-  const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
+  const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight } = useVirtualList({
     containerHeight,
-    itemHeight: 150, // Estimating average message height
+    estimatedItemHeight: 100,
     totalCount: visibleMessages.length,
     overscan: 10,
   });
+
+  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const id = (entry.target as HTMLElement).getAttribute('data-id');
+        if (id) {
+          const index = visibleMessages.findIndex((m) => m.id === id);
+          if (index !== -1) {
+            setItemHeight(index, entry.contentRect.height);
+          }
+        }
+      }
+    });
+
+    visibleMessages.slice(startIndex, endIndex).forEach((msg) => {
+      const el = messageRefs.current[msg.id];
+      if (el) {
+        observer.observe(el);
+      }
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [startIndex, endIndex, visibleMessages, setItemHeight]);
 
   useEffect(() => {
     if (activeSessionId) {
       loadMessages(activeSessionId);
     }
-  }, [activeSessionId]);
+  }, [activeSessionId, loadMessages]);
 
   const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
   const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
@@ -68,7 +98,16 @@ export const ChatInterface: FC = () => {
   return (
     <div className="main-layout selection:bg-primary/20">
       <Header />
-      <div className="chat-scroll-area" ref={scrollAreaRef}>
+      <div
+        className="chat-scroll-area"
+        ref={scrollAreaRef}
+        onScroll={(e) => {
+          onScroll(e);
+          if (e.currentTarget.scrollTop === 0 && !isLoading && !isEmpty) {
+            YujiRuntime.runPromise(Effect.flatMap(StoreService, (s: StoreService) => s.loadMoreMessages())).catch(console.error);
+          }
+        }}
+      >
         {isTransitioning ? null : isEmpty ? (
           <div className="chat-empty-container">
             <div className="mb-3 flex flex-col items-center w-full select-none">
@@ -91,21 +130,27 @@ export const ChatInterface: FC = () => {
             )}
           </div>
         ) : (
-          <div className="message-list-container" onScroll={onScroll}>
+          <div className="message-list-container">
             <div style={{ height: totalHeight, position: 'relative' }}>
               <div style={{ transform: `translateY(${translateY}px)` }}>
                 {visibleMessages.slice(startIndex, endIndex).map((message, sliceIdx) => {
                   const idx = startIndex + sliceIdx;
                   return (
-                    <ChatMessageBubble
+                    <div
                       key={message.id}
-                      message={message}
-                      sessionId={activeSession.id}
-                      isLast={idx === visibleMessages.length - 1}
-                      isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
-                      onRegenerate={() => handleRegenerate(activeSession.id, message.id)}
-                      onEdit={(newContent) => handleEdit(activeSession.id, message.id, newContent)}
-                    />
+                      ref={(el) => {
+                        messageRefs.current[message.id] = el;
+                      }}
+                      data-id={message.id}
+                      className="w-full"
+                    >
+                      <ChatMessageBubble
+                        message={message}
+                        sessionId={activeSession.id}
+                        isLast={idx === visibleMessages.length - 1}
+                        isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
+                      />
+                    </div>
                   );
                 })}
               </div>

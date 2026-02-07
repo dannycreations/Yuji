@@ -16,7 +16,7 @@ export const useStoreService = (): StoreService => {
   return service;
 };
 
-export const useStore = <T>(selector: (state: AppRuntimeState) => T): T => {
+export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual?: (a: T, b: T) => boolean): T => {
   const storeService = useStoreService();
   const lastSelectedState = useRef<T>(null);
 
@@ -26,7 +26,9 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T): T => {
         Stream.runForEach(storeService.state.changes, (state) =>
           Effect.sync(() => {
             const nextSelectedState = selector(state);
-            if (nextSelectedState !== lastSelectedState.current) {
+            const changed = isEqual ? !isEqual(lastSelectedState.current as T, nextSelectedState) : nextSelectedState !== lastSelectedState.current;
+
+            if (changed) {
               callback();
             }
           }),
@@ -36,7 +38,7 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T): T => {
         YujiRuntime.runFork(Fiber.interrupt(fiber));
       };
     };
-  }, [storeService, selector]);
+  }, [storeService, selector, isEqual]);
 
   const getSnapshot = () => {
     const nextSelectedState = selector(storeService.getSnapshot());

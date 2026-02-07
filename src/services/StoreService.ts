@@ -21,6 +21,8 @@ export interface StoreService {
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
   readonly clearNotification: (id: string) => Effect.Effect<void>;
   readonly loadMessages: (sessionId: string) => Effect.Effect<void>;
+  readonly loadMoreMessages: () => Effect.Effect<void>;
+  readonly loadMoreSessions: () => Effect.Effect<void>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -71,8 +73,8 @@ export const StoreServiceLive = Layer.effect(
     const storage = yield* StorageService;
 
     const loadState = Effect.gen(function* () {
-      const metadata = yield* storage.getMetadata();
-      const sessionHeaders = yield* storage.getSessionsMetadata();
+      const metadata = yield* storage.getMetadata().pipe(Effect.catchAll(() => Effect.succeed(null)));
+      const sessionHeaders = yield* storage.getSessionsMetadata({ limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
 
       if (metadata) {
         const sessionsMap: Record<string, ChatMetadata> = {};
@@ -82,16 +84,16 @@ export const StoreServiceLive = Layer.effect(
 
         let activeSession: ChatSession | null = null;
         if (metadata.activeSessionId) {
-          activeSession = yield* storage.getSession(metadata.activeSessionId);
+          activeSession = yield* storage.getSession(metadata.activeSessionId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
         }
 
-        return Schema.decodeSync(AppRuntimeState)({
+        return yield* Schema.decode(AppRuntimeState)({
           ...INITIAL_STATE,
           ...metadata,
           activeSession,
           sessions: sessionsMap,
           isHydrated: true,
-        });
+        }).pipe(Effect.orDie);
       }
       return { ...INITIAL_STATE, isHydrated: true };
     });
@@ -99,13 +101,14 @@ export const StoreServiceLive = Layer.effect(
     const initialState = yield* loadState;
     const state = yield* SubscriptionRef.make(initialState);
 
-    // Persistence Loop: Metadata
+    // Persistence Loop: Metadata (Debounced & Differential)
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
-        Stream.map(Schema.decodeSync(AppStoreState)),
+        Stream.mapEffect(Schema.decode(AppStoreState)),
         Stream.changes,
         Stream.runForEach((meta) => storage.saveMetadata(meta)),
+        Effect.orDie,
       ),
     );
 
@@ -167,7 +170,7 @@ export const StoreServiceLive = Layer.effect(
           // Only skip if both ID matches and the session object is correctly populated
           if (currentState.activeSessionId === sessionId && currentState.activeSession?.id === sessionId) return;
 
-          const session = yield* storage.getSession(sessionId);
+          const session = yield* storage.getSession(sessionId, { limit: 20 });
           if (!session) return;
 
           yield* update((s) => {
@@ -179,6 +182,56 @@ export const StoreServiceLive = Layer.effect(
               activeSessionId: sessionId,
               activeSession: session,
             };
+          });
+        }),
+      loadMoreMessages: () =>
+        Effect.gen(function* () {
+          const s = yield* SubscriptionRef.get(state);
+          if (!s.activeSession) return;
+
+          const sessionId = s.activeSession.id;
+          const currentMessages = Object.values(s.activeSession.messages);
+          const offset = currentMessages.length;
+
+          const moreMessages = yield* storage.getMessages(sessionId, { offset, limit: 20 });
+          if (moreMessages.length === 0) return;
+
+          yield* update((s) => {
+            if (!s.activeSession || s.activeSession.id !== sessionId) return s;
+            const newMessages = { ...s.activeSession.messages };
+            moreMessages.forEach((m) => {
+              newMessages[m.id] = m;
+            });
+
+            // If we have more than 100 messages, trim the bottom
+            const MAX_MEM_MESSAGES = 100;
+            const messageEntries = Object.entries(newMessages).sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+            let finalMessages = newMessages;
+            if (messageEntries.length > MAX_MEM_MESSAGES) {
+              finalMessages = Object.fromEntries(messageEntries.slice(0, MAX_MEM_MESSAGES));
+            }
+
+            return {
+              ...s,
+              activeSession: { ...s.activeSession, messages: finalMessages },
+            };
+          });
+        }),
+      loadMoreSessions: () =>
+        Effect.gen(function* () {
+          const s = yield* SubscriptionRef.get(state);
+          const currentCount = Object.keys(s.sessions).length;
+          const moreHeaders = yield* storage.getSessionsMetadata({ offset: currentCount, limit: 30 });
+
+          if (moreHeaders.length === 0) return;
+
+          yield* update((s) => {
+            const newSessions = { ...s.sessions };
+            moreHeaders.forEach((h) => {
+              newSessions[h.id] = h;
+            });
+            return { ...s, sessions: newSessions };
           });
         }),
     });

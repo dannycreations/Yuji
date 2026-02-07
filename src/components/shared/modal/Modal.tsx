@@ -1,5 +1,6 @@
 import clsx from 'clsx';
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useModalAnimation } from '../../../hooks/useModalAnimation';
@@ -31,11 +32,12 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, className, co
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className={clsx('modal-overlay', isClosing ? 'animate-fade-out' : 'animate-fade-in', className)}>
       <div ref={containerRef} className={clsx('modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up', containerClassName)}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

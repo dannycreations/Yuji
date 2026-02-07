@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
@@ -18,29 +18,36 @@ import type { FC } from 'react';
 import type { Components } from 'react-markdown';
 import type { ChatMessage } from '../../app/Schema';
 
+const Markdown = memo(({ content, components }: { content: string; components: Components }) => (
+  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
+    {content}
+  </ReactMarkdown>
+));
+
 interface ChatMessageBubbleProps {
   readonly message: ChatMessage;
   readonly sessionId: string;
   readonly isLast: boolean;
   readonly isThinking?: boolean;
-  readonly onRegenerate: () => void;
-  readonly onEdit: (content: string) => void;
 }
 
-export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, sessionId, onRegenerate, onEdit, isThinking }) => {
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, sessionId, isThinking }) => {
   const isUser = message.role === 'user';
-  const childrenIds = useStore((s) => {
-    if (!message.parentId) return undefined;
-    const session = s.activeSession;
-    if (!session || session.id !== sessionId) return undefined;
-    return session.messages[message.parentId!]?.childrenIds;
-  });
+  const childrenIds = useStore(
+    (s) => {
+      if (!message.parentId) return undefined;
+      const session = s.activeSession;
+      if (!session || session.id !== sessionId) return undefined;
+      return session.messages[message.parentId!]?.childrenIds;
+    },
+    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+  );
 
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
 
-  const { handleBranch, handleSwitchBranch, handleDeleteMessage } = useChatAction();
+  const { handleBranch, handleSwitchBranch, handleDeleteMessage, handleRegenerate, handleEdit } = useChatAction();
 
   // Logic to find siblings for navigation
   const siblings = childrenIds || [];
@@ -53,10 +60,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
 
   const handleCopy = () => setCopy(message.content);
 
-  const handleSaveEdit = () => {
-    if (editContent.trim() !== message.content.trim()) onEdit(editContent);
+  const handleSaveEdit = useCallback(() => {
+    if (editContent.trim() !== message.content.trim()) handleEdit(sessionId, message.id, editContent);
     setIsEditing(false);
-  };
+  }, [editContent, message.content, sessionId, message.id, handleEdit]);
 
   const onConfirm = useConfirm();
 
@@ -106,7 +113,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
   );
 
   return (
-    <div className="group w-full">
+    <div className="group w-full" data-message-id={message.id}>
       <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
         <div className={clsx('message-container', isUser ? 'user' : 'assistant')}>
           <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
@@ -149,9 +156,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                     <div className="message-thinking-dot [animation-delay:0.4s]" />
                   </div>
                 ) : (
-                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={markdownComponents}>
-                    {message.content}
-                  </ReactMarkdown>
+                  <Markdown content={message.content} components={markdownComponents} />
                 )}
               </div>
             )}
@@ -192,7 +197,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
                   <Icon name="GitFork" size={16} />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={onRegenerate} title="Regenerate">
+                <Button variant="ghost" size="icon" onClick={() => handleRegenerate(sessionId, message.id)} title="Regenerate">
                   <Icon name="RefreshCw" size={16} />
                 </Button>
 
@@ -222,4 +227,4 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = ({ message, session
       </div>
     </div>
   );
-};
+});

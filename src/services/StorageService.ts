@@ -7,12 +7,12 @@ export interface StorageService {
   readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getSessionsMetadata: () => Effect.Effect<ReadonlyArray<ChatMetadata>>;
-  readonly getSession: (id: string) => Effect.Effect<ChatSession | null>;
+  readonly getSessionsMetadata: (options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMetadata>>;
+  readonly getSession: (id: string, options?: { limit?: number }) => Effect.Effect<ChatSession | null>;
   readonly saveSession: (session: ChatSession | ChatMetadata) => Effect.Effect<void>;
   readonly deleteSession: (id: string) => Effect.Effect<void>;
 
-  readonly getMessages: (sessionId: string) => Effect.Effect<ReadonlyArray<ChatMessage>>;
+  readonly getMessages: (sessionId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMessage>>;
   readonly saveMessage: (sessionId: string, message: ChatMessage) => Effect.Effect<void>;
   readonly saveMessages: (sessionId: string, messages: ChatMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
@@ -54,7 +54,9 @@ export const StorageServiceLive = Layer.effect(
       getMetadata: () =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          return (yield* Effect.promise(() => db.get(STORES.METADATA, 'current'))) ?? null;
+          const metadata = yield* Effect.promise(() => db.get(STORES.METADATA, 'current'));
+          if (!metadata) return null;
+          return yield* Schema.decode(AppStoreState)(metadata).pipe(Effect.orDie);
         }),
 
       saveMetadata: (metadata) =>
@@ -63,31 +65,55 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => db.put(STORES.METADATA, { ...metadata, id: 'current' }));
         }),
 
-      getSessionsMetadata: () =>
+      getSessionsMetadata: (options) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const sessions = yield* Effect.promise(() => db.getAll(STORES.SESSIONS));
-          return Schema.decodeSync(Schema.Array(ChatMetadata))(sessions);
+          if (!options) {
+            const sessions = yield* Effect.promise(() => db.getAll(STORES.SESSIONS));
+            return yield* Schema.decode(Schema.Array(ChatMetadata))(sessions).pipe(Effect.orDie);
+          }
+
+          const { offset = 0, limit = 50 } = options;
+          const sessions: ChatMetadata[] = [];
+          const tx = db.transaction(STORES.SESSIONS, 'readonly');
+          let cursor = yield* Effect.promise(() => tx.store.openCursor(null, 'prev'));
+
+          let advanced = false;
+          while (cursor && sessions.length < limit) {
+            if (!advanced && offset > 0) {
+              cursor = yield* Effect.promise(() => cursor!.advance(offset));
+              advanced = true;
+              continue;
+            }
+            sessions.push(cursor.value);
+            cursor = yield* Effect.promise(() => cursor!.continue());
+          }
+
+          return yield* Schema.decode(Schema.Array(ChatMetadata))(sessions).pipe(Effect.orDie);
         }),
 
-      getSession: (id) =>
+      getSession: (id, options) =>
         Effect.gen(function* () {
           const db = yield* getDB;
           const session = yield* Effect.promise(() => db.get(STORES.SESSIONS, id));
           if (!session) return null;
 
-          const messages = yield* storage.getMessages(id);
+          const messages = yield* storage.getMessages(id, options);
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
-          return Schema.decodeSync(ChatSession)({ ...session, messages: messagesRecord });
+          return yield* Schema.decode(ChatSession)({ ...session, messages: messagesRecord }).pipe(Effect.orDie);
         }),
 
       saveSession: (session) =>
         Effect.gen(function* () {
           const db = yield* getDB;
           const existing = yield* Effect.promise(() => db.get(STORES.SESSIONS, session.id));
-          // If we are saving metadata but it's already a full session, preserve config/messages
-          const toSave = existing ? { ...existing, ...session } : session;
+
+          // Strip messages before saving to SESSIONS store to prevent bloat
+          // Messages are stored separately in STORES.MESSAGES
+          const { messages: _, ...metadata } = session as ChatSession;
+
+          const toSave = existing ? { ...existing, ...metadata } : metadata;
           yield* Effect.promise(() => db.put(STORES.SESSIONS, toSave));
         }),
 
@@ -96,21 +122,46 @@ export const StorageServiceLive = Layer.effect(
           const db = yield* getDB;
           const tx = db.transaction([STORES.SESSIONS, STORES.MESSAGES], 'readwrite');
           yield* Effect.promise(() => tx.objectStore(STORES.SESSIONS).delete(id));
-          yield* Effect.promise(() => tx.objectStore(STORES.MESSAGES).index('sessionId').openKeyCursor(IDBKeyRange.only(id)));
+
           const messageStore = tx.objectStore(STORES.MESSAGES);
-          let cursor = yield* Effect.promise(() => messageStore.index('sessionId').openKeyCursor(IDBKeyRange.only(id)));
+          const index = messageStore.index('sessionId');
+          let cursor = yield* Effect.promise(() => index.openKeyCursor(IDBKeyRange.only(id)));
+
           while (cursor) {
-            yield* Effect.promise(() => messageStore.delete(cursor!.primaryKey));
+            yield* Effect.promise(() => cursor!.delete());
             cursor = yield* Effect.promise(() => cursor!.continue());
           }
+
           yield* Effect.promise(() => tx.done);
         }),
 
-      getMessages: (sessionId) =>
+      getMessages: (sessionId, options) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
-          return Schema.decodeSync(Schema.Array(ChatMessage))(messages);
+          if (!options) {
+            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
+            return yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
+          }
+
+          const { offset = 0, limit = 20 } = options;
+          const messages: ChatMessage[] = [];
+          const tx = db.transaction(STORES.MESSAGES, 'readonly');
+          const index = tx.store.index('sessionId');
+          let cursor = yield* Effect.promise(() => index.openCursor(IDBKeyRange.only(sessionId), 'prev'));
+
+          let advanced = false;
+          while (cursor && messages.length < limit) {
+            if (!advanced && offset > 0) {
+              cursor = yield* Effect.promise(() => cursor!.advance(offset));
+              advanced = true;
+              continue;
+            }
+            messages.push(cursor.value);
+            cursor = yield* Effect.promise(() => cursor!.continue());
+          }
+
+          const decoded = yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
+          return [...decoded].reverse();
         }),
 
       saveMessage: (sessionId, message) =>
@@ -141,12 +192,13 @@ export const StorageServiceLive = Layer.effect(
           const db = yield* getDB;
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
           const index = tx.store.index('sessionId');
-          // Surgical deletion using IDBKeyRange
           let cursor = yield* Effect.promise(() => index.openKeyCursor(IDBKeyRange.only(sessionId)));
+
           while (cursor) {
-            yield* Effect.promise(() => tx.store.delete(cursor!.primaryKey));
+            yield* Effect.promise(() => cursor!.delete());
             cursor = yield* Effect.promise(() => cursor!.continue());
           }
+
           yield* Effect.promise(() => tx.done);
         }),
     });

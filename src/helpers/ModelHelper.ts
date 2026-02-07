@@ -12,7 +12,7 @@ export const filterModels = (models: Model[], search: string): Model[] => {
 
 export const getModelId = (settings: GlobalSettings, availableModels: readonly Model[]): string => {
   const active = getActiveModels(availableModels, settings.disabledModels);
-  return active.find((m) => m.id === settings.model)?.id ?? active[0]?.id ?? 'gpt-4o';
+  return active.find((m) => m.id === settings.model)?.id || active[0]?.id || 'yuji';
 };
 
 export const getCurrentModelId = (activeSession: ChatSession | null, settings: GlobalSettings, availableModels: readonly Model[]): string => {
@@ -22,6 +22,5 @@ export const getCurrentModelId = (activeSession: ChatSession | null, settings: G
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
   const model = availableModels.find((m) => m.id === modelId);
-  if (!model) return 'Yuji';
-  return model.name === model.id ? model.name : toTitleCase(model.name);
+  return model ? toTitleCase(model.name) : 'Yuji';
 };

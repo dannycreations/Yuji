@@ -76,7 +76,7 @@ export const ChatServiceLive = Layer.effect(
 
         const updated = f(session, now);
         const finalUpdated: ChatSession = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-        const metadata = Schema.decodeSync(ChatMetadata)(finalUpdated);
+        const metadata = yield* Schema.decode(ChatMetadata)(finalUpdated).pipe(Effect.orDie);
 
         yield* store.update((s) => ({
           ...s,
@@ -226,7 +226,7 @@ export const ChatServiceLive = Layer.effect(
             },
           };
 
-          const metadata = Schema.decodeSync(ChatMetadata)(newSession);
+          const metadata = yield* Schema.decode(ChatMetadata)(newSession).pipe(Effect.orDie);
 
           yield* store.update((state) => ({
             ...state,
@@ -280,7 +280,7 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const metadatas: Record<string, ChatMetadata> = {};
           for (const [id, session] of Object.entries(sessions)) {
-            metadatas[id] = Schema.decodeSync(ChatMetadata)(session);
+            metadatas[id] = yield* Schema.decode(ChatMetadata)(session).pipe(Effect.orDie);
             yield* storage.saveSession(session);
           }
           yield* store.update((s) => ({
@@ -440,9 +440,10 @@ export const ChatServiceLive = Layer.effect(
             updatedAt: now,
           };
 
+          const metadata = yield* Schema.decode(ChatMetadata)(newSession).pipe(Effect.orDie);
           yield* store.update((state) => ({
             ...state,
-            sessions: { [id]: Schema.decodeSync(ChatMetadata)(newSession), ...state.sessions },
+            sessions: { [id]: metadata, ...state.sessions },
             activeSessionId: id,
             activeSession: newSession,
           }));

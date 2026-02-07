@@ -1,11 +1,14 @@
 import clsx from 'clsx';
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { Effect } from 'effect';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { YujiRuntime } from '../app/Runtime';
 import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useConfirm, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
+import { StoreService } from '../services/StoreService';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
@@ -50,23 +53,32 @@ export const Sidebar: FC = () => {
     }
   });
 
+  const sortedSessions = useMemo(() => sortSessionsByDate(Object.values(sessions) as ChatSession[]), [sessions]);
+
   const filteredSessions = useMemo(() => {
-    const allSessions = sortSessionsByDate(Object.values(sessions) as ChatSession[]);
-    return filterSessions(allSessions, searchQuery);
-  }, [sessions, searchQuery]);
+    return filterSessions(sortedSessions, searchQuery);
+  }, [sortedSessions, searchQuery]);
 
   const groupedSessions = useMemo(() => groupSessions(filteredSessions, pinnedSessionIds), [filteredSessions, pinnedSessionIds]);
 
   const flattenedSessions = useMemo(() => {
-    return Object.entries(groupedSessions).flatMap(([label, group]) => {
-      if (group.length === 0) return [];
-      return [{ type: 'label' as const, label }, ...group.map(s => ({ type: 'session' as const, session: s }))];
-    });
+    const result: Array<{ type: 'label'; label: string } | { type: 'session'; session: ChatSession }> = [];
+    const entries = Object.entries(groupedSessions);
+    for (let i = 0; i < entries.length; i++) {
+      const [label, group] = entries[i];
+      if (group.length > 0) {
+        result.push({ type: 'label', label });
+        for (let j = 0; j < group.length; j++) {
+          result.push({ type: 'session', session: group[j] as ChatSession });
+        }
+      }
+    }
+    return result;
   }, [groupedSessions]);
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
     containerHeight,
-    itemHeight: 44, // 40px item + 4px gap
+    estimatedItemHeight: 44, // 40px item + 4px gap
     totalCount: flattenedSessions.length,
   });
 
@@ -102,7 +114,17 @@ export const Sidebar: FC = () => {
         />
       </div>
 
-      <div className="sidebar-content" ref={scrollContainerRef} onScroll={onScroll}>
+      <div
+        className="sidebar-content"
+        ref={scrollContainerRef}
+        onScroll={(e) => {
+          onScroll(e);
+          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+          if (scrollHeight - scrollTop <= clientHeight + 100) {
+            YujiRuntime.runPromise(Effect.flatMap(StoreService, (s: StoreService) => s.loadMoreSessions())).catch(console.error);
+          }
+        }}
+      >
         <div style={{ height: totalHeight, position: 'relative' }}>
           <div style={{ transform: `translateY(${translateY}px)` }}>
             {flattenedSessions.slice(startIndex, endIndex).map((item) => {
@@ -117,10 +139,7 @@ export const Sidebar: FC = () => {
               return (
                 <div
                   key={session.id}
-                  className={clsx(
-                    'sidebar-session-item group h-[40px] mt-1',
-                    activeSessionId === session.id && 'sidebar-session-item-active',
-                  )}
+                  className={clsx('sidebar-session-item group h-[40px] mt-1', activeSessionId === session.id && 'sidebar-session-item-active')}
                   onClick={() => setActiveSession(session.id)}
                 >
                   <div className="sidebar-session-title flex items-center gap-2 min-w-0">
@@ -130,10 +149,7 @@ export const Sidebar: FC = () => {
                   <div className="sidebar-session-indicator-wrapper">
                     {backgroundSessionIds.includes(session.id) ? (
                       <div
-                        className={clsx(
-                          'flex items-center transition-opacity',
-                          menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
-                        )}
+                        className={clsx('flex items-center transition-opacity', menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0')}
                       >
                         <div className="sidebar-activity-indicator" />
                       </div>
