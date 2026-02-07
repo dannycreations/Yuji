@@ -44,24 +44,41 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
     setAttachments([]);
   };
 
-  const handleFileSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+  const processFile = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        if (loadEvent.target?.result) {
+          const newAttachment: Attachment = {
+            id: uuid(),
+            type: 'image',
+            url: loadEvent.target.result as string,
+            name: file.name || 'Pasted Image',
+          };
+          setAttachments((prev) => [...prev, newAttachment]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files: File[] = Array.from(e.target.files);
-      for (const file of files) {
-        if (file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onload = (loadEvent) => {
-            if (loadEvent.target?.result) {
-              const newAttachment: Attachment = {
-                id: uuid(),
-                type: 'image',
-                url: loadEvent.target.result as string,
-                name: file.name,
-              };
-              setAttachments((prev) => [...prev, newAttachment]);
-            }
-          };
-          reader.readAsDataURL(file);
+      files.forEach(processFile);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            processFile(file);
+          }
         }
       }
     }
@@ -79,7 +96,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
         <AttachmentGrid
           attachments={attachments}
           onRemove={removeAttachment}
-          className="chat-input-attachments scrollbar-hide px-3 pt-3"
+          className="chat-input-attachments scrollbar-hide"
           itemClassName="chat-input-attachment-item"
           imgClassName="chat-input-attachment-img"
         />
@@ -89,6 +106,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Type your message here..."
           className="chat-input-textarea"
           minRows={2}

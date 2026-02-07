@@ -838,7 +838,7 @@
   }
 
   .message-attachment-item {
-    @apply relative rounded-lg overflow-hidden border border-line w-40 h-28 bg-surface;
+    @apply relative rounded-lg border border-line w-40 h-28 bg-surface;
   }
 
   .message-attachment-img {
@@ -863,7 +863,7 @@
   }
 
   .chat-input-attachment-item {
-    @apply relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border border-line;
+    @apply relative w-14 h-14 flex-shrink-0 rounded-xl border border-line;
   }
 
   .chat-input-attachment-img {
