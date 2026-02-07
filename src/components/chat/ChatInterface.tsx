@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { YujiRuntime } from '../../app/Runtime';
@@ -65,7 +65,7 @@ export const ChatInterface: FC = () => {
     }
   }, [isLoading, containerHeight]);
 
-  const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight } = useVirtualList({
+  const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight, clearItemHeight } = useVirtualList({
     containerHeight,
     estimatedItemHeight: 100,
     totalCount: visibleMessages.length,
@@ -107,6 +107,16 @@ export const ChatInterface: FC = () => {
 
   const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
   const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
+
+  const handleUpdateHeight = useCallback(
+    (messageId: string) => {
+      const index = visibleMessages.findIndex((m) => m.id === messageId);
+      if (index !== -1) {
+        clearItemHeight(index);
+      }
+    },
+    [visibleMessages, clearItemHeight],
+  );
 
   return (
     <div className="main-layout selection:bg-primary/20">
@@ -166,6 +176,7 @@ export const ChatInterface: FC = () => {
                         sessionId={activeSession.id}
                         isLast={idx === visibleMessages.length - 1}
                         isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
+                        onUpdateHeight={() => handleUpdateHeight(message.id)}
                       />
                     </div>
                   );

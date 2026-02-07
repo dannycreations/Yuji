@@ -29,9 +29,10 @@ interface ChatMessageBubbleProps {
   readonly sessionId: string;
   readonly isLast: boolean;
   readonly isThinking?: boolean;
+  readonly onUpdateHeight?: () => void;
 }
 
-export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, sessionId, isThinking }) => {
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, sessionId, isThinking, onUpdateHeight }) => {
   const isUser = message.role === 'user';
   const childrenIds = useStore(
     (s) => {
@@ -61,9 +62,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
   const handleCopy = () => setCopy(message.content);
 
   const handleSaveEdit = useCallback(() => {
-    if (editContent.trim() !== message.content.trim()) handleEdit(sessionId, message.id, editContent);
+    if (editContent.trim() !== message.content.trim()) {
+      handleEdit(sessionId, message.id, editContent);
+      onUpdateHeight?.();
+    }
     setIsEditing(false);
-  }, [editContent, message.content, sessionId, message.id, handleEdit]);
+  }, [editContent, message.content, sessionId, message.id, handleEdit, onUpdateHeight]);
 
   const onConfirm = useConfirm();
 
@@ -129,7 +133,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
                 <InputTextarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="chat-input-textarea"
+                  className="chat-input-textarea !overflow-hidden"
                   minRows={2}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
