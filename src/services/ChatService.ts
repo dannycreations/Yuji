@@ -372,15 +372,24 @@ export const ChatServiceLive = Layer.effect(
 
       deleteMessage: (sessionId, messageId) =>
         Effect.gen(function* () {
-          let messageToDelete: ChatMessage | undefined;
+          let idsToDelete: string[] = [];
           let updatedParent: ChatMessage | undefined;
 
           yield* updateSession(sessionId, (session) => {
-            messageToDelete = session.messages[messageId];
+            const messageToDelete = session.messages[messageId];
             if (!messageToDelete) return session;
 
             const messages = { ...session.messages };
-            delete messages[messageId];
+            idsToDelete = [];
+            const collectIds = (id: string) => {
+              const msg = messages[id];
+              if (!msg) return;
+              idsToDelete.push(id);
+              msg.childrenIds?.forEach(collectIds);
+            };
+            collectIds(messageId);
+
+            idsToDelete.forEach((id) => delete messages[id]);
 
             if (messageToDelete.parentId && messages[messageToDelete.parentId]) {
               updatedParent = {
@@ -391,15 +400,17 @@ export const ChatServiceLive = Layer.effect(
             }
 
             let activeMessageId = session.activeMessageId;
-            if (activeMessageId === messageId) {
+            if (idsToDelete.includes(activeMessageId || '')) {
               activeMessageId = messageToDelete.parentId || Object.keys(messages)[Object.keys(messages).length - 1];
             }
 
             return { ...session, messages, activeMessageId };
           });
 
-          if (messageToDelete) {
-            yield* storage.deleteMessage(messageId);
+          if (idsToDelete.length > 0) {
+            for (const id of idsToDelete) {
+              yield* storage.deleteMessage(id);
+            }
             if (updatedParent) {
               yield* storage.saveMessage(sessionId, updatedParent);
             }

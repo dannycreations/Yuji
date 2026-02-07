@@ -30,15 +30,18 @@ export const ChatInterface: FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  useLayoutEffect(() => {
-    const handleResize = () => {
-      if (scrollAreaRef.current) {
-        setContainerHeight(scrollAreaRef.current.clientHeight);
+  useEffect(() => {
+    if (!scrollAreaRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerHeight(entry.contentRect.height);
       }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    });
+
+    observer.observe(scrollAreaRef.current);
+    return () => observer.disconnect();
   }, []);
 
   const visibleMessages = useMemo(() => {
@@ -65,7 +68,7 @@ export const ChatInterface: FC = () => {
     }
   }, [isLoading, containerHeight]);
 
-  const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight, clearItemHeight } = useVirtualList({
+  const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight, clearItemHeight, clearItemHeights } = useVirtualList({
     containerHeight,
     estimatedItemHeight: 100,
     totalCount: visibleMessages.length,
@@ -87,8 +90,9 @@ export const ChatInterface: FC = () => {
       }
     });
 
+    const currentRefs = messageRefs.current;
     visibleMessages.slice(startIndex, endIndex).forEach((msg) => {
-      const el = messageRefs.current[msg.id];
+      const el = currentRefs[msg.id];
       if (el) {
         observer.observe(el);
       }
@@ -101,6 +105,7 @@ export const ChatInterface: FC = () => {
 
   useEffect(() => {
     if (activeSessionId) {
+      clearItemHeights();
       loadMessages(activeSessionId);
     }
   }, [activeSessionId, loadMessages]);
@@ -117,6 +122,12 @@ export const ChatInterface: FC = () => {
     },
     [visibleMessages, clearItemHeight],
   );
+
+  useEffect(() => {
+    if (isLoading) {
+      clearItemHeights();
+    }
+  }, [isLoading, clearItemHeights]);
 
   return (
     <div className="main-layout selection:bg-primary/20">

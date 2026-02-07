@@ -41,7 +41,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
       if (!session || session.id !== sessionId) return undefined;
       return session.messages[message.parentId!]?.childrenIds;
     },
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    (a, b) => Object.is(a, b),
   );
 
   const [copied, setCopy] = useCopy();

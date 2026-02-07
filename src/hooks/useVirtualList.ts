@@ -52,6 +52,11 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
     });
   }, []);
 
+  const clearItemHeights = useCallback(() => {
+    setHeights({});
+    pendingHeightsRef.current = {};
+  }, []);
+
   const prefixSums = useMemo(() => {
     const sums = new Float64Array(totalCount + 1);
     const heightEntries = Object.entries(heights);
@@ -109,5 +114,6 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
     onScroll,
     setItemHeight,
     clearItemHeight,
+    clearItemHeights,
   };
 };
