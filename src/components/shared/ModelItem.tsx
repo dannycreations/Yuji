@@ -29,12 +29,10 @@ export const ModelItem: FC<ModelItemProps> = ({
   className,
   rightContent,
 }) => {
+  const Component = onClick ? 'button' : 'div';
+
   return (
-    <button
-      onClick={onClick}
-      disabled={!onClick}
-      className={clsx('model-picker-item group items-center', isActive && 'active', !isEnabled && 'opacity-50', className)}
-    >
+    <Component onClick={onClick} className={clsx('model-picker-item group items-center', isActive && 'active', className)}>
       <div className={clsx('flex-shrink-0', isEnabled ? model.color || 'text-text-tertiary' : 'text-text-tertiary')}>
         <Icon name={model.icon} size={18} />
       </div>
@@ -51,6 +49,6 @@ export const ModelItem: FC<ModelItemProps> = ({
         {model.isNew && <Icon name="Star" size={12} className="text-yellow-500" />}
         {rightContent}
       </div>
-    </button>
+    </Component>
   );
 };

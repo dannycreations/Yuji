@@ -600,12 +600,17 @@
   }
 
   .settings-model-card {
-    @apply flex items-center gap-2 p-2 rounded-xl border transition-all;
+    @apply flex items-center gap-2 p-2 rounded-xl border border-transparent transition-all;
     &.enabled {
       @apply bg-line border-separator;
     }
     &.disabled {
-      @apply bg-surface/50 border-transparent opacity-60;
+      @apply bg-surface/50;
+      & .model-picker-item-title,
+      & .model-picker-item-id,
+      & p {
+        @apply opacity-60;
+      }
     }
   }
 
