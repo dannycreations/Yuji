@@ -969,30 +969,42 @@
   }
 
   .toast-variant-error {
-    @apply bg-red-500/10 text-red-400;
+    @apply text-red-400;
     & .toast-line {
       @apply bg-red-500;
+    }
+    & .toast-icon-wrapper {
+      @apply text-red-500;
     }
   }
 
   .toast-variant-warning {
-    @apply bg-amber-500/10 text-amber-400;
+    @apply text-amber-400;
     & .toast-line {
       @apply bg-amber-500;
+    }
+    & .toast-icon-wrapper {
+      @apply text-amber-500;
     }
   }
 
   .toast-variant-info {
-    @apply bg-blue-500/10 text-blue-400;
+    @apply text-blue-400;
     & .toast-line {
       @apply bg-blue-500;
+    }
+    & .toast-icon-wrapper {
+      @apply text-blue-500;
     }
   }
 
   .toast-variant-success {
-    @apply bg-emerald-500/10 text-emerald-400;
+    @apply text-emerald-400;
     & .toast-line {
       @apply bg-emerald-500;
+    }
+    & .toast-icon-wrapper {
+      @apply text-emerald-500;
     }
   }
 
