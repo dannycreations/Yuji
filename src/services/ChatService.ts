@@ -22,6 +22,7 @@ export interface ChatService {
     content: string,
     isError?: boolean,
     skipUpdateTimestamp?: boolean,
+    uiOnly?: boolean,
   ) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (sessionId: string, messageId: string) => Effect.Effect<void, SessionNotFoundError | MessageNotFoundError>;
   readonly renameSession: (sessionId: string, title: string) => Effect.Effect<void, SessionNotFoundError>;
@@ -160,12 +161,29 @@ export const ChatServiceLive = Layer.effect(
           );
 
           let fullContent = '';
+          let lastSavedContent = '';
+          let lastSaveTime = Date.now();
+          const SAVE_INTERVAL = 1000;
+
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {
               fullContent += token;
-              yield* chatService.updateMessage(sessionId, id, fullContent, false, true);
+              const now = Date.now();
+              // Update UI immediately, but debounce storage write
+              yield* chatService.updateMessage(sessionId, id, fullContent, false, true, true);
+
+              if (now - lastSaveTime > SAVE_INTERVAL) {
+                lastSaveTime = now;
+                lastSavedContent = fullContent;
+                yield* chatService.updateMessage(sessionId, id, fullContent, false, true);
+              }
             }),
           );
+
+          // Ensure final state is saved
+          if (fullContent !== lastSavedContent) {
+            yield* chatService.updateMessage(sessionId, id, fullContent, false, true);
+          }
           // Update timestamp once when stream is finished
           yield* chatService.updateSession(sessionId, (s) => s);
         }).pipe(
@@ -323,7 +341,7 @@ export const ChatServiceLive = Layer.effect(
           yield* storage.saveMessages(sessionId, messagesToSave);
         }),
 
-      updateMessage: (sessionId, messageId, content, isError, skipUpdateTimestamp) =>
+      updateMessage: (sessionId, messageId, content, isError, skipUpdateTimestamp, uiOnly) =>
         Effect.gen(function* () {
           let updatedMessage: ChatMessage | undefined;
           yield* updateSession(
@@ -344,8 +362,10 @@ export const ChatServiceLive = Layer.effect(
           );
 
           if (!updatedMessage) {
-            yield* Effect.fail(new MessageNotFoundError({ messageId }));
-          } else {
+            return yield* Effect.fail(new MessageNotFoundError({ messageId }));
+          }
+
+          if (!uiOnly) {
             yield* storage.saveMessage(sessionId, updatedMessage);
           }
         }),

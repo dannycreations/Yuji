@@ -1,5 +1,6 @@
+import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { YujiRuntime } from '../../app/Runtime';
@@ -29,7 +30,7 @@ export const ChatInterface: FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const handleResize = () => {
       if (scrollAreaRef.current) {
         setContainerHeight(scrollAreaRef.current.clientHeight);
@@ -46,11 +47,23 @@ export const ChatInterface: FC = () => {
     return Object.values(activeSession.messages).sort((a, b) => a.timestamp - b.timestamp);
   }, [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id]);
 
-  useEffect(() => {
-    if (scrollAreaRef.current && !isLoading) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+  const isAtBottomRef = useRef(true);
+
+  useLayoutEffect(() => {
+    const el = scrollAreaRef.current;
+    if (!el || !containerHeight) return;
+
+    if (isAtBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
     }
-  }, [activeSession?.activeMessageId, isLoading]);
+  }, [visibleMessages.length, activeSession?.activeMessageId, containerHeight]);
+
+  useLayoutEffect(() => {
+    if (!isLoading && scrollAreaRef.current && containerHeight) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      isAtBottomRef.current = true;
+    }
+  }, [isLoading, containerHeight]);
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight } = useVirtualList({
     containerHeight,
@@ -99,11 +112,15 @@ export const ChatInterface: FC = () => {
     <div className="main-layout selection:bg-primary/20">
       <Header />
       <div
-        className="chat-scroll-area"
+        className={clsx('chat-scroll-area', !containerHeight && 'opacity-0')}
         ref={scrollAreaRef}
         onScroll={(e) => {
           onScroll(e);
-          if (e.currentTarget.scrollTop === 0 && !isLoading && !isEmpty) {
+          const el = e.currentTarget;
+          const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+          isAtBottomRef.current = isAtBottom;
+
+          if (el.scrollTop === 0 && !isLoading && !isEmpty) {
             YujiRuntime.runPromise(Effect.flatMap(StoreService, (s: StoreService) => s.loadMoreMessages())).catch(console.error);
           }
         }}

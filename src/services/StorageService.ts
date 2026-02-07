@@ -121,15 +121,13 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const tx = db.transaction([STORES.SESSIONS, STORES.MESSAGES], 'readwrite');
-          yield* Effect.promise(() => tx.objectStore(STORES.SESSIONS).delete(id));
+          tx.objectStore(STORES.SESSIONS).delete(id);
 
           const messageStore = tx.objectStore(STORES.MESSAGES);
           const index = messageStore.index('sessionId');
-          let cursor = yield* Effect.promise(() => index.openKeyCursor(IDBKeyRange.only(id)));
-
-          while (cursor) {
-            yield* Effect.promise(() => cursor!.delete());
-            cursor = yield* Effect.promise(() => cursor!.continue());
+          const keys = yield* Effect.promise(() => index.getAllKeys(IDBKeyRange.only(id)));
+          for (const key of keys) {
+            messageStore.delete(key);
           }
 
           yield* Effect.promise(() => tx.done);
@@ -174,10 +172,9 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
-          yield* Effect.all(
-            messages.map((m) => Effect.promise(() => tx.store.put({ ...m, sessionId }))),
-            { discard: true },
-          );
+          for (const m of messages) {
+            tx.store.put({ ...m, sessionId });
+          }
           yield* Effect.promise(() => tx.done);
         }),
 
@@ -192,11 +189,9 @@ export const StorageServiceLive = Layer.effect(
           const db = yield* getDB;
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
           const index = tx.store.index('sessionId');
-          let cursor = yield* Effect.promise(() => index.openKeyCursor(IDBKeyRange.only(sessionId)));
-
-          while (cursor) {
-            yield* Effect.promise(() => cursor!.delete());
-            cursor = yield* Effect.promise(() => cursor!.continue());
+          const keys = yield* Effect.promise(() => index.getAllKeys(IDBKeyRange.only(sessionId)));
+          for (const key of keys) {
+            tx.store.delete(key);
           }
 
           yield* Effect.promise(() => tx.done);
