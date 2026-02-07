@@ -326,7 +326,10 @@ export const ChatServiceLive = Layer.effect(
             messages[message.id] = message;
 
             const title =
-              Object.keys(session.messages).length === 0 && message.role === 'user' && message.content
+              (session.title === 'New Chat' || session.title.endsWith('...')) &&
+              Object.keys(session.messages).length === 0 &&
+              message.role === 'user' &&
+              message.content
                 ? truncate(message.content.split('\n')[0], 40)
                 : session.title;
 
@@ -459,14 +462,38 @@ export const ChatServiceLive = Layer.effect(
           // We only take the path to this message
           const path = getMessagePath(sourceSession, messageId);
           const branchedMessages: Record<string, ChatMessage> = {};
-          path.forEach((m) => (branchedMessages[m.id] = m));
+          const idMap: Record<string, string> = {};
+
+          path.forEach((m) => {
+            const newMsgId = uuid();
+            idMap[m.id] = newMsgId;
+            branchedMessages[newMsgId] = {
+              ...m,
+              id: newMsgId,
+              parentId: m.parentId ? idMap[m.parentId] : undefined,
+              childrenIds: [], // Branches start fresh without children
+            };
+          });
+
+          // Link children back to parents in the new branched set
+          Object.values(branchedMessages).forEach((m) => {
+            if (m.parentId && branchedMessages[m.parentId]) {
+              const parentId = m.parentId;
+              branchedMessages[parentId] = {
+                ...branchedMessages[parentId],
+                childrenIds: [...(branchedMessages[parentId].childrenIds || []), m.id],
+              };
+            }
+          });
+
+          const newActiveMessageId = idMap[messageId];
 
           const newSession: ChatSession = {
             ...sourceSession,
             id,
             title: `${sourceSession.title} (Branch)`,
             messages: branchedMessages,
-            activeMessageId: messageId,
+            activeMessageId: newActiveMessageId,
             createdAt: now,
             updatedAt: now,
           };
@@ -480,6 +507,7 @@ export const ChatServiceLive = Layer.effect(
           }));
 
           yield* storage.saveSession(newSession);
+          yield* storage.saveMessages(id, Object.values(branchedMessages));
 
           return newSession;
         }),
