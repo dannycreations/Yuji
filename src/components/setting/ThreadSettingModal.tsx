@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
-import { StorageService } from '../../services/StorageService';
+import { StoreService } from '../../services/StoreService';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
@@ -38,7 +38,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
       },
     ) => Effect.flatMap(ChatService, (chat) => chat.updateThread(threadId, f, options)),
   );
-  const getThread = useStoreEffect((id: string) => Effect.flatMap(StorageService, (storage) => storage.getThread(id)));
+  const getThread = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.getThread(id)));
 
   const updateTargetThread = (targetId: string, f: (s: ChatThread, now: number) => ChatThread, metadataOnly = false) => {
     updateThread(targetId, f, { metadataOnly });

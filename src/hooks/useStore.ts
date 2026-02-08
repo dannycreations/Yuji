@@ -3,6 +3,7 @@ import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from
 
 import { YujiRuntime } from '../app/Runtime';
 import { StoreService } from '../services/StoreService';
+import { formatError } from '../utilities/CommonUtil';
 
 import type { AppRuntimeState } from '../app/Schema';
 
@@ -52,10 +53,7 @@ export const useStoreEffect = <A extends unknown[], R, E, I>(effectFn: (...args:
         YujiRuntime.runPromise(
           Effect.flatMap(StoreService, (store) =>
             effectFnRef.current(...args).pipe(
-              Effect.catchAll((err) => {
-                const message = (err as { message: string })?.message || (typeof err === 'string' ? err : JSON.stringify(err));
-                return store.notify('error', message).pipe(Effect.as(null));
-              }),
+              Effect.catchAll((err) => store.notify('error', formatError(err)).pipe(Effect.as(null))),
               Effect.orDie,
             ),
           ) as unknown as Effect.Effect<R | null, never, never>,

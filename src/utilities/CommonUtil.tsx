@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export const uuid = () => crypto.randomUUID();
+const uuid = () => crypto.randomUUID();
 
 export const formatError = (err: unknown): string => {
   if (err instanceof Error) return err.message;

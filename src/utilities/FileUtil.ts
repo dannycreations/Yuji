@@ -1,4 +1,4 @@
-import { uuid } from './CommonUtil';
+import { randomId } from './CommonUtil';
 
 import type { Attachment } from '../app/Schema';
 
@@ -12,7 +12,7 @@ export const processImageFile = (file: File): Promise<Attachment> => {
     reader.onload = (loadEvent) => {
       if (loadEvent.target?.result) {
         const newAttachment: Attachment = {
-          id: uuid(),
+          id: randomId(),
           type: 'image',
           url: loadEvent.target.result as string,
           name: file.name || 'Pasted Image',

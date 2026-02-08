@@ -1,6 +1,6 @@
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
 import { ChatMessage, ChatMetadata, ChatThread, GlobalSettings, Model } from '../app/Schema';
-import { truncate, uuid } from '../utilities/CommonUtil';
+import { randomId, truncate } from '../utilities/CommonUtil';
 import { getModelId } from './ModelHelper';
 
 export const createInitialThread = (settings: GlobalSettings, availableModels: readonly Model[]): ChatThread => {
@@ -8,7 +8,7 @@ export const createInitialThread = (settings: GlobalSettings, availableModels: r
   const { personalisation } = settings;
 
   return {
-    id: uuid(),
+    id: randomId(),
     title: 'New Chat',
     messages: {},
     createdAt: now,
@@ -63,14 +63,17 @@ export const getMessagePath = (thread: ChatThread, messageId: string): ReadonlyA
   return path;
 };
 
-export const branchThreadPath = (sourceThread: ChatThread, messageId: string): { branchedMessages: Record<string, ChatMessage>; newActiveMessageId: string } => {
+export const branchThreadPath = (
+  sourceThread: ChatThread,
+  messageId: string,
+): { branchedMessages: Record<string, ChatMessage>; newActiveMessageId: string } => {
   const path = getMessagePath(sourceThread, messageId);
   const branchedMessages: Record<string, ChatMessage> = {};
   const idMap = new Map<string, string>();
   const messagesToSave: ChatMessage[] = [];
 
   for (const m of path) {
-    const newMsgId = uuid();
+    const newMsgId = randomId();
     idMap.set(m.id, newMsgId);
 
     const branchedMsg: ChatMessage = {

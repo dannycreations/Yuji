@@ -26,6 +26,7 @@ export interface StoreService {
   readonly loadMoreThreads: () => Effect.Effect<void>;
   readonly clearDatabase: () => Effect.Effect<void>;
   readonly subscribe: (onStoreChange: () => void) => () => void;
+  readonly getThread: (id: string) => Effect.Effect<ChatThread | null>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -159,6 +160,14 @@ export const StoreServiceLive = Layer.effect(
       update,
       subscribe,
       patch: (updates) => update((s) => ({ ...s, ...updates })),
+      getThread: (id) =>
+        Effect.gen(function* () {
+          const s = yield* SubscriptionRef.get(state);
+          if (s.activeThreadId === id && s.activeThread?.id === id) {
+            return s.activeThread;
+          }
+          return yield* storage.getThread(id);
+        }),
       setActiveThread: (activeThreadOrId) =>
         update((s) => {
           if (!activeThreadOrId) return { ...s, activeThreadId: null, activeThread: null };

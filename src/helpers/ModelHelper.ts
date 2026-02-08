@@ -23,7 +23,10 @@ export const getFilteredModels = (
   availableModels: readonly Model[],
   disabledModels: readonly string[],
   search: string,
-  options: { includeDisabled?: boolean; sort?: boolean } = {},
+  options: {
+    includeDisabled?: boolean;
+    sort?: boolean;
+  } = { sort: true },
 ): Model[] => {
   let models = options.includeDisabled ? [...availableModels] : getActiveModels(availableModels, disabledModels);
   models = filterModels(models, search);
