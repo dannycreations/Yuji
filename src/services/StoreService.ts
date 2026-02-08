@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
-import { AppRuntimeState, AppStoreState, ChatMetadata, ChatSession, ConfirmOptions } from '../app/Schema';
+import { AppRuntimeState, AppStoreState, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
 import { randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
@@ -10,19 +10,19 @@ export interface StoreService {
   readonly getSnapshot: () => AppRuntimeState;
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void>;
   readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void>;
-  readonly setActiveSession: (sessionOrId: ChatSession | string | null) => Effect.Effect<void>;
+  readonly setActiveThread: (threadOrId: ChatThread | string | null) => Effect.Effect<void>;
   readonly updateSetting: (
     updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings']),
   ) => Effect.Effect<void>;
   readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void>;
-  readonly togglePin: (sessionId: string) => Effect.Effect<void>;
+  readonly togglePin: (threadId: string) => Effect.Effect<void>;
   readonly setConfirm: (options: ConfirmOptions) => Effect.Effect<void>;
   readonly executeConfirm: (id: string) => Effect.Effect<void>;
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
   readonly clearNotification: (id: string) => Effect.Effect<void>;
-  readonly loadMessages: (sessionId: string) => Effect.Effect<void>;
+  readonly loadMessages: (threadId: string) => Effect.Effect<void>;
   readonly loadMoreMessages: () => Effect.Effect<void>;
-  readonly loadMoreSessions: () => Effect.Effect<void>;
+  readonly loadMoreThreads: () => Effect.Effect<void>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -47,9 +47,9 @@ const createNotification = (
 };
 
 const INITIAL_STATE: AppRuntimeState = {
-  sessions: {},
-  activeSessionId: null,
-  activeSession: null,
+  threads: {},
+  activeThreadId: null,
+  activeThread: null,
   settings: DEFAULT_SETTINGS,
   availableModels: MODELS,
   isSidebarOpen: true,
@@ -61,8 +61,8 @@ const INITIAL_STATE: AppRuntimeState = {
     message: '',
   },
   notifications: [],
-  pinnedSessionIds: [],
-  backgroundSessionIds: [],
+  pinnedThreadIds: [],
+  backgroundThreadIds: [],
 };
 
 const OnConfirmStore = new Map<string, () => void>();
@@ -74,21 +74,21 @@ export const StoreServiceLive = Layer.effect(
 
     const loadState = Effect.gen(function* () {
       const metadata = yield* storage.getMetadata().pipe(Effect.catchAll(() => Effect.succeed(null)));
-      const sessionHeaders = yield* storage.getSessionsMetadata({ limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+      const threadHeaders = yield* storage.getThreadsMetadata({ limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
 
       if (metadata) {
-        const sessionsMap: Record<string, ChatMetadata> = {};
-        for (const header of sessionHeaders) {
-          sessionsMap[header.id] = header;
+        const threadsMap: Record<string, ChatMetadata> = {};
+        for (const header of threadHeaders) {
+          threadsMap[header.id] = header;
         }
 
-        let activeSession: ChatSession | null = null;
+        let activeThread: ChatThread | null = null;
         let settings = metadata.settings;
 
-        if (metadata.activeSessionId) {
-          activeSession = yield* storage.getSession(metadata.activeSessionId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
-          if (activeSession?.general.model) {
-            settings = { ...settings, model: activeSession.general.model };
+        if (metadata.activeThreadId) {
+          activeThread = yield* storage.getThread(metadata.activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
+          if (activeThread?.general.model) {
+            settings = { ...settings, model: activeThread.general.model };
           }
         }
 
@@ -96,8 +96,8 @@ export const StoreServiceLive = Layer.effect(
           ...INITIAL_STATE,
           ...metadata,
           settings,
-          activeSession,
-          sessions: sessionsMap,
+          activeThread,
+          threads: threadsMap,
           isHydrated: true,
         }).pipe(Effect.orDie);
       }
@@ -125,19 +125,19 @@ export const StoreServiceLive = Layer.effect(
       getSnapshot: () => SubscriptionRef.get(state).pipe(Effect.runSync),
       update,
       patch: (updates) => update((s) => ({ ...s, ...updates })),
-      setActiveSession: (activeSessionOrId) =>
+      setActiveThread: (activeThreadOrId) =>
         update((s) => {
-          if (!activeSessionOrId) return { ...s, activeSessionId: null, activeSession: null };
-          const id = typeof activeSessionOrId === 'string' ? activeSessionOrId : activeSessionOrId.id;
-          const session = typeof activeSessionOrId === 'string' ? null : activeSessionOrId;
+          if (!activeThreadOrId) return { ...s, activeThreadId: null, activeThread: null };
+          const id = typeof activeThreadOrId === 'string' ? activeThreadOrId : activeThreadOrId.id;
+          const thread = typeof activeThreadOrId === 'string' ? null : activeThreadOrId;
 
-          if (id === s.activeSessionId && s.activeSession?.id === id) return s;
+          if (id === s.activeThreadId && s.activeThread?.id === id) return s;
 
           return {
             ...s,
-            activeSessionId: id,
-            activeSession: session,
-            settings: { ...s.settings, model: session?.general.model || s.settings.model },
+            activeThreadId: id,
+            activeThread: thread,
+            settings: { ...s.settings, model: thread?.general.model || s.settings.model },
           };
         }),
       updateSetting: (updates) =>
@@ -146,11 +146,11 @@ export const StoreServiceLive = Layer.effect(
           settings: typeof updates === 'function' ? updates(s.settings) : { ...s.settings, ...updates },
         })),
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
-      togglePin: (sessionId) =>
+      togglePin: (threadId) =>
         update((s) => {
-          const isPinned = s.pinnedSessionIds.includes(sessionId);
-          const pinnedSessionIds = isPinned ? s.pinnedSessionIds.filter((id) => id !== sessionId) : [...s.pinnedSessionIds, sessionId];
-          return { ...s, pinnedSessionIds };
+          const isPinned = s.pinnedThreadIds.includes(threadId);
+          const pinnedThreadIds = isPinned ? s.pinnedThreadIds.filter((id) => id !== threadId) : [...s.pinnedThreadIds, threadId];
+          return { ...s, pinnedThreadIds };
         }),
       setConfirm: (options) =>
         Effect.gen(function* () {
@@ -176,25 +176,25 @@ export const StoreServiceLive = Layer.effect(
           ...s,
           notifications: s.notifications.filter((n) => n.id !== id),
         })),
-      loadMessages: (sessionId) =>
+      loadMessages: (threadId) =>
         Effect.gen(function* () {
           const currentState = yield* SubscriptionRef.get(state);
-          // Only skip if both ID matches and the session object is correctly populated
-          if (currentState.activeSessionId === sessionId && currentState.activeSession?.id === sessionId) return;
+          // Only skip if both ID matches and the thread object is correctly populated
+          if (currentState.activeThreadId === threadId && currentState.activeThread?.id === threadId) return;
 
-          const session = yield* storage.getSession(sessionId, { limit: 20 });
-          if (!session) return;
+          const thread = yield* storage.getThread(threadId, { limit: 20 });
+          if (!thread) return;
 
           yield* update((s) => {
-            // Ensure we only update if the user hasn't switched to another session in the meantime
-            if (s.activeSessionId !== sessionId) return s;
+            // Ensure we only update if the user hasn't switched to another thread in the meantime
+            if (s.activeThreadId !== threadId) return s;
 
-            const nextModel = session.general.model || s.settings.model;
+            const nextModel = thread.general.model || s.settings.model;
 
             return {
               ...s,
-              activeSessionId: sessionId,
-              activeSession: session,
+              activeThreadId: threadId,
+              activeThread: thread,
               settings: { ...s.settings, model: nextModel },
             };
           });
@@ -202,18 +202,18 @@ export const StoreServiceLive = Layer.effect(
       loadMoreMessages: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          if (!s.activeSession) return;
+          if (!s.activeThread) return;
 
-          const sessionId = s.activeSession.id;
-          const currentMessages = Object.values(s.activeSession.messages);
+          const threadId = s.activeThread.id;
+          const currentMessages = Object.values(s.activeThread.messages);
           const offset = currentMessages.length;
 
-          const moreMessages = yield* storage.getMessages(sessionId, { offset, limit: 20 });
+          const moreMessages = yield* storage.getMessages(threadId, { offset, limit: 20 });
           if (moreMessages.length === 0) return;
 
           yield* update((s) => {
-            if (!s.activeSession || s.activeSession.id !== sessionId) return s;
-            const newMessages = { ...s.activeSession.messages };
+            if (!s.activeThread || s.activeThread.id !== threadId) return s;
+            const newMessages = { ...s.activeThread.messages };
             moreMessages.forEach((m) => {
               newMessages[m.id] = m;
             });
@@ -229,24 +229,24 @@ export const StoreServiceLive = Layer.effect(
 
             return {
               ...s,
-              activeSession: { ...s.activeSession, messages: finalMessages },
+              activeThread: { ...s.activeThread, messages: finalMessages },
             };
           });
         }),
-      loadMoreSessions: () =>
+      loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          const currentCount = Object.keys(s.sessions).length;
-          const moreHeaders = yield* storage.getSessionsMetadata({ offset: currentCount, limit: 30 });
+          const currentCount = Object.keys(s.threads).length;
+          const moreHeaders = yield* storage.getThreadsMetadata({ offset: currentCount, limit: 30 });
 
           if (moreHeaders.length === 0) return;
 
           yield* update((s) => {
-            const newSessions = { ...s.sessions };
+            const newThreads = { ...s.threads };
             moreHeaders.forEach((h) => {
-              newSessions[h.id] = h;
+              newThreads[h.id] = h;
             });
-            return { ...s, sessions: newSessions };
+            return { ...s, threads: newThreads };
           });
         }),
     });

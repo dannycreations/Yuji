@@ -7,20 +7,20 @@ import { useStore, useStoreAction, useStoreEffect } from './useStore';
 import type { Attachment, ChatMessage } from '../app/Schema';
 
 export const useChatAction = () => {
-  const activeSessionId = useStore((s) => s.activeSessionId);
-  const activeSession = useStore((s) => s.activeSession);
-  const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
+  const activeThreadId = useStore((s) => s.activeThreadId);
+  const activeThread = useStore((s) => s.activeThread);
+  const backgroundThreadIds = useStore((s) => s.backgroundThreadIds);
 
-  const isLoading = activeSessionId ? backgroundSessionIds.includes(activeSessionId) : false;
+  const isLoading = activeThreadId ? backgroundThreadIds.includes(activeThreadId) : false;
 
   const handleSend = useStoreEffect((content: string, attachments: ReadonlyArray<Attachment> = []) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      let currentSessionId = activeSessionId;
+      let currentThreadId = activeThreadId;
 
-      if (!currentSessionId) {
-        const session = yield* chat.createSession();
-        currentSessionId = session.id;
+      if (!currentThreadId) {
+        const thread = yield* chat.createThread();
+        currentThreadId = thread.id;
       }
 
       const userMessage: ChatMessage = {
@@ -29,78 +29,78 @@ export const useChatAction = () => {
         content,
         attachments,
         timestamp: Date.now(),
-        parentId: activeSession?.activeMessageId,
+        parentId: activeThread?.activeMessageId,
       };
 
-      yield* chat.addMessage(currentSessionId, userMessage);
-      const history = yield* chat.getSessionPath(currentSessionId, userMessage.id);
-      yield* chat.generate(currentSessionId, history);
+      yield* chat.addMessage(currentThreadId, userMessage);
+      const history = yield* chat.getThreadPath(currentThreadId, userMessage.id);
+      yield* chat.generate(currentThreadId, history);
     }),
   );
 
-  const handleRegenerate = useStoreEffect((sessionId: string, messageId: string) =>
+  const handleRegenerate = useStoreEffect((threadId: string, messageId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      if (!activeSession || activeSession.id !== sessionId) return;
+      if (!activeThread || activeThread.id !== threadId) return;
 
-      const originalMessage = activeSession.messages[messageId];
+      const originalMessage = activeThread.messages[messageId];
       if (!originalMessage) return;
 
       const history =
         originalMessage.role === 'assistant'
           ? originalMessage.parentId
-            ? yield* chat.getSessionPath(sessionId, originalMessage.parentId)
+            ? yield* chat.getThreadPath(threadId, originalMessage.parentId)
             : []
-          : yield* chat.getSessionPath(sessionId, messageId);
+          : yield* chat.getThreadPath(threadId, messageId);
 
-      yield* chat.generate(sessionId, history);
+      yield* chat.generate(threadId, history);
     }),
   );
 
-  const handleEdit = useStoreEffect((sessionId: string, messageId: string, newContent: string) =>
+  const handleEdit = useStoreEffect((threadId: string, messageId: string, newContent: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.updateMessage(sessionId, messageId, newContent);
+      yield* chat.updateMessage(threadId, messageId, newContent);
     }),
   );
 
-  const handleDeleteMessage = useStoreEffect((sessionId: string, messageId: string) =>
+  const handleDeleteMessage = useStoreEffect((threadId: string, messageId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.deleteMessage(sessionId, messageId);
+      yield* chat.deleteMessage(threadId, messageId);
     }),
   );
 
-  const handleBranch = useStoreEffect((sessionId: string, messageId: string) =>
+  const handleBranch = useStoreEffect((threadId: string, messageId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.branchChat(sessionId, messageId);
+      yield* chat.branchChat(threadId, messageId);
     }),
   );
 
-  const handleSwitchBranch = useStoreEffect((_sessionId: string, messageId: string) =>
+  const handleSwitchBranch = useStoreEffect((_threadId: string, messageId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.updateActiveSession((session) => ({
-        ...session,
+      yield* chat.updateActiveThread((thread) => ({
+        ...thread,
         activeMessageId: messageId,
       }));
     }),
   );
 
-  const handleDeleteSession = useStoreEffect((sessionId: string) =>
+  const handleDeleteThread = useStoreEffect((threadId: string) =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.deleteSession(sessionId);
+      yield* chat.deleteThread(threadId);
     }),
   );
 
-  const handleTogglePin = useStoreAction((s, sessionId: string) => s.togglePin(sessionId));
+  const handleTogglePin = useStoreAction((s, threadId: string) => s.togglePin(threadId));
 
-  const handleCreateSession = useStoreEffect(() =>
+  const handleCreateThread = useStoreEffect(() =>
     Effect.gen(function* () {
       const chat = yield* ChatService;
-      yield* chat.createSession();
+      yield* chat.createThread();
     }),
   );
 
@@ -109,7 +109,7 @@ export const useChatAction = () => {
     stop: useStoreEffect(() =>
       Effect.gen(function* () {
         const chat = yield* ChatService;
-        yield* chat.stop(activeSessionId || undefined);
+        yield* chat.stop(activeThreadId || undefined);
       }),
     ),
     handleSend,
@@ -118,8 +118,8 @@ export const useChatAction = () => {
     handleDeleteMessage,
     handleBranch,
     handleSwitchBranch,
-    handleDeleteSession,
+    handleDeleteThread,
     handleTogglePin,
-    handleCreateSession,
+    handleCreateThread,
   };
 };

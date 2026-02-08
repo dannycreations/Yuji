@@ -1,26 +1,26 @@
 import { Context, Effect, Layer, Schema } from 'effect';
 import { openDB } from 'idb';
 
-import { AppStoreState, ChatMessage, ChatMetadata, ChatSession } from '../app/Schema';
+import { AppStoreState, ChatMessage, ChatMetadata, ChatThread } from '../app/Schema';
 
 export interface StorageService {
   readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getSessionsMetadata: (options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMetadata>>;
-  readonly getSession: (id: string, options?: { limit?: number }) => Effect.Effect<ChatSession | null>;
-  readonly saveSession: (session: ChatSession | ChatMetadata) => Effect.Effect<void>;
-  readonly deleteSession: (id: string) => Effect.Effect<void>;
+  readonly getThreadsMetadata: (options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMetadata>>;
+  readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<ChatThread | null>;
+  readonly saveThread: (thread: ChatThread | ChatMetadata) => Effect.Effect<void>;
+  readonly deleteThread: (id: string) => Effect.Effect<void>;
 
-  readonly getMessages: (sessionId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMessage>>;
+  readonly getMessages: (threadId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMessage>>;
   readonly paginate: <T>(
     storeName: string,
     options: { offset?: number; limit?: number; indexName?: string; indexValue?: IDBValidKey },
   ) => Effect.Effect<ReadonlyArray<T>>;
-  readonly saveMessage: (sessionId: string, message: ChatMessage) => Effect.Effect<void>;
-  readonly saveMessages: (sessionId: string, messages: ChatMessage[]) => Effect.Effect<void>;
+  readonly saveMessage: (threadId: string, message: ChatMessage) => Effect.Effect<void>;
+  readonly saveMessages: (threadId: string, messages: ChatMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
-  readonly deleteMessages: (sessionId: string) => Effect.Effect<void>;
+  readonly deleteMessages: (threadId: string) => Effect.Effect<void>;
 }
 
 export const StorageService = Context.GenericTag<StorageService>('@services/StorageService');
@@ -30,7 +30,7 @@ const DB_VERSION = 1;
 
 const STORES = {
   METADATA: 'metadata',
-  SESSIONS: 'sessions',
+  THREADS: 'threads',
   MESSAGES: 'messages',
 } as const;
 
@@ -42,12 +42,12 @@ export const StorageServiceLive = Layer.effect(
         if (!db.objectStoreNames.contains(STORES.METADATA)) {
           db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
         }
-        if (!db.objectStoreNames.contains(STORES.SESSIONS)) {
-          db.createObjectStore(STORES.SESSIONS, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(STORES.THREADS)) {
+          db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
         }
         if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
           const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
-          messageStore.createIndex('sessionId', 'sessionId');
+          messageStore.createIndex('threadId', 'threadId');
         }
       },
     });
@@ -69,51 +69,51 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => db.put(STORES.METADATA, { ...metadata, id: 'current' }));
         }),
 
-      getSessionsMetadata: (options) =>
+      getThreadsMetadata: (options) =>
         Effect.gen(function* () {
           if (!options) {
             const db = yield* getDB;
-            const sessions = yield* Effect.promise(() => db.getAll(STORES.SESSIONS));
-            return yield* Schema.decode(Schema.Array(ChatMetadata))(sessions).pipe(Effect.orDie);
+            const threads = yield* Effect.promise(() => db.getAll(STORES.THREADS));
+            return yield* Schema.decode(Schema.Array(ChatMetadata))(threads).pipe(Effect.orDie);
           }
 
-          const sessions = yield* storage.paginate<ChatMetadata>(STORES.SESSIONS, options);
-          return yield* Schema.decode(Schema.Array(ChatMetadata))(sessions).pipe(Effect.orDie);
+          const threads = yield* storage.paginate<ChatMetadata>(STORES.THREADS, options);
+          return yield* Schema.decode(Schema.Array(ChatMetadata))(threads).pipe(Effect.orDie);
         }),
 
-      getSession: (id, options) =>
+      getThread: (id, options) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const session = yield* Effect.promise(() => db.get(STORES.SESSIONS, id));
-          if (!session) return null;
+          const thread = yield* Effect.promise(() => db.get(STORES.THREADS, id));
+          if (!thread) return null;
 
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
-          return yield* Schema.decode(ChatSession)({ ...session, messages: messagesRecord }).pipe(Effect.orDie);
+          return yield* Schema.decode(ChatThread)({ ...thread, messages: messagesRecord }).pipe(Effect.orDie);
         }),
 
-      saveSession: (session) =>
+      saveThread: (thread) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const existing = yield* Effect.promise(() => db.get(STORES.SESSIONS, session.id));
+          const existing = yield* Effect.promise(() => db.get(STORES.THREADS, thread.id));
 
-          // Strip messages before saving to SESSIONS store to prevent bloat
+          // Strip messages before saving to THREADS store to prevent bloat
           // Messages are stored separately in STORES.MESSAGES
-          const { messages: _, ...metadata } = session as ChatSession;
+          const { messages: _, ...metadata } = thread as ChatThread;
 
           const toSave = existing ? { ...existing, ...metadata } : metadata;
-          yield* Effect.promise(() => db.put(STORES.SESSIONS, toSave));
+          yield* Effect.promise(() => db.put(STORES.THREADS, toSave));
         }),
 
-      deleteSession: (id) =>
+      deleteThread: (id) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const tx = db.transaction([STORES.SESSIONS, STORES.MESSAGES], 'readwrite');
-          tx.objectStore(STORES.SESSIONS).delete(id);
+          const tx = db.transaction([STORES.THREADS, STORES.MESSAGES], 'readwrite');
+          tx.objectStore(STORES.THREADS).delete(id);
 
           const messageStore = tx.objectStore(STORES.MESSAGES);
-          const index = messageStore.index('sessionId');
+          const index = messageStore.index('threadId');
           const keys = yield* Effect.promise(() => index.getAllKeys(IDBKeyRange.only(id)));
           for (const key of keys) {
             messageStore.delete(key);
@@ -146,36 +146,36 @@ export const StorageServiceLive = Layer.effect(
           return results;
         }),
 
-      getMessages: (sessionId, options) =>
+      getMessages: (threadId, options) =>
         Effect.gen(function* () {
           if (!options) {
             const db = yield* getDB;
-            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
+            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId));
             return yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
           }
 
           const messages = yield* storage.paginate<ChatMessage>(STORES.MESSAGES, {
             ...options,
-            indexName: 'sessionId',
-            indexValue: sessionId,
+            indexName: 'threadId',
+            indexValue: threadId,
           });
 
           const decoded = yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
           return [...decoded].reverse();
         }),
 
-      saveMessage: (sessionId, message) =>
+      saveMessage: (threadId, message) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          yield* Effect.promise(() => db.put(STORES.MESSAGES, { ...message, sessionId }));
+          yield* Effect.promise(() => db.put(STORES.MESSAGES, { ...message, threadId }));
         }),
 
-      saveMessages: (sessionId, messages) =>
+      saveMessages: (threadId, messages) =>
         Effect.gen(function* () {
           const db = yield* getDB;
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
           for (const m of messages) {
-            tx.store.put({ ...m, sessionId });
+            tx.store.put({ ...m, threadId });
           }
           yield* Effect.promise(() => tx.done);
         }),
@@ -186,12 +186,12 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => db.delete(STORES.MESSAGES, id));
         }),
 
-      deleteMessages: (sessionId) =>
+      deleteMessages: (threadId) =>
         Effect.gen(function* () {
           const db = yield* getDB;
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
-          const index = tx.store.index('sessionId');
-          const keys = yield* Effect.promise(() => index.getAllKeys(IDBKeyRange.only(sessionId)));
+          const index = tx.store.index('threadId');
+          const keys = yield* Effect.promise(() => index.getAllKeys(IDBKeyRange.only(threadId)));
           for (const key of keys) {
             tx.store.delete(key);
           }

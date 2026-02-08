@@ -5,8 +5,8 @@ export class LLMProviderError extends Data.TaggedError('LLMProviderError')<{
   readonly cause?: unknown;
 }> {}
 
-export class SessionNotFoundError extends Data.TaggedError('SessionNotFoundError')<{
-  readonly sessionId: string;
+export class ThreadNotFoundError extends Data.TaggedError('ThreadNotFoundError')<{
+  readonly threadId: string;
 }> {}
 
 export class MessageNotFoundError extends Data.TaggedError('MessageNotFoundError')<{

@@ -444,23 +444,23 @@
     @apply flex-1 overflow-y-auto overflow-x-hidden px-2;
   }
 
-  .sidebar-session-list {
+  .sidebar-thread-list {
     @apply space-y-1;
   }
 
-  .sidebar-session-item {
+  .sidebar-thread-item {
     @apply relative flex items-center rounded-lg px-2 py-2 text-sm transition-colors cursor-pointer text-text-primary hover:bg-surface;
   }
 
-  .sidebar-session-item-active {
+  .sidebar-thread-item-active {
     @apply bg-surface text-text-primary;
   }
 
-  .sidebar-session-title {
+  .sidebar-thread-title {
     @apply flex-1 truncate relative overflow-hidden;
   }
 
-  .sidebar-session-indicator-wrapper {
+  .sidebar-thread-indicator-wrapper {
     @apply relative flex-center h-8 w-8;
   }
 

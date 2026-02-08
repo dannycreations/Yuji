@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
-import { sortSessionsByDate } from '../../helpers/SessionHelper';
+import { sortThreadsByDate } from '../../helpers/ThreadHelper';
 import { useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
@@ -19,7 +19,7 @@ import type { ChangeEvent, FC, ReactNode } from 'react';
 import type {
   AppRuntimeState,
   ChatMetadata,
-  ChatSession,
+  ChatThread,
   ConfirmOptions,
   GlobalSettings,
   Instruction,
@@ -200,22 +200,22 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
   );
 };
 
-export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({ sessions }) => {
-  const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
+export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
+  const [selectedThreadIds, setSelectedThreadIds] = useState<Set<string>>(new Set());
   const [historyPage, setHistoryPage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 6;
 
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
-  const importSessions = useStoreEffect((newSessions: Record<string, ChatSession>) =>
-    Effect.flatMap(ChatService, (chat) => chat.importSessions(newSessions)),
+  const importThreads = useStoreEffect((newThreads: Record<string, ChatThread>) =>
+    Effect.flatMap(ChatService, (chat) => chat.importThreads(newThreads)),
   );
-  const deleteSessions = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteSessions(ids)));
+  const deleteThreads = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(ids)));
 
   const handleExport = () => {
-    let dataToExport = sessions;
-    if (selectedSessionIds.size > 0) {
-      dataToExport = Object.fromEntries(Object.entries(sessions).filter(([id]) => selectedSessionIds.has(id)));
+    let dataToExport = threads;
+    if (selectedThreadIds.size > 0) {
+      dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedThreadIds.has(id)));
     }
     downloadFile(JSON.stringify(dataToExport), `yuji-history-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
@@ -228,7 +228,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
       try {
         const json = JSON.parse(event.target?.result as string);
         if (typeof json === 'object' && json !== null) {
-          importSessions(json);
+          importThreads(json);
         }
       } catch (err) {
         console.error('Failed to parse history file', err);
@@ -239,36 +239,36 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
   };
 
   const handleDeleteSelected = () => {
-    if (selectedSessionIds.size === 0) return;
+    if (selectedThreadIds.size === 0) return;
     showConfirm({
       title: 'Delete History',
-      message: `Are you sure you want to delete **${selectedSessionIds.size}** selected session${selectedSessionIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
+      message: `Are you sure you want to delete **${selectedThreadIds.size}** selected thread${selectedThreadIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: () => {
-        deleteSessions(selectedSessionIds);
-        setSelectedSessionIds(new Set());
+        deleteThreads(selectedThreadIds);
+        setSelectedThreadIds(new Set());
       },
     });
   };
 
-  const sortedSessions = sortSessionsByDate(Object.values(sessions) as ChatSession[]);
-  const totalHistoryPages = Math.ceil(sortedSessions.length / ITEMS_PER_PAGE);
-  const currentHistoryItems = sortedSessions.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
+  const sortedThreads = sortThreadsByDate(Object.values(threads) as ChatThread[]);
+  const totalHistoryPages = Math.ceil(sortedThreads.length / ITEMS_PER_PAGE);
+  const currentHistoryItems = sortedThreads.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
 
   const toggleSelectAll = () => {
-    if (selectedSessionIds.size === currentHistoryItems.length) {
-      setSelectedSessionIds(new Set());
+    if (selectedThreadIds.size === currentHistoryItems.length) {
+      setSelectedThreadIds(new Set());
     } else {
-      setSelectedSessionIds(new Set(currentHistoryItems.map((s) => s.id)));
+      setSelectedThreadIds(new Set(currentHistoryItems.map((s) => s.id)));
     }
   };
 
-  const toggleSelectSession = (id: string) => {
-    const next = new Set(selectedSessionIds);
+  const toggleSelectThread = (id: string) => {
+    const next = new Set(selectedThreadIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    setSelectedSessionIds(next);
+    setSelectedThreadIds(next);
   };
 
   return (
@@ -283,26 +283,26 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
         <div className="settings-history-header">
           <div className="settings-history-checkbox-col">
             <Checkbox
-              checked={currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedSessionIds.has(s.id))}
+              checked={currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedThreadIds.has(s.id))}
               indeterminate={
                 currentHistoryItems.length > 0 &&
-                !currentHistoryItems.every((s) => selectedSessionIds.has(s.id)) &&
-                currentHistoryItems.some((s) => selectedSessionIds.has(s.id))
+                !currentHistoryItems.every((s) => selectedThreadIds.has(s.id)) &&
+                currentHistoryItems.some((s) => selectedThreadIds.has(s.id))
               }
               onChange={toggleSelectAll}
             />
           </div>
           <div className="flex-1 label-caps text-text-primary">Title</div>
           <div className="flex items-center gap-2">
-            {selectedSessionIds.size > 0 && (
+            {selectedThreadIds.size > 0 && (
               <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline !bg-danger/10 !text-danger border-danger/20">
                 <Icon name="Trash2" size={12} />
-                Delete ({selectedSessionIds.size})
+                Delete ({selectedThreadIds.size})
               </Button>
             )}
             <Button variant="ghost" onClick={handleExport} className="badge-outline !text-text-tertiary">
               <Icon name="Upload" size={12} />
-              Export {selectedSessionIds.size > 0 ? `(${selectedSessionIds.size})` : ''}
+              Export {selectedThreadIds.size > 0 ? `(${selectedThreadIds.size})` : ''}
             </Button>
             <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline !text-text-tertiary">
               <Icon name="Download" size={12} />
@@ -313,16 +313,16 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
 
         <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-separator">
           {currentHistoryItems.length > 0 ? (
-            currentHistoryItems.map((session) => (
-              <div key={session.id} className={clsx('settings-history-row', selectedSessionIds.has(session.id) && 'settings-history-row-active')}>
+            currentHistoryItems.map((thread) => (
+              <div key={thread.id} className={clsx('settings-history-row', selectedThreadIds.has(thread.id) && 'settings-history-row-active')}>
                 <div className="settings-history-checkbox-col">
-                  <Checkbox checked={selectedSessionIds.has(session.id)} onChange={() => toggleSelectSession(session.id)} />
+                  <Checkbox checked={selectedThreadIds.has(thread.id)} onChange={() => toggleSelectThread(thread.id)} />
                 </div>
                 <div className="flex-1 min-w-0 pr-3">
-                  <div className="text-sm text-text-primary font-medium truncate">{session.title}</div>
-                  <div className="text-xs text-text-tertiary font-mono mt-1">{session.id}</div>
+                  <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
+                  <div className="text-xs text-text-tertiary font-mono mt-1">{thread.id}</div>
                 </div>
-                <div className="text-xs text-text-tertiary whitespace-nowrap tabular-nums">{timeAgo(session.updatedAt)}</div>
+                <div className="text-xs text-text-tertiary whitespace-nowrap tabular-nums">{timeAgo(thread.updatedAt)}</div>
               </div>
             ))
           ) : (

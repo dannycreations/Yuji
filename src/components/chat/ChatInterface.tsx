@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
-import { getMessagePath } from '../../helpers/SessionHelper';
+import { getMessagePath } from '../../helpers/ThreadHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
@@ -17,8 +17,8 @@ import { ChatMessageBubble } from './ChatMessageBubble';
 import type { FC } from 'react';
 
 export const ChatInterface: FC = () => {
-  const activeSessionId = useStore((s) => s.activeSessionId);
-  const activeSession = useStore((s) => s.activeSession);
+  const activeThreadId = useStore((s) => s.activeThreadId);
+  const activeThread = useStore((s) => s.activeThread);
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 
@@ -31,15 +31,15 @@ export const ChatInterface: FC = () => {
   const { height: containerHeight } = useResizeObserver(scrollAreaRef);
 
   const visibleMessages = useMemo(() => {
-    if (!activeSession) return [];
-    if (activeSession.activeMessageId) return getMessagePath(activeSession, activeSession.activeMessageId);
-    return Object.values(activeSession.messages).sort((a, b) => a.timestamp - b.timestamp);
-  }, [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id]);
+    if (!activeThread) return [];
+    if (activeThread.activeMessageId) return getMessagePath(activeThread, activeThread.activeMessageId);
+    return Object.values(activeThread.messages).sort((a, b) => a.timestamp - b.timestamp);
+  }, [activeThread?.activeMessageId, activeThread?.messages, activeThread?.id]);
 
   const isAtBottomRef = useRef(true);
 
-  const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
-  const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
+  const isTransitioning = activeThreadId && (!activeThread || activeThread.id !== activeThreadId);
+  const isEmpty = !activeThread || Object.keys(activeThread.messages).length === 0;
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
     onLoadMore: () => loadMoreMessages().catch(console.error),
@@ -56,7 +56,7 @@ export const ChatInterface: FC = () => {
     if (isAtBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [visibleMessages.length, activeSession?.activeMessageId, containerHeight]);
+  }, [visibleMessages.length, activeThread?.activeMessageId, containerHeight]);
 
   useLayoutEffect(() => {
     if (!isLoading && scrollAreaRef.current && containerHeight) {
@@ -101,11 +101,11 @@ export const ChatInterface: FC = () => {
   }, [startIndex, endIndex, visibleMessages, setItemHeight]);
 
   useEffect(() => {
-    if (activeSessionId) {
+    if (activeThreadId) {
       clearItemHeights();
-      loadMessages(activeSessionId);
+      loadMessages(activeThreadId);
     }
-  }, [activeSessionId, loadMessages]);
+  }, [activeThreadId, loadMessages]);
 
   const handleUpdateHeight = useCallback(
     (messageId: string) => {
@@ -175,7 +175,7 @@ export const ChatInterface: FC = () => {
                     >
                       <ChatMessageBubble
                         message={message}
-                        sessionId={activeSession.id}
+                        threadId={activeThread.id}
                         isLast={idx === visibleMessages.length - 1}
                         isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
                         onUpdateHeight={() => handleUpdateHeight(message.id)}

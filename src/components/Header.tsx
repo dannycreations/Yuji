@@ -63,24 +63,24 @@ export const Header: FC = () => {
   useClickOutside(pickerRef, () => setShowModelPicker(false));
 
   const settings = useStore((s) => s.settings);
-  const activeSessionId = useStore((s) => s.activeSessionId);
-  const activeSession = useStore((s) => s.activeSession);
+  const activeThreadId = useStore((s) => s.activeThreadId);
+  const activeThread = useStore((s) => s.activeThread);
   const availableModels = useStore((s) => s.availableModels);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
 
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
   const updateSetting = useStoreAction((s, updates: Partial<GlobalSettings>) => s.updateSetting(updates));
 
-  const setSessionModel = useStoreAction((_, model: string) =>
+  const setThreadModel = useStoreAction((_, model: string) =>
     Effect.flatMap(ChatService, (chat) =>
-      chat.updateActiveSession((s) => ({
+      chat.updateActiveThread((s) => ({
         ...s,
         general: { ...s.general, model },
       })),
     ),
   );
 
-  const currentModelId = useMemo(() => getCurrentModelId(activeSession, settings, availableModels), [settings, availableModels, activeSession]);
+  const currentModelId = useMemo(() => getCurrentModelId(activeThread, settings, availableModels), [settings, availableModels, activeThread]);
 
   const currentModelName = useMemo(() => {
     const id = optimisticModelId || currentModelId;
@@ -95,8 +95,8 @@ export const Header: FC = () => {
     // 2. Defer heavy store mutations (Low Priority)
     setTimeout(() => {
       updateSetting({ model: modelId });
-      if (activeSessionId) {
-        setSessionModel(modelId);
+      if (activeThreadId) {
+        setThreadModel(modelId);
       }
     }, 0);
   };

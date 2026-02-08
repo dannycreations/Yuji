@@ -26,20 +26,20 @@ const Markdown = memo(({ content, components }: { content: string; components: C
 
 interface ChatMessageBubbleProps {
   readonly message: ChatMessage;
-  readonly sessionId: string;
+  readonly threadId: string;
   readonly isLast: boolean;
   readonly isThinking?: boolean;
   readonly onUpdateHeight?: () => void;
 }
 
-export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, sessionId, isThinking, onUpdateHeight }) => {
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, onUpdateHeight }) => {
   const isUser = message.role === 'user';
   const childrenIds = useStore(
     (s) => {
       if (!message.parentId) return undefined;
-      const session = s.activeSession;
-      if (!session || session.id !== sessionId) return undefined;
-      return session.messages[message.parentId!]?.childrenIds;
+      const thread = s.activeThread;
+      if (!thread || thread.id !== threadId) return undefined;
+      return thread.messages[message.parentId!]?.childrenIds;
     },
     (a, b) => Object.is(a, b),
   );
@@ -55,18 +55,18 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
   const currentIndex = siblings.indexOf(message.id);
 
   const handleSwitch = (newId: string) => {
-    handleSwitchBranch(sessionId, newId);
+    handleSwitchBranch(threadId, newId);
   };
 
   const handleCopy = () => setCopy(message.content);
 
   const handleSaveEdit = useCallback(() => {
     if (editContent.trim() !== message.content.trim()) {
-      handleEdit(sessionId, message.id, editContent);
+      handleEdit(threadId, message.id, editContent);
       onUpdateHeight?.();
     }
     setIsEditing(false);
-  }, [editContent, message.content, sessionId, message.id, handleEdit, onUpdateHeight]);
+  }, [editContent, message.content, threadId, message.id, handleEdit, onUpdateHeight]);
 
   const onConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
@@ -75,7 +75,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
       title: 'Delete Message',
       message: 'Are you sure you want to delete this message?',
       confirmLabel: 'Delete',
-      onConfirm: () => handleDeleteMessage(sessionId, message.id),
+      onConfirm: () => handleDeleteMessage(threadId, message.id),
     });
 
   const markdownComponents = useMemo<Components>(
@@ -192,11 +192,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
                   </div>
                 )}
 
-                <Button variant="ghost" size="icon" onClick={() => handleBranch(sessionId, message.id)} title="Branch">
+                <Button variant="ghost" size="icon" onClick={() => handleBranch(threadId, message.id)} title="Branch">
                   <Icon name="GitFork" size={16} />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={() => handleRegenerate(sessionId, message.id)} title="Regenerate">
+                <Button variant="ghost" size="icon" onClick={() => handleRegenerate(threadId, message.id)} title="Regenerate">
                   <Icon name="RefreshCw" size={16} />
                 </Button>
 

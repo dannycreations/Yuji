@@ -9,42 +9,42 @@ import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
 
 import type { FC } from 'react';
-import type { ChatSession } from '../../app/Schema';
+import type { ChatThread } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
-interface SessionSettingModalProps {
-  readonly sessionId: string;
+interface ThreadSettingModalProps {
+  readonly threadId: string;
   readonly onClose: () => void;
 }
 
-const SESSION_SETTING_TABS: SettingTabItem[] = [
+const THREAD_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
   { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
   { icon: 'User', id: 'persona', label: 'Personalization' },
 ];
 
-export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, onClose }) => {
-  const activeSession = useStore((s) => s.activeSession);
-  const [localSession, setLocalSession] = useState<ChatSession | null>(null);
+export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onClose }) => {
+  const activeThread = useStore((s) => s.activeThread);
+  const [localThread, setLocalThread] = useState<ChatThread | null>(null);
 
-  const updateSession = useStoreAction(
+  const updateThread = useStoreAction(
     (
       _s,
-      sessionId: string,
-      f: (session: ChatSession, now: number) => ChatSession,
+      threadId: string,
+      f: (thread: ChatThread, now: number) => ChatThread,
       options?: {
         readonly skipUpdateTimestamp?: boolean;
         readonly metadataOnly?: boolean;
       },
-    ) => Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f, options)),
+    ) => Effect.flatMap(ChatService, (chat) => chat.updateThread(threadId, f, options)),
   );
-  const getSession = useStoreEffect((id: string) => Effect.flatMap(StorageService, (storage) => storage.getSession(id)));
+  const getThread = useStoreEffect((id: string) => Effect.flatMap(StorageService, (storage) => storage.getThread(id)));
 
-  const updateTargetSession = (targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) => {
-    updateSession(targetId, f, { metadataOnly });
+  const updateTargetThread = (targetId: string, f: (s: ChatThread, now: number) => ChatThread, metadataOnly = false) => {
+    updateThread(targetId, f, { metadataOnly });
     if (!metadataOnly) {
-      getSession(targetId).then((session) => {
-        if (session) setLocalSession(session);
+      getThread(targetId).then((thread) => {
+        if (thread) setLocalThread(thread);
       });
     }
   };
@@ -52,19 +52,19 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
-    if (activeSession?.id === sessionId) {
-      setLocalSession(null);
+    if (activeThread?.id === threadId) {
+      setLocalThread(null);
     } else {
-      getSession(sessionId).then((s) => s && setLocalSession(s));
+      getThread(threadId).then((s) => s && setLocalThread(s));
     }
-  }, [sessionId, activeSession?.id, getSession]);
+  }, [threadId, activeThread?.id, getThread]);
 
-  const session = activeSession?.id === sessionId ? activeSession : localSession;
-  if (!session) return null;
+  const thread = activeThread?.id === threadId ? activeThread : localThread;
+  if (!thread) return null;
 
-  const patchSession = (f: (s: ChatSession) => ChatSession, metadataOnly = false) => updateTargetSession(sessionId, (s) => f(s), metadataOnly);
+  const patchThread = (f: (s: ChatThread) => ChatThread, metadataOnly = false) => updateTargetThread(threadId, (s) => f(s), metadataOnly);
 
-  const handleGeneral = (updates: Partial<ChatSession['general']>) => patchSession((s) => ({ ...s, general: { ...s.general, ...updates } }));
+  const handleGeneral = (updates: Partial<ChatThread['general']>) => patchThread((s) => ({ ...s, general: { ...s.general, ...updates } }));
 
   const renderContent = () => {
     switch (activeTab) {
@@ -73,19 +73,19 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
           <SectionWrapper className="space-y-3">
             <SettingField label="Chat Title">
               <InputText
-                value={session.title}
-                onChange={(e) => patchSession((s) => ({ ...s, title: e.target.value }), true)}
+                value={thread.title}
+                onChange={(e) => patchThread((s) => ({ ...s, title: e.target.value }), true)}
                 placeholder="Enter chat title..."
               />
             </SettingField>
 
             <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group mt-2 pt-2">
-              <InputSwitch checked={!!session.general.overrideInstruction} onChange={(checked) => handleGeneral({ overrideInstruction: checked })} />
+              <InputSwitch checked={!!thread.general.overrideInstruction} onChange={(checked) => handleGeneral({ overrideInstruction: checked })} />
             </SettingItem>
 
             <SettingItem label="Override Personalization" description="Ignore global user persona." className="panel-section-group pt-2">
               <InputSwitch
-                checked={!!session.general.overridePersonalisation}
+                checked={!!thread.general.overridePersonalisation}
                 onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
               />
             </SettingItem>
@@ -97,13 +97,13 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
           <SectionWrapper>
             <OverrideSection
               description="Instruction is following global settings."
-              checked={!!session.general.overrideInstruction}
+              checked={!!thread.general.overrideInstruction}
               onChange={(checked) => handleGeneral({ overrideInstruction: checked })}
-              onDataChange={(updates) => patchSession((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
+              onDataChange={(updates) => patchThread((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
             >
               {({ onChange }) => (
                 <InstructionSection
-                  instruction={session.instruction}
+                  instruction={thread.instruction}
                   onChange={onChange}
                   footer="This will completely replace the global system prompt."
                 />
@@ -117,11 +117,11 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
           <SectionWrapper>
             <OverrideSection
               description="Personalization is following global settings."
-              checked={!!session.general.overridePersonalisation}
+              checked={!!thread.general.overridePersonalisation}
               onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
-              onDataChange={(updates) => patchSession((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
+              onDataChange={(updates) => patchThread((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
             >
-              {({ onChange }) => <PersonalisationSection personalisation={session.personalisation} onChange={onChange} />}
+              {({ onChange }) => <PersonalisationSection personalisation={thread.personalisation} onChange={onChange} />}
             </OverrideSection>
           </SectionWrapper>
         );
@@ -129,7 +129,7 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   };
 
   return (
-    <SettingModal tabs={SESSION_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
+    <SettingModal tabs={THREAD_SETTING_TABS} activeTab={activeTab} onTabChange={setActiveTab} onClose={onClose}>
       {renderContent()}
     </SettingModal>
   );

@@ -1,6 +1,6 @@
 import { toTitleCase } from '../utilities/CommonUtil';
 
-import type { ChatSession, GlobalSettings, Model } from '../app/Schema';
+import type { ChatThread, GlobalSettings, Model } from '../app/Schema';
 
 export const getActiveModels = (availableModels: readonly Model[], disabledModels: readonly string[]): Model[] =>
   availableModels.filter((m) => !disabledModels.includes(m.id));
@@ -38,9 +38,9 @@ export const getModelId = (settings: GlobalSettings, availableModels: readonly M
   return active.find((m) => m.id === settings.model)?.id || active[0]?.id || 'yuji';
 };
 
-export const getCurrentModelId = (activeSession: ChatSession | null, settings: GlobalSettings, availableModels: readonly Model[]): string => {
-  const sessionModelId = activeSession?.general?.model;
-  return sessionModelId && !settings.disabledModels.includes(sessionModelId) ? sessionModelId : getModelId(settings, availableModels);
+export const getCurrentModelId = (activeThread: ChatThread | null, settings: GlobalSettings, availableModels: readonly Model[]): string => {
+  const threadModelId = activeThread?.general?.model;
+  return threadModelId && !settings.disabledModels.includes(threadModelId) ? threadModelId : getModelId(settings, availableModels);
 };
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {

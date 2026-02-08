@@ -55,7 +55,7 @@ export const GlobalSettings = Schema.Struct({
 });
 export type GlobalSettings = Schema.Schema.Type<typeof GlobalSettings>;
 
-export const SessionSettings = Schema.Struct({
+export const ThreadSettings = Schema.Struct({
   general: Schema.Struct({
     model: Schema.optional(Schema.String),
     overrideInstruction: Schema.optional(Schema.Boolean),
@@ -64,7 +64,7 @@ export const SessionSettings = Schema.Struct({
   instruction: Instruction,
   personalisation: Personalisation,
 });
-export type SessionSettings = Schema.Schema.Type<typeof SessionSettings>;
+export type ThreadSettings = Schema.Schema.Type<typeof ThreadSettings>;
 
 export const ChatMetadata = Schema.Struct({
   id: Schema.String,
@@ -87,16 +87,16 @@ export const ChatMessage = Schema.Struct({
 });
 export type ChatMessage = Schema.Schema.Type<typeof ChatMessage>;
 
-export const ChatSession = Schema.extend(
+export const ChatThread = Schema.extend(
   ChatMetadata,
   Schema.extend(
-    SessionSettings,
+    ThreadSettings,
     Schema.Struct({
       messages: Schema.Record({ key: Schema.String, value: ChatMessage }),
     }),
   ),
 );
-export type ChatSession = Schema.Schema.Type<typeof ChatSession>;
+export type ChatThread = Schema.Schema.Type<typeof ChatThread>;
 
 export const ConfirmState = Schema.Struct({
   isOpen: Schema.Boolean,
@@ -119,19 +119,19 @@ export const Notification = Schema.Struct({
 export type Notification = Schema.Schema.Type<typeof Notification>;
 
 export const AppStoreState = Schema.Struct({
-  activeSessionId: Schema.NullOr(Schema.String),
+  activeThreadId: Schema.NullOr(Schema.String),
   settings: GlobalSettings,
   availableModels: Schema.Array(Model),
-  pinnedSessionIds: Schema.Array(Schema.String),
-  backgroundSessionIds: Schema.Array(Schema.String),
+  pinnedThreadIds: Schema.Array(Schema.String),
+  backgroundThreadIds: Schema.Array(Schema.String),
 });
 export type AppStoreState = Schema.Schema.Type<typeof AppStoreState>;
 
 export const AppRuntimeState = Schema.extend(
   AppStoreState,
   Schema.Struct({
-    sessions: Schema.Record({ key: Schema.String, value: ChatMetadata }),
-    activeSession: Schema.NullOr(ChatSession),
+    threads: Schema.Record({ key: Schema.String, value: ChatMetadata }),
+    activeThread: Schema.NullOr(ChatThread),
     isSidebarOpen: Schema.Boolean,
     isSettingOpen: Schema.Boolean,
     isHydrated: Schema.Boolean,

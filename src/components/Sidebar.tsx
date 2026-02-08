@@ -1,37 +1,37 @@
 import clsx from 'clsx';
 import { useMemo, useRef, useState } from 'react';
 
-import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
+import { filterThreads, groupThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useStore, useStoreAction } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
 import { getFirstChar } from '../utilities/CommonUtil';
-import { SessionSettingModal } from './setting/SessionSettingModal';
+import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Button } from './shared/Button';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { ChatSession, ConfirmOptions } from '../app/Schema';
+import type { ChatThread, ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
-  const sessions = useStore((s) => s.sessions);
+  const threads = useStore((s) => s.threads);
   const settings = useStore((s) => s.settings);
-  const activeSessionId = useStore((s) => s.activeSessionId);
-  const pinnedSessionIds = useStore((s) => s.pinnedSessionIds);
+  const activeThreadId = useStore((s) => s.activeThreadId);
+  const pinnedThreadIds = useStore((s) => s.pinnedThreadIds);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
-  const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
+  const backgroundThreadIds = useStore((s) => s.backgroundThreadIds);
 
-  const setActiveSession = useStoreAction((s, id: string | null) => s.setActiveSession(id));
-  const loadMoreSessions = useStoreAction((s) => s.loadMoreSessions());
+  const setActiveThread = useStoreAction((s, id: string | null) => s.setActiveThread(id));
+  const loadMoreThreads = useStoreAction((s) => s.loadMoreThreads());
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
-  const { handleCreateSession, handleDeleteSession, handleTogglePin } = useChatAction();
+  const { handleCreateThread, handleDeleteThread, handleTogglePin } = useChatAction();
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -40,42 +40,42 @@ export const Sidebar: FC = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
 
-  const sortedSessions = useMemo(() => sortSessionsByDate(Object.values(sessions) as ChatSession[]), [sessions]);
+  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads) as ChatThread[]), [threads]);
 
-  const filteredSessions = useMemo(() => {
-    return filterSessions(sortedSessions, searchQuery);
-  }, [sortedSessions, searchQuery]);
+  const filteredThreads = useMemo(() => {
+    return filterThreads(sortedThreads, searchQuery);
+  }, [sortedThreads, searchQuery]);
 
-  const groupedSessions = useMemo(() => groupSessions(filteredSessions, pinnedSessionIds), [filteredSessions, pinnedSessionIds]);
+  const groupedThreads = useMemo(() => groupThreads(filteredThreads, pinnedThreadIds), [filteredThreads, pinnedThreadIds]);
 
-  const flattenedSessions = useMemo(() => {
-    const result: Array<{ type: 'label'; label: string } | { type: 'session'; session: ChatSession }> = [];
-    const entries = Object.entries(groupedSessions);
+  const flattenedThreads = useMemo(() => {
+    const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: ChatThread }> = [];
+    const entries = Object.entries(groupedThreads);
     for (let i = 0; i < entries.length; i++) {
       const [label, group] = entries[i];
       if (group.length > 0) {
         result.push({ type: 'label', label });
         for (let j = 0; j < group.length; j++) {
-          result.push({ type: 'session', session: group[j] as ChatSession });
+          result.push({ type: 'thread', thread: group[j] as ChatThread });
         }
       }
     }
     return result;
-  }, [groupedSessions]);
+  }, [groupedThreads]);
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
     containerHeight,
     estimatedItemHeight: 44, // 40px item + 4px gap
-    totalCount: flattenedSessions.length,
+    totalCount: flattenedThreads.length,
   });
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
-    onLoadMore: () => loadMoreSessions().catch(console.error),
+    onLoadMore: () => loadMoreThreads().catch(console.error),
     direction: 'bottom',
     threshold: 100,
   });
 
-  const menuSessionMetadata = menuOpenId ? sessions[menuOpenId] : null;
+  const menuThreadMetadata = menuOpenId ? threads[menuOpenId] : null;
 
   if (!isSidebarOpen) return null;
 
@@ -87,13 +87,13 @@ export const Sidebar: FC = () => {
         </Button>
 
         <div className="abs-center flex-center pointer-events-none">
-          <button onClick={() => setActiveSession(null)} className="sidebar-logo">
+          <button onClick={() => setActiveThread(null)} className="sidebar-logo">
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
           </button>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleCreateSession} className="z-chat-input" title="New Chat">
+        <Button variant="ghost" size="icon" onClick={handleCreateThread} className="z-chat-input" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </Button>
       </div>
@@ -102,7 +102,7 @@ export const Sidebar: FC = () => {
         <InputSearch
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search sessions..."
+          placeholder="Search threads..."
           className="py-2 bg-surface/50 border-transparent focus:border-line/30 focus:bg-surface"
         />
       </div>
@@ -117,7 +117,7 @@ export const Sidebar: FC = () => {
       >
         <div style={{ height: totalHeight, position: 'relative' }}>
           <div style={{ transform: `translateY(${translateY}px)` }}>
-            {flattenedSessions.slice(startIndex, endIndex).map((item) => {
+            {flattenedThreads.slice(startIndex, endIndex).map((item) => {
               if (item.type === 'label') {
                 return (
                   <h3 key={`label-${item.label}`} className="label-caps px-2 py-2 mb-1 h-[40px] mt-1">
@@ -125,30 +125,28 @@ export const Sidebar: FC = () => {
                   </h3>
                 );
               }
-              const { session } = item;
+              const { thread } = item;
               return (
                 <div
-                  key={session.id}
-                  className={clsx('sidebar-session-item group h-[40px] mt-1', activeSessionId === session.id && 'sidebar-session-item-active')}
-                  onClick={() => setActiveSession(session.id)}
+                  key={thread.id}
+                  className={clsx('sidebar-thread-item group h-[40px] mt-1', activeThreadId === thread.id && 'sidebar-thread-item-active')}
+                  onClick={() => setActiveThread(thread.id)}
                 >
-                  <div className="sidebar-session-title flex items-center gap-2 min-w-0">
-                    <span className="block truncate">{session.title}</span>
+                  <div className="sidebar-thread-title flex items-center gap-2 min-w-0">
+                    <span className="block truncate">{thread.title}</span>
                   </div>
 
-                  <div className="sidebar-session-indicator-wrapper">
-                    {backgroundSessionIds.includes(session.id) ? (
-                      <div
-                        className={clsx('flex items-center transition-opacity', menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0')}
-                      >
+                  <div className="sidebar-thread-indicator-wrapper">
+                    {backgroundThreadIds.includes(thread.id) ? (
+                      <div className={clsx('flex items-center transition-opacity', menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0')}>
                         <div className="sidebar-activity-indicator" />
                       </div>
                     ) : (
-                      pinnedSessionIds.includes(session.id) && (
+                      pinnedThreadIds.includes(thread.id) && (
                         <div
                           className={clsx(
                             'flex items-center text-text-tertiary transition-opacity',
-                            menuOpenId === session.id ? 'opacity-0' : 'group-hover:opacity-0',
+                            menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0',
                           )}
                         >
                           <Icon name="Pin" size={16} className="rotate-45" />
@@ -160,13 +158,13 @@ export const Sidebar: FC = () => {
                       size="icon"
                       className={clsx(
                         '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
-                        menuOpenId === session.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                        menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
                         const rect = e.currentTarget.getBoundingClientRect();
                         setMenuPosition({ top: rect.top + 36, left: rect.right - 36 });
-                        setMenuOpenId(menuOpenId === session.id ? null : session.id);
+                        setMenuOpenId(menuOpenId === thread.id ? null : thread.id);
                       }}
                     >
                       <Icon name="MoreHorizontal" size={16} />
@@ -192,9 +190,9 @@ export const Sidebar: FC = () => {
           </div>
         </Button>
       </div>
-      {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
+      {settingsOpenId && <ThreadSettingModal threadId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 
-      {menuOpenId && menuPosition && menuSessionMetadata && (
+      {menuOpenId && menuPosition && menuThreadMetadata && (
         <Dropdown
           isOpen={true}
           position={menuPosition}
@@ -205,8 +203,8 @@ export const Sidebar: FC = () => {
         >
           <DropdownItem
             icon="Pin"
-            iconClassName={clsx(pinnedSessionIds.includes(menuOpenId) && 'rotate-45')}
-            label={pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
+            iconClassName={clsx(pinnedThreadIds.includes(menuOpenId) && 'rotate-45')}
+            label={pinnedThreadIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
             onClick={() => handleTogglePin(menuOpenId)}
           />
           <DropdownItem icon="Settings" label="Settings" onClick={() => setSettingsOpenId(menuOpenId)} />
@@ -217,9 +215,9 @@ export const Sidebar: FC = () => {
             onClick={() =>
               showConfirm({
                 title: 'Delete chat?',
-                message: `This will delete **${menuSessionMetadata?.title}** permanently.`,
+                message: `This will delete **${menuThreadMetadata?.title}** permanently.`,
                 confirmLabel: 'Delete',
-                onConfirm: () => handleDeleteSession(menuOpenId),
+                onConfirm: () => handleDeleteThread(menuOpenId),
                 variant: 'danger',
               })
             }

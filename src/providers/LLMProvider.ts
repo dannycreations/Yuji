@@ -3,11 +3,11 @@ import { Context, Effect, Stream } from 'effect';
 import { DEFAULT_GUIDE_PROMPT } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
 
-import type { ChatMessage, ChatSession, GlobalSettings, ModelConfig } from '../app/Schema';
+import type { ChatMessage, ChatThread, GlobalSettings, ModelConfig } from '../app/Schema';
 
-export const synthesizeSystemPrompt = (settings: GlobalSettings, session: ChatSession): string => {
-  const instruction = session.general.overrideInstruction ? session.instruction.systemPrompt : settings.instruction.systemPrompt;
-  const personalisation = session.general.overridePersonalisation ? session.personalisation : settings.personalisation;
+export const synthesizeSystemPrompt = (settings: GlobalSettings, thread: ChatThread): string => {
+  const instruction = thread.general.overrideInstruction ? thread.instruction.systemPrompt : settings.instruction.systemPrompt;
+  const personalisation = thread.general.overridePersonalisation ? thread.personalisation : settings.personalisation;
 
   const parts = [instruction, '\n\n', DEFAULT_GUIDE_PROMPT, '\n\n## Personalisation\n\n'];
 

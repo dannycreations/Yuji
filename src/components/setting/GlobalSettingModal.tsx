@@ -22,7 +22,7 @@ const GLOBAL_SETTING_TABS: SettingTabItem[] = [
 export const GlobalSettingModal: FC = () => {
   const isSettingOpen = useStore((s) => s.isSettingOpen);
   const settings = useStore((s) => s.settings);
-  const sessions = useStore((s) => s.sessions);
+  const threads = useStore((s) => s.threads);
   const availableModels = useStore((s) => s.availableModels);
 
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
@@ -57,7 +57,7 @@ export const GlobalSettingModal: FC = () => {
           />
         );
       case 'history':
-        return <HistorySection sessions={sessions} />;
+        return <HistorySection threads={threads} />;
     }
   };
 
