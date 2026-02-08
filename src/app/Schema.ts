@@ -108,6 +108,7 @@ export const ConfirmState = Schema.Struct({
   variant: Schema.optional(Schema.Literal('danger', 'warning', 'info')),
 });
 export type ConfirmState = Schema.Schema.Type<typeof ConfirmState>;
+export type ConfirmOptions = Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void };
 
 export const Notification = Schema.Struct({
   id: Schema.String,

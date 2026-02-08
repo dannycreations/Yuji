@@ -2,9 +2,9 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { filterModels, getModelId, sortModels } from '../../helpers/ModelHelper';
+import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
 import { sortSessionsByDate } from '../../helpers/SessionHelper';
-import { useConfirm, useStoreEffect, useUpdateStore } from '../../hooks/useStore';
+import { useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
 import { downloadFile } from '../../utilities/CommonUtil';
@@ -16,7 +16,16 @@ import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextar
 import { ModelItem } from '../shared/ModelItem';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
-import type { ChatMetadata, ChatSession, GlobalSettings, Instruction, Model, Personalisation } from '../../app/Schema';
+import type {
+  AppRuntimeState,
+  ChatMetadata,
+  ChatSession,
+  ConfirmOptions,
+  GlobalSettings,
+  Instruction,
+  Model,
+  Personalisation,
+} from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
@@ -110,10 +119,10 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
 };
 
 export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly Model[] }> = ({ settings, availableModels, onChange }) => {
-  const updateStore = useUpdateStore();
+  const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const [modelSearch, setModelSearch] = useState('');
 
-  const setAvailableModels = (models: Model[]) => updateStore((s) => ({ ...s, availableModels: models }));
+  const setAvailableModels = (models: Model[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableModels: models }));
 
   const handleRefreshModels = useStoreEffect(() =>
     Effect.gen(function* () {
@@ -139,10 +148,10 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
     }),
   );
 
-  const filteredModels = useMemo(() => {
-    const filtered = filterModels([...availableModels], modelSearch);
-    return sortModels(filtered, settings.disabledModels);
-  }, [availableModels, modelSearch, settings.disabledModels]);
+  const filteredModels = useMemo(
+    () => getFilteredModels(availableModels, settings.disabledModels, modelSearch, { includeDisabled: true, sort: true }),
+    [availableModels, modelSearch, settings.disabledModels],
+  );
 
   const toggleModel = (modelId: string) => {
     const isDisabled = settings.disabledModels.includes(modelId);
@@ -197,7 +206,7 @@ export const HistorySection: FC<{ sessions: Record<string, ChatMetadata> }> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const ITEMS_PER_PAGE = 6;
 
-  const showConfirm = useConfirm();
+  const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
   const importSessions = useStoreEffect((newSessions: Record<string, ChatSession>) =>
     Effect.flatMap(ChatService, (chat) => chat.importSessions(newSessions)),
   );
@@ -371,6 +380,7 @@ export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, o
         placeholder="Enter system instructions..."
         minRows={8}
         maxRows={8}
+        debounceMs={0}
       />
       {footer && <p className="settings-footer-note">{footer}</p>}
     </SettingField>
@@ -389,6 +399,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         value={personalisation.userName || ''}
         onChange={(e) => onChange({ userName: e.target.value.slice(0, 50) })}
         placeholder="Enter your name..."
+        debounceMs={0}
       />
     </SettingField>
     <SettingField label="What do you do?">
@@ -412,6 +423,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         placeholder="Interests, values, or preferences to keep in mind..."
         minRows={5}
         maxRows={5}
+        debounceMs={0}
       />
     </SettingField>
   </SectionWrapper>

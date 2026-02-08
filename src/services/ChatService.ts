@@ -330,9 +330,10 @@ export const ChatServiceLive = Layer.effect(
             let parent: ChatMessage | undefined;
 
             if (message.parentId && messages[message.parentId]) {
+              const p = messages[message.parentId];
               parent = {
-                ...messages[message.parentId],
-                childrenIds: [...(messages[message.parentId].childrenIds || []), message.id],
+                ...p,
+                childrenIds: [...(p.childrenIds || []), message.id],
               };
               messages[message.parentId] = parent;
               messagesToSave.push(parent);

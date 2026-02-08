@@ -13,7 +13,13 @@ interface AttachmentGridProps {
   readonly imgClassName?: string;
 }
 
-export const AttachmentGrid: FC<AttachmentGridProps> = ({ attachments, onRemove, className, itemClassName, imgClassName }) => {
+export const AttachmentGrid: FC<AttachmentGridProps> = ({
+  attachments,
+  onRemove,
+  className = 'message-attachment-grid',
+  itemClassName = 'message-attachment-item',
+  imgClassName = 'message-attachment-img',
+}) => {
   if (attachments.length === 0) return null;
 
   return (

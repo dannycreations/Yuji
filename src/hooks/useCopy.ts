@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { useNotify } from './useStore';
+import { useStoreAction } from './useStore';
 
 export const useCopy = (timeout = 2000): [boolean, (text: string) => void] => {
   const [copied, setCopied] = useState(false);
-  const notify = useNotify();
+  const notify = useStoreAction((s, type: 'error' | 'warning' | 'info' | 'success', message: string) => s.notify(type, message));
 
   useEffect(() => {
     if (copied) {

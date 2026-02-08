@@ -1,9 +1,9 @@
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { filterModels, getActiveModels, getCurrentModelId, getModelName } from '../helpers/ModelHelper';
+import { getCurrentModelId, getFilteredModels, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useStore, useStoreAction, useToggleSidebar, useUpdateSetting } from '../hooks/useStore';
+import { useStore, useStoreAction } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
 import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
@@ -11,6 +11,7 @@ import { InputSearch } from './shared/InputArea';
 import { ModelItem } from './shared/ModelItem';
 
 import type { FC } from 'react';
+import type { GlobalSettings } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -25,10 +26,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
 
   const [search, setSearch] = useState('');
 
-  const filtered = useMemo(() => {
-    const active = getActiveModels(availableModels, disabledModels);
-    return filterModels(active, search);
-  }, [availableModels, disabledModels, search]);
+  const filtered = useMemo(() => getFilteredModels(availableModels, disabledModels, search), [availableModels, disabledModels, search]);
 
   return (
     <div className="model-picker-dropdown">
@@ -70,8 +68,8 @@ export const Header: FC = () => {
   const availableModels = useStore((s) => s.availableModels);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
 
-  const toggleSidebar = useToggleSidebar();
-  const updateSetting = useUpdateSetting();
+  const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
+  const updateSetting = useStoreAction((s, updates: Partial<GlobalSettings>) => s.updateSetting(updates));
 
   const setSessionModel = useStoreAction((_, model: string) =>
     Effect.flatMap(ChatService, (chat) =>

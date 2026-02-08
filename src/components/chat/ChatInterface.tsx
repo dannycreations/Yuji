@@ -6,7 +6,7 @@ import { getMessagePath } from '../../helpers/SessionHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
-import { useLoadMoreMessages, useStore, useStoreAction } from '../../hooks/useStore';
+import { useStore, useStoreAction } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
@@ -24,7 +24,7 @@ export const ChatInterface: FC = () => {
   const { isLoading, handleSend, stop: handleStop } = useChatAction();
 
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
-  const loadMoreMessages = useLoadMoreMessages();
+  const loadMoreMessages = useStoreAction((s) => s.loadMoreMessages());
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollAreaRef);

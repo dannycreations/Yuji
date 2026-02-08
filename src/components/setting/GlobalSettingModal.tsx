@@ -1,10 +1,11 @@
 import { useState } from 'react';
 
-import { useStore, useToggleSetting, useUpdateSetting } from '../../hooks/useStore';
+import { useStore, useStoreAction } from '../../hooks/useStore';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { ConnectionSection, GeneralSection, HistorySection, InstructionSection, ModelsSection, PersonalisationSection } from './SettingSection';
 
 import type { FC } from 'react';
+import type { AppRuntimeState, GlobalSettings } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history';
@@ -24,8 +25,11 @@ export const GlobalSettingModal: FC = () => {
   const sessions = useStore((s) => s.sessions);
   const availableModels = useStore((s) => s.availableModels);
 
-  const toggleSetting = useToggleSetting();
-  const updateSetting = useUpdateSetting();
+  const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
+  const updateSetting = useStoreAction(
+    (s, updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings'])) =>
+      s.updateSetting(updates),
+  );
 
   const [activeTab, setActiveTab] = useState('general');
 
@@ -41,7 +45,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <InstructionSection
             instruction={settings.instruction}
-            onChange={(updates) => updateSetting({ instruction: { ...settings.instruction, ...updates } })}
+            onChange={(updates) => updateSetting((s: GlobalSettings) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
             footer="This instruction will be sent as the system prompt to the AI."
           />
         );
@@ -49,7 +53,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <PersonalisationSection
             personalisation={settings.personalisation}
-            onChange={(updates) => updateSetting({ personalisation: { ...settings.personalisation, ...updates } })}
+            onChange={(updates) => updateSetting((s: GlobalSettings) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
           />
         );
       case 'history':

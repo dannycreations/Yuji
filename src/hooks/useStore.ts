@@ -2,10 +2,9 @@ import { Effect, Fiber, Stream } from 'effect';
 import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Runtime';
-import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 
-import type { AppRuntimeState, ChatSession, ConfirmState } from '../app/Schema';
+import type { AppRuntimeState } from '../app/Schema';
 
 export const StoreContext = createContext<StoreService | null>(null);
 
@@ -19,7 +18,7 @@ export const useStoreService = (): StoreService => {
 
 export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual?: (a: T, b: T) => boolean): T => {
   const storeService = useStoreService();
-  const lastSelectedState = useRef<T>(null);
+  const lastSelectedState = useRef<T | null>(null);
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
@@ -77,21 +76,3 @@ export const useStoreEffect = <A extends unknown[], R, E, I>(effectFn: (...args:
 export const useStoreAction = <A extends unknown[], R, E, I>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, I>) => {
   return useStoreEffect((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
 };
-
-export const useUpdateStore = () => useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
-export const useToggleStore = (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => useStoreAction((s) => s.toggle(key));
-export const useToggleSidebar = () => useToggleStore('isSidebarOpen');
-export const useToggleSetting = () => useToggleStore('isSettingOpen');
-export const useUpdateSetting = () =>
-  useStoreAction((s, updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings'])) =>
-    s.updateSetting(updates),
-  );
-export const useConfirm = () => useStoreAction((s, config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) => s.setConfirm(config));
-export const useNotify = () => useStoreAction((s, type: 'error' | 'warning' | 'info' | 'success', message: string) => s.notify(type, message));
-export const useLoadMoreMessages = () => useStoreAction((s) => s.loadMoreMessages());
-export const useLoadMoreSessions = () => useStoreAction((s) => s.loadMoreSessions());
-export const useUpdateSession = () =>
-  useStoreAction(
-    (_s, sessionId: string, f: (session: ChatSession, now: number) => ChatSession, options?: Parameters<ChatService['updateSession']>[2]) =>
-      Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f, options)),
-  );

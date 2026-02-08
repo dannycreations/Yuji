@@ -7,7 +7,7 @@ import remarkMath from 'remark-math';
 
 import { useChatAction } from '../../hooks/useChatAction';
 import { useCopy } from '../../hooks/useCopy';
-import { useConfirm, useStore } from '../../hooks/useStore';
+import { useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
@@ -16,7 +16,7 @@ import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
 import type { Components } from 'react-markdown';
-import type { ChatMessage } from '../../app/Schema';
+import type { ChatMessage, ConfirmOptions } from '../../app/Schema';
 
 const Markdown = memo(({ content, components }: { content: string; components: Components }) => (
   <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
@@ -68,7 +68,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
     setIsEditing(false);
   }, [editContent, message.content, sessionId, message.id, handleEdit, onUpdateHeight]);
 
-  const onConfirm = useConfirm();
+  const onConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
   const handleDelete = () =>
     onConfirm({
@@ -120,12 +120,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
       <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
         <div className={clsx('message-container', isUser ? 'user' : 'assistant')}>
           <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
-            <AttachmentGrid
-              attachments={message.attachments || []}
-              className="message-attachment-grid mb-2"
-              itemClassName="message-attachment-item"
-              imgClassName="message-attachment-img"
-            />
+            <AttachmentGrid attachments={message.attachments || []} className="message-attachment-grid mb-2" />
 
             {isEditing ? (
               <div className="chat-input-edit-container">

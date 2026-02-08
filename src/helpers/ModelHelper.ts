@@ -14,9 +14,23 @@ export const sortModels = (models: Model[], disabledModels: readonly string[] = 
   });
 };
 
-export const filterModels = (models: Model[], search: string): Model[] => {
+export const filterModels = (models: readonly Model[], search: string): Model[] => {
   const query = search.trim().toLowerCase();
-  return query ? models.filter((m) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) : models;
+  return query ? models.filter((m) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) : [...models];
+};
+
+export const getFilteredModels = (
+  availableModels: readonly Model[],
+  disabledModels: readonly string[],
+  search: string,
+  options: { includeDisabled?: boolean; sort?: boolean } = {},
+): Model[] => {
+  let models = options.includeDisabled ? [...availableModels] : getActiveModels(availableModels, disabledModels);
+  models = filterModels(models, search);
+  if (options.sort) {
+    return sortModels(models, disabledModels);
+  }
+  return models;
 };
 
 export const getModelId = (settings: GlobalSettings, availableModels: readonly Model[]): string => {

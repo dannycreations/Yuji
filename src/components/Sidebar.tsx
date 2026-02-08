@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
 import { useResizeObserver } from '../hooks/useResizeObserver';
-import { useConfirm, useLoadMoreSessions, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
+import { useStore, useStoreAction } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { SessionSettingModal } from './setting/SessionSettingModal';
@@ -14,7 +14,7 @@ import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { ChatSession } from '../app/Schema';
+import type { ChatSession, ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const sessions = useStore((s) => s.sessions);
@@ -25,10 +25,10 @@ export const Sidebar: FC = () => {
   const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
 
   const setActiveSession = useStoreAction((s, id: string | null) => s.setActiveSession(id));
-  const loadMoreSessions = useLoadMoreSessions();
-  const toggleSidebar = useToggleSidebar();
-  const toggleSetting = useToggleSetting();
-  const showConfirm = useConfirm();
+  const loadMoreSessions = useStoreAction((s) => s.loadMoreSessions());
+  const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
+  const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
+  const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
   const { handleCreateSession, handleDeleteSession, handleTogglePin } = useChatAction();
 

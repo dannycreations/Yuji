@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
-import { AppRuntimeState, AppStoreState, ChatMetadata, ChatSession, ConfirmState } from '../app/Schema';
+import { AppRuntimeState, AppStoreState, ChatMetadata, ChatSession, ConfirmOptions } from '../app/Schema';
 import { randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
@@ -16,7 +16,7 @@ export interface StoreService {
   ) => Effect.Effect<void>;
   readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void>;
   readonly togglePin: (sessionId: string) => Effect.Effect<void>;
-  readonly setConfirm: (options: Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void }) => Effect.Effect<void>;
+  readonly setConfirm: (options: ConfirmOptions) => Effect.Effect<void>;
   readonly executeConfirm: (id: string) => Effect.Effect<void>;
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
   readonly clearNotification: (id: string) => Effect.Effect<void>;

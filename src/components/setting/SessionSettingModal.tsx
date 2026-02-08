@@ -1,7 +1,8 @@
 import { Effect } from 'effect';
 import { useEffect, useState } from 'react';
 
-import { useStore, useStoreEffect, useUpdateSession } from '../../hooks/useStore';
+import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
+import { ChatService } from '../../services/ChatService';
 import { StorageService } from '../../services/StorageService';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
@@ -26,11 +27,21 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const activeSession = useStore((s) => s.activeSession);
   const [localSession, setLocalSession] = useState<ChatSession | null>(null);
 
-  const updateSession = useUpdateSession();
+  const updateSession = useStoreAction(
+    (
+      _s,
+      sessionId: string,
+      f: (session: ChatSession, now: number) => ChatSession,
+      options?: {
+        readonly skipUpdateTimestamp?: boolean;
+        readonly metadataOnly?: boolean;
+      },
+    ) => Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f, options)),
+  );
   const getSession = useStoreEffect((id: string) => Effect.flatMap(StorageService, (storage) => storage.getSession(id)));
 
   const updateTargetSession = (targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) => {
-    updateSession(targetId, f, { metadataOnly: metadataOnly as boolean });
+    updateSession(targetId, f, { metadataOnly });
     if (!metadataOnly) {
       getSession(targetId).then((session) => {
         if (session) setLocalSession(session);
