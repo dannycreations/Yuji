@@ -2,13 +2,13 @@ import clsx from 'clsx';
 import { useRef, useState } from 'react';
 
 import { useStore } from '../../hooks/useStore';
-import { uuid } from '../../utilities/CommonUtil';
+import { handleFilesFromEvent, handleFilesFromPaste } from '../../utilities/FileUtil';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { InputTextarea } from '../shared/InputArea';
 
-import type { ChangeEvent, FC, KeyboardEvent } from 'react';
+import type { FC, KeyboardEvent } from 'react';
 import type { Attachment } from '../../app/Schema';
 
 interface ChatInputProps {
@@ -44,44 +44,14 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
     setAttachments([]);
   };
 
-  const processFile = (file: File) => {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        if (loadEvent.target?.result) {
-          const newAttachment: Attachment = {
-            id: uuid(),
-            type: 'image',
-            url: loadEvent.target.result as string,
-            name: file.name || 'Pasted Image',
-          };
-          setAttachments((prev) => [...prev, newAttachment]);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAttachments = await handleFilesFromEvent(e);
+    setAttachments((prev) => [...prev, ...newAttachments]);
   };
 
-  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files: File[] = Array.from(e.target.files);
-      files.forEach(processFile);
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (items) {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        if (item.type.startsWith('image/')) {
-          const file = item.getAsFile();
-          if (file) {
-            processFile(file);
-          }
-        }
-      }
-    }
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const newAttachments = await handleFilesFromPaste(e);
+    setAttachments((prev) => [...prev, ...newAttachments]);
   };
 
   const removeAttachment = (id: string) => {

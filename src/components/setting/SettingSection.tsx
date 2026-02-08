@@ -372,19 +372,18 @@ interface InstructionSectionProps {
 }
 
 export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, onChange, footer }) => (
-  <SectionWrapper>
-    <SettingField label="System Instruction">
-      <InputTextarea
-        value={instruction.systemPrompt || ''}
-        onChange={(e) => onChange({ systemPrompt: e.target.value })}
-        placeholder="Enter system instructions..."
-        minRows={8}
-        maxRows={8}
-        debounceMs={0}
-      />
-      {footer && <p className="settings-footer-note">{footer}</p>}
-    </SettingField>
-  </SectionWrapper>
+  <div className="space-y-2">
+    <label className="settings-label">System Instruction</label>
+    <InputTextarea
+      value={instruction.systemPrompt || ''}
+      onChange={(e) => onChange({ systemPrompt: e.target.value })}
+      placeholder="Enter system instructions..."
+      minRows={8}
+      maxRows={8}
+      debounceMs={0}
+    />
+    {footer && <p className="settings-footer-note">{footer}</p>}
+  </div>
 );
 
 interface PersonalisationSectionProps {
@@ -393,7 +392,7 @@ interface PersonalisationSectionProps {
 }
 
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
-  <SectionWrapper className="space-y-3">
+  <div className="space-y-3">
     <SettingField label="What should Yuji call you?">
       <InputText
         value={personalisation.userName || ''}
@@ -426,7 +425,7 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         debounceMs={0}
       />
     </SettingField>
-  </SectionWrapper>
+  </div>
 );
 
 interface OverrideSectionProps<T> {

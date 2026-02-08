@@ -13,6 +13,10 @@ export interface StorageService {
   readonly deleteSession: (id: string) => Effect.Effect<void>;
 
   readonly getMessages: (sessionId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMessage>>;
+  readonly paginate: <T>(
+    storeName: string,
+    options: { offset?: number; limit?: number; indexName?: string; indexValue?: IDBValidKey },
+  ) => Effect.Effect<ReadonlyArray<T>>;
   readonly saveMessage: (sessionId: string, message: ChatMessage) => Effect.Effect<void>;
   readonly saveMessages: (sessionId: string, messages: ChatMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
@@ -67,28 +71,13 @@ export const StorageServiceLive = Layer.effect(
 
       getSessionsMetadata: (options) =>
         Effect.gen(function* () {
-          const db = yield* getDB;
           if (!options) {
+            const db = yield* getDB;
             const sessions = yield* Effect.promise(() => db.getAll(STORES.SESSIONS));
             return yield* Schema.decode(Schema.Array(ChatMetadata))(sessions).pipe(Effect.orDie);
           }
 
-          const { offset = 0, limit = 50 } = options;
-          const sessions: ChatMetadata[] = [];
-          const tx = db.transaction(STORES.SESSIONS, 'readonly');
-          let cursor = yield* Effect.promise(() => tx.store.openCursor(null, 'prev'));
-
-          let advanced = false;
-          while (cursor && sessions.length < limit) {
-            if (!advanced && offset > 0) {
-              cursor = yield* Effect.promise(() => cursor!.advance(offset));
-              advanced = true;
-              continue;
-            }
-            sessions.push(cursor.value);
-            cursor = yield* Effect.promise(() => cursor!.continue());
-          }
-
+          const sessions = yield* storage.paginate<ChatMetadata>(STORES.SESSIONS, options);
           return yield* Schema.decode(Schema.Array(ChatMetadata))(sessions).pipe(Effect.orDie);
         }),
 
@@ -133,30 +122,43 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => tx.done);
         }),
 
-      getMessages: (sessionId, options) =>
+      paginate: <T>(storeName: string, options: { offset?: number; limit?: number; indexName?: string; indexValue?: IDBValidKey }) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          if (!options) {
-            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
-            return yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
-          }
+          const { offset = 0, limit = 20, indexName, indexValue } = options;
+          const results: T[] = [];
+          const tx = db.transaction(storeName, 'readonly');
+          const source = indexName ? tx.store.index(indexName) : tx.store;
+          const range = indexValue ? IDBKeyRange.only(indexValue) : null;
 
-          const { offset = 0, limit = 20 } = options;
-          const messages: ChatMessage[] = [];
-          const tx = db.transaction(STORES.MESSAGES, 'readonly');
-          const index = tx.store.index('sessionId');
-          let cursor = yield* Effect.promise(() => index.openCursor(IDBKeyRange.only(sessionId), 'prev'));
+          let cursor = yield* Effect.promise(() => source.openCursor(range, 'prev'));
 
           let advanced = false;
-          while (cursor && messages.length < limit) {
+          while (cursor && results.length < limit) {
             if (!advanced && offset > 0) {
               cursor = yield* Effect.promise(() => cursor!.advance(offset));
               advanced = true;
               continue;
             }
-            messages.push(cursor.value);
+            results.push(cursor.value);
             cursor = yield* Effect.promise(() => cursor!.continue());
           }
+          return results;
+        }),
+
+      getMessages: (sessionId, options) =>
+        Effect.gen(function* () {
+          if (!options) {
+            const db = yield* getDB;
+            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'sessionId', sessionId));
+            return yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
+          }
+
+          const messages = yield* storage.paginate<ChatMessage>(STORES.MESSAGES, {
+            ...options,
+            indexName: 'sessionId',
+            indexValue: sessionId,
+          });
 
           const decoded = yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
           return [...decoded].reverse();

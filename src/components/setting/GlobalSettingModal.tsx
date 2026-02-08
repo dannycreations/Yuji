@@ -5,7 +5,7 @@ import { SettingModal } from '../shared/modal/SettingModal';
 import { ConnectionSection, GeneralSection, HistorySection, InstructionSection, ModelsSection, PersonalisationSection } from './SettingSection';
 
 import type { FC } from 'react';
-import type { AppRuntimeState, GlobalSettings } from '../../app/Schema';
+import type { AppRuntimeState } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history';
@@ -45,7 +45,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <InstructionSection
             instruction={settings.instruction}
-            onChange={(updates) => updateSetting((s: GlobalSettings) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
+            onChange={(updates) => updateSetting((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
             footer="This instruction will be sent as the system prompt to the AI."
           />
         );
@@ -53,7 +53,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <PersonalisationSection
             personalisation={settings.personalisation}
-            onChange={(updates) => updateSetting((s: GlobalSettings) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
+            onChange={(updates) => updateSetting((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
           />
         );
       case 'history':

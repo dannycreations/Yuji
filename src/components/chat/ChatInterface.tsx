@@ -5,6 +5,7 @@ import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/SessionHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
+import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useStore, useStoreAction } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
@@ -36,6 +37,17 @@ export const ChatInterface: FC = () => {
   }, [activeSession?.activeMessageId, activeSession?.messages, activeSession?.id]);
 
   const isAtBottomRef = useRef(true);
+
+  const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
+  const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
+
+  const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
+    onLoadMore: () => loadMoreMessages().catch(console.error),
+    direction: 'top',
+    threshold: 50,
+    isLoading,
+    enabled: !isEmpty,
+  });
 
   useLayoutEffect(() => {
     const el = scrollAreaRef.current;
@@ -95,9 +107,6 @@ export const ChatInterface: FC = () => {
     }
   }, [activeSessionId, loadMessages]);
 
-  const isTransitioning = activeSessionId && (!activeSession || activeSession.id !== activeSessionId);
-  const isEmpty = !activeSession || Object.keys(activeSession.messages).length === 0;
-
   const handleUpdateHeight = useCallback(
     (messageId: string) => {
       const index = visibleMessages.findIndex((m) => m.id === messageId);
@@ -122,13 +131,10 @@ export const ChatInterface: FC = () => {
         ref={scrollAreaRef}
         onScroll={(e) => {
           onScroll(e);
+          handleInfiniteScroll(e);
           const el = e.currentTarget;
           const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
           isAtBottomRef.current = isAtBottom;
-
-          if (el.scrollTop === 0 && !isLoading && !isEmpty) {
-            loadMoreMessages().catch(console.error);
-          }
         }}
       >
         {isTransitioning ? null : isEmpty ? (

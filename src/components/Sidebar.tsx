@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 
 import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useStore, useStoreAction } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
@@ -68,6 +69,12 @@ export const Sidebar: FC = () => {
     totalCount: flattenedSessions.length,
   });
 
+  const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
+    onLoadMore: () => loadMoreSessions().catch(console.error),
+    direction: 'bottom',
+    threshold: 100,
+  });
+
   const menuSessionMetadata = menuOpenId ? sessions[menuOpenId] : null;
 
   if (!isSidebarOpen) return null;
@@ -105,10 +112,7 @@ export const Sidebar: FC = () => {
         ref={scrollContainerRef}
         onScroll={(e) => {
           onScroll(e);
-          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-          if (scrollHeight - scrollTop <= clientHeight + 100) {
-            loadMoreSessions().catch(console.error);
-          }
+          handleInfiniteScroll(e);
         }}
       >
         <div style={{ height: totalHeight, position: 'relative' }}>
