@@ -29,11 +29,12 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const updateSession = useUpdateSession();
   const getSession = useStoreEffect((id: string) => Effect.flatMap(StorageService, (storage) => storage.getSession(id)));
 
-  const updateTargetSession = async (targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) => {
-    await updateSession(targetId, f, { metadataOnly: metadataOnly as boolean });
+  const updateTargetSession = (targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) => {
+    updateSession(targetId, f, { metadataOnly: metadataOnly as boolean });
     if (!metadataOnly) {
-      const session = await getSession(targetId);
-      if (session) setLocalSession(session);
+      getSession(targetId).then((session) => {
+        if (session) setLocalSession(session);
+      });
     }
   };
 

@@ -6,6 +6,10 @@ export const randomId = (size: number = 8): string => {
   return uuid().replace(/-/g, '').slice(0, size);
 };
 
+export const getFirstChar = (str: string): string => {
+  return str ? str.trim().charAt(0).toUpperCase() : '';
+};
+
 export const truncate = (str: string, length: number): string => {
   if (str.length <= length) return str;
   return str.slice(0, length).trim() + '...';

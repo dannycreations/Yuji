@@ -9,13 +9,14 @@ import type { IconName } from './Icon';
 
 export interface DropdownItemProps {
   readonly icon?: IconName;
+  readonly iconClassName?: string;
   readonly label: string;
   readonly onClick: () => void;
   readonly variant?: 'default' | 'danger';
   readonly className?: string;
 }
 
-export const DropdownItem: FC<DropdownItemProps> = ({ icon, label, onClick, variant = 'default', className }) => (
+export const DropdownItem: FC<DropdownItemProps> = ({ icon, iconClassName, label, onClick, variant = 'default', className }) => (
   <button
     type="button"
     className={clsx('dropdown-item', variant === 'danger' ? 'danger' : '!text-text-primary', className)}
@@ -24,7 +25,7 @@ export const DropdownItem: FC<DropdownItemProps> = ({ icon, label, onClick, vari
       onClick();
     }}
   >
-    {icon && <Icon name={icon} size={16} className={clsx(variant !== 'danger' && 'text-text-tertiary')} />}
+    {icon && <Icon name={icon} size={16} className={clsx(variant !== 'danger' && 'text-text-tertiary', iconClassName)} />}
     <span className="flex-1 text-left">{label}</span>
   </button>
 );

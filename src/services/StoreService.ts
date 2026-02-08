@@ -129,16 +129,15 @@ export const StoreServiceLive = Layer.effect(
         update((s) => {
           if (!activeSessionOrId) return { ...s, activeSessionId: null, activeSession: null };
           const id = typeof activeSessionOrId === 'string' ? activeSessionOrId : activeSessionOrId.id;
-          if (id === s.activeSessionId && s.activeSession?.id === id) return s;
-
           const session = typeof activeSessionOrId === 'string' ? null : activeSessionOrId;
-          const nextModel = session?.general.model || s.settings.model;
+
+          if (id === s.activeSessionId && s.activeSession?.id === id) return s;
 
           return {
             ...s,
             activeSessionId: id,
             activeSession: session,
-            settings: { ...s.settings, model: nextModel },
+            settings: { ...s.settings, model: session?.general.model || s.settings.model },
           };
         }),
       updateSetting: (updates) =>

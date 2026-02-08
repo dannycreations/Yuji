@@ -50,7 +50,7 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual?: (
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };
 
-export const useStoreEffect = <A extends unknown[], R, E>(effectFn: (...args: A) => Effect.Effect<R, E, any>) => {
+export const useStoreEffect = <A extends unknown[], R, E, I>(effectFn: (...args: A) => Effect.Effect<R, E, I>) => {
   const effectFnRef = useRef(effectFn);
   effectFnRef.current = effectFn;
 
@@ -58,21 +58,23 @@ export const useStoreEffect = <A extends unknown[], R, E>(effectFn: (...args: A)
     () =>
       (...args: A) =>
         YujiRuntime.runPromise(
-          Effect.gen(function* () {
-            const store = yield* StoreService;
-            return yield* effectFnRef.current(...args).pipe(
-              Effect.catchAll((err) => {
-                const message = (err as { message: string })?.message || (typeof err === 'string' ? err : JSON.stringify(err));
-                return store.notify('error', message);
-              }),
-            );
-          }),
+          Effect.flatMap(
+            StoreService,
+            (store) =>
+              effectFnRef.current(...args).pipe(
+                Effect.catchAll((err) => {
+                  const message = (err as { message: string })?.message || (typeof err === 'string' ? err : JSON.stringify(err));
+                  return store.notify('error', message).pipe(Effect.map(() => null));
+                }),
+                Effect.orDie,
+              ) as unknown as Effect.Effect<R, never, never>,
+          ),
         ),
     [],
   );
 };
 
-export const useStoreAction = <A extends unknown[], R, E>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, any>) => {
+export const useStoreAction = <A extends unknown[], R, E, I>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, I>) => {
   return useStoreEffect((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
 };
 

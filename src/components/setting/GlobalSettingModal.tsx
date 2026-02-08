@@ -27,10 +27,10 @@ export const GlobalSettingModal: FC = () => {
   const toggleSetting = useToggleSetting();
   const updateSetting = useUpdateSetting();
 
-  const [activeTab, setActiveTab] = useState<GlobalSettingTab>('general');
+  const [activeTab, setActiveTab] = useState('general');
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch (activeTab as GlobalSettingTab) {
       case 'general':
         return <GeneralSection settings={settings} onChange={updateSetting} />;
       case 'connection':

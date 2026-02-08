@@ -5,6 +5,15 @@ import type { ChatSession, GlobalSettings, Model } from '../app/Schema';
 export const getActiveModels = (availableModels: readonly Model[], disabledModels: readonly string[]): Model[] =>
   availableModels.filter((m) => !disabledModels.includes(m.id));
 
+export const sortModels = (models: Model[], disabledModels: readonly string[] = []): Model[] => {
+  return [...models].sort((a, b) => {
+    const aDisabled = disabledModels.includes(a.id) ? 1 : 0;
+    const bDisabled = disabledModels.includes(b.id) ? 1 : 0;
+    if (aDisabled !== bDisabled) return aDisabled - bDisabled;
+    return a.name.localeCompare(b.name);
+  });
+};
+
 export const filterModels = (models: Model[], search: string): Model[] => {
   const query = search.trim().toLowerCase();
   return query ? models.filter((m) => m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) : models;

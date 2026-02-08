@@ -1,10 +1,12 @@
 import clsx from 'clsx';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
+import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useConfirm, useLoadMoreSessions, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
+import { getFirstChar } from '../utilities/CommonUtil';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Button } from './shared/Button';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
@@ -35,13 +37,7 @@ export const Sidebar: FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(0);
-
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      setContainerHeight(scrollContainerRef.current.clientHeight);
-    }
-  }, [isSidebarOpen]);
+  const { height: containerHeight } = useResizeObserver(scrollContainerRef);
 
   const sortedSessions = useMemo(() => sortSessionsByDate(Object.values(sessions) as ChatSession[]), [sessions]);
 
@@ -182,7 +178,7 @@ export const Sidebar: FC = () => {
       <div className="sidebar-footer">
         <Button variant="sidebar" onClick={toggleSetting}>
           <div className="avatar-sm bg-surface-hover flex-center">
-            {settings.personalisation.userName ? settings.personalisation.userName.charAt(0).toUpperCase() : <Icon name="User" size={12} />}
+            {getFirstChar(settings.personalisation.userName) || <Icon name="User" size={12} />}
           </div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
@@ -205,9 +201,9 @@ export const Sidebar: FC = () => {
         >
           <DropdownItem
             icon="Pin"
+            iconClassName={clsx(pinnedSessionIds.includes(menuOpenId) && 'rotate-45')}
             label={pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
             onClick={() => handleTogglePin(menuOpenId)}
-            className={clsx(pinnedSessionIds.includes(menuOpenId) && 'rotate-45')}
           />
           <DropdownItem icon="Settings" label="Settings" onClick={() => setSettingsOpenId(menuOpenId)} />
           <DropdownItem

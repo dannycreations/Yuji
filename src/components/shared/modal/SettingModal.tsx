@@ -16,7 +16,7 @@ interface SettingModalProps {
   readonly isOpen?: boolean;
   readonly tabs: SettingTabItem[];
   readonly activeTab: string;
-  readonly onTabChange: (id: any) => void;
+  readonly onTabChange: (id: string) => void;
   readonly onClose: () => void;
   readonly children: ReactNode;
   readonly sidebarBottom?: ReactNode;

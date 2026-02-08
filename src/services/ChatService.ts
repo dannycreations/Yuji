@@ -64,12 +64,12 @@ export const ChatServiceLive = Layer.effect(
         const state = yield* SubscriptionRef.get(store.state);
         let session: ChatSession | null = null;
 
-        if (state.activeSessionId === sessionId && state.activeSession?.id === sessionId) {
+        const isActive = state.activeSessionId === sessionId && state.activeSession?.id === sessionId;
+        if (isActive) {
           session = state.activeSession;
         } else if (!options.metadataOnly) {
           session = yield* storage.getSession(sessionId);
         } else if (state.sessions[sessionId]) {
-          // Cast metadata to session for the mapper function, assuming mapper only touches shared fields
           session = state.sessions[sessionId] as unknown as ChatSession;
         }
 
@@ -82,7 +82,7 @@ export const ChatServiceLive = Layer.effect(
         yield* store.update((s) => ({
           ...s,
           sessions: { ...s.sessions, [sessionId]: metadata },
-          activeSession: s.activeSessionId === sessionId && s.activeSession?.id === sessionId ? finalUpdated : s.activeSession,
+          activeSession: isActive ? finalUpdated : s.activeSession,
         }));
 
         yield* storage.saveSession(options.metadataOnly ? metadata : finalUpdated);

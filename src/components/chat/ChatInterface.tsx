@@ -1,10 +1,11 @@
 import clsx from 'clsx';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/SessionHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
+import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useLoadMoreMessages, useStore, useStoreAction } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
 import { Header } from '../Header';
@@ -26,21 +27,7 @@ export const ChatInterface: FC = () => {
   const loadMoreMessages = useLoadMoreMessages();
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(0);
-
-  useEffect(() => {
-    if (!scrollAreaRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (entry) {
-        setContainerHeight(entry.contentRect.height);
-      }
-    });
-
-    observer.observe(scrollAreaRef.current);
-    return () => observer.disconnect();
-  }, []);
+  const { height: containerHeight } = useResizeObserver(scrollAreaRef);
 
   const visibleMessages = useMemo(() => {
     if (!activeSession) return [];

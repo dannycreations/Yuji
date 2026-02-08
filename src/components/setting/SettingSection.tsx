@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
-import { filterModels, getModelId } from '../../helpers/ModelHelper';
+import { filterModels, getModelId, sortModels } from '../../helpers/ModelHelper';
 import { sortSessionsByDate } from '../../helpers/SessionHelper';
 import { useConfirm, useStoreEffect, useUpdateStore } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
@@ -141,11 +141,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
 
   const filteredModels = useMemo(() => {
     const filtered = filterModels([...availableModels], modelSearch);
-    return filtered.sort((a, b) => {
-      const aDisabled = settings.disabledModels.includes(a.id) ? 1 : 0;
-      const bDisabled = settings.disabledModels.includes(b.id) ? 1 : 0;
-      return aDisabled - bDisabled;
-    });
+    return sortModels(filtered, settings.disabledModels);
   }, [availableModels, modelSearch, settings.disabledModels]);
 
   const toggleModel = (modelId: string) => {
@@ -421,15 +417,15 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
   </SectionWrapper>
 );
 
-interface OverrideSectionProps {
+interface OverrideSectionProps<T> {
   readonly description: string;
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
-  readonly children: (f: { onChange: (updates: any) => void }) => ReactNode;
-  readonly onDataChange: (updates: any) => void;
+  readonly children: (f: { onChange: (updates: Partial<T>) => void }) => ReactNode;
+  readonly onDataChange: (updates: Partial<T>) => void;
 }
 
-export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onChange, children, onDataChange }) => {
+export const OverrideSection = <T,>({ description, checked, onChange, children, onDataChange }: OverrideSectionProps<T>) => {
   if (!checked) {
     return (
       <div className="override-empty-state">
