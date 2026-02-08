@@ -92,10 +92,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       code({ node, className, children, ...props }) {
         const match = /language-(\w+)/.exec(className || '');
         const language = match ? match[1] : '';
-        const value = String(children).replace(/\n$/, '');
+        const rawContent = String(children);
+        const value = rawContent.replace(/\n$/, '');
         const isMultiline = value.includes('\n');
 
-        if (match || isMultiline || (node && node.position?.start.column === 1)) {
+        if (match || isMultiline || rawContent.endsWith('\n')) {
           return <ChatMessageBlock language={language} value={value} />;
         }
 

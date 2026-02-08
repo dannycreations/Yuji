@@ -71,7 +71,13 @@ export const ChatInterface: FC = () => {
     if (isAtBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [visibleMessages.length, activeThread?.activeMessageId, containerHeight]);
+  }, [
+    visibleMessages.length,
+    activeThread?.activeMessageId,
+    containerHeight,
+    // Trigger auto-scroll when content of the last message changes during streaming
+    visibleMessages[visibleMessages.length - 1]?.content,
+  ]);
 
   useLayoutEffect(() => {
     if (!isLoading && scrollAreaRef.current && containerHeight) {
@@ -119,6 +125,7 @@ export const ChatInterface: FC = () => {
     if (activeThreadId) {
       clearItemHeights();
       loadMessages(activeThreadId);
+      isAtBottomRef.current = true;
     }
   }, [activeThreadId, loadMessages]);
 
