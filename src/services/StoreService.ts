@@ -2,7 +2,8 @@ import { Context, Effect, Either, Fiber, Layer, Schema, Stream, SubscriptionRef 
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
 import { YujiRuntime } from '../app/Runtime';
-import { AppRuntimeState, AppStoreState, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
+import { AppRuntimeState, AppStoreState, ChatMessage, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
+import { getMessagePath } from '../helpers/ThreadHelper';
 import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
@@ -257,12 +258,31 @@ export const StoreServiceLive = Layer.effect(
             });
 
             // If we have more than 100 messages, trim the bottom
+            // Strategy: Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
             const MAX_MEM_MESSAGES = 100;
-            const messageEntries = Object.entries(newMessages).sort((a, b) => b[1].timestamp - a[1].timestamp);
+            const messageList = Object.values(newMessages);
 
             let finalMessages = newMessages;
-            if (messageEntries.length > MAX_MEM_MESSAGES) {
-              finalMessages = Object.fromEntries(messageEntries.slice(0, MAX_MEM_MESSAGES));
+            if (messageList.length > MAX_MEM_MESSAGES) {
+              const activePathIds = new Set(
+                s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId).map((m) => m.id) : [],
+              );
+
+              const sortedByRecent = messageList.sort((a, b) => b.timestamp - a.timestamp);
+              const result: Record<string, ChatMessage> = {};
+
+              // 1. Always keep active path
+              activePathIds.forEach((id) => {
+                if (newMessages[id]) result[id] = newMessages[id];
+              });
+
+              // 2. Fill remaining quota with most recent messages
+              for (const m of sortedByRecent) {
+                if (Object.keys(result).length >= MAX_MEM_MESSAGES) break;
+                result[m.id] = m;
+              }
+
+              finalMessages = result;
             }
 
             return {

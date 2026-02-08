@@ -45,15 +45,13 @@ export const Sidebar: FC = () => {
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads) as ChatThread[]), [threads]);
 
-  const filteredThreads = useMemo(() => {
-    return filterThreads(sortedThreads, searchQuery);
-  }, [sortedThreads, searchQuery]);
-
-  const groupedThreads = useMemo(() => groupThreads(filteredThreads, pinnedThreadIds), [filteredThreads, pinnedThreadIds]);
-
   const flattenedThreads = useMemo(() => {
+    const filtered = filterThreads(sortedThreads, searchQuery);
+    const grouped = groupThreads(filtered, pinnedThreadIds);
+
     const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: ChatThread }> = [];
-    const entries = Object.entries(groupedThreads);
+    const entries = Object.entries(grouped);
+
     for (let i = 0; i < entries.length; i++) {
       const [label, group] = entries[i];
       if (group.length > 0) {
@@ -64,7 +62,7 @@ export const Sidebar: FC = () => {
       }
     }
     return result;
-  }, [groupedThreads]);
+  }, [sortedThreads, searchQuery, pinnedThreadIds]);
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
     containerHeight,

@@ -40,9 +40,14 @@ export const ChatInterface: FC = () => {
 
   const visibleMessages = useMemo(() => {
     if (!activeThread) return [];
-    if (activeThread.activeMessageId) return getMessagePath(activeThread, activeThread.activeMessageId);
-    return Object.values(activeThread.messages).sort((a, b) => a.timestamp - b.timestamp);
-  }, [activeThread?.activeMessageId, activeThread?.messages, activeThread?.id]);
+    const { activeMessageId, messages } = activeThread;
+
+    if (activeMessageId) {
+      return getMessagePath(activeThread, activeMessageId);
+    }
+
+    return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+  }, [activeThread?.activeMessageId, activeThread?.messages]);
 
   const isAtBottomRef = useRef(true);
 

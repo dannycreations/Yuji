@@ -59,13 +59,6 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
 
   const prefixSums = useMemo(() => {
     const sums = new Float64Array(totalCount + 1);
-    const heightEntries = Object.entries(heights);
-    if (heightEntries.length === 0) {
-      for (let i = 0; i < totalCount; i++) {
-        sums[i + 1] = sums[i] + estimatedItemHeight;
-      }
-      return sums;
-    }
 
     for (let i = 0; i < totalCount; i++) {
       sums[i + 1] = sums[i] + (heights[i] ?? estimatedItemHeight);

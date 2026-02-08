@@ -66,7 +66,10 @@ export const getMessagePath = (thread: ChatThread, messageId: string): ReadonlyA
 export const branchThreadPath = (
   sourceThread: ChatThread,
   messageId: string,
-): { branchedMessages: Record<string, ChatMessage>; newActiveMessageId: string } => {
+): {
+  branchedMessages: Record<string, ChatMessage>;
+  newActiveMessageId: string;
+} => {
   const path = getMessagePath(sourceThread, messageId);
   const branchedMessages: Record<string, ChatMessage> = {};
   const idMap = new Map<string, string>();
