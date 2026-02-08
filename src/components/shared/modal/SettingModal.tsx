@@ -38,7 +38,7 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
         <div className="flex-1 overflow-y-auto space-y-1">
           {tabs.map((tab) => (
             <button key={tab.id} onClick={() => onTabChange(tab.id)} className={clsx('list-item-interactive', activeTab === tab.id && 'active')}>
-              <Icon name={tab.icon} size={18} className="list-item-icon" />
+              <Icon name={tab.icon} size={18} className="list-item-icon settings-tab-icon" />
               {tab.label}
             </button>
           ))}

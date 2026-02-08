@@ -16,10 +16,10 @@ const BUTTON_VARIANT: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZE: Record<'sm' | 'md' | 'lg' | 'icon', string> = {
-  sm: '!py-1.5 !px-3 !text-xs',
+  sm: 'px-3 py-1.5 text-xs',
   md: '',
-  lg: '!py-2 !px-6 !text-base',
-  icon: '!p-2',
+  lg: 'px-6 py-2 text-base',
+  icon: 'btn-icon',
 };
 
 interface ButtonProps extends ComponentProps<'button'> {
@@ -31,7 +31,7 @@ interface ButtonProps extends ComponentProps<'button'> {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'secondary', size = 'md', pill = false, children, ...props }, ref) => {
     return (
-      <button ref={ref} className={clsx(BUTTON_VARIANT[variant], BUTTON_SIZE[size], pill && 'btn-pill', className)} {...props}>
+      <button ref={ref} className={clsx(BUTTON_VARIANT[variant], size !== 'md' && BUTTON_SIZE[size], pill && 'btn-pill', className)} {...props}>
         {children}
       </button>
     );

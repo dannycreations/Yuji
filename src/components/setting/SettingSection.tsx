@@ -65,7 +65,7 @@ export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) 
         <InputSelect
           value={settings.theme}
           onChange={(e) => onChange({ theme: e.target.value as 'dark' | 'light' })}
-          className="!py-1.5 !text-xs min-w-[100px]"
+          className="py-1.5! text-xs! min-w-[100px]"
         >
           <option value="dark">Dark</option>
           <option value="light">Light</option>
@@ -295,16 +295,16 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
           <div className="flex-1 label-caps text-text-primary">Title</div>
           <div className="flex items-center gap-2">
             {selectedThreadIds.size > 0 && (
-              <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline !bg-danger/10 !text-danger border-danger/20">
+              <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline bg-danger/10! text-danger! border-danger/20">
                 <Icon name="Trash2" size={12} />
                 Delete ({selectedThreadIds.size})
               </Button>
             )}
-            <Button variant="ghost" onClick={handleExport} className="badge-outline !text-text-tertiary">
+            <Button variant="ghost" onClick={handleExport} className="badge-outline text-text-primary!">
               <Icon name="Upload" size={12} />
               Export {selectedThreadIds.size > 0 ? `(${selectedThreadIds.size})` : ''}
             </Button>
-            <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline !text-text-tertiary">
+            <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
               <Icon name="Download" size={12} />
               Import
             </Button>

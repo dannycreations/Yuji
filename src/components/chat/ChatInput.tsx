@@ -62,7 +62,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
     <div className="chat-input-wrapper">
       <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={handleFileSelect} />
 
-      <div className="chat-input-container shadow-xl">
+      <div className="chat-input-container shadow-xl!">
         <AttachmentGrid
           attachments={attachments}
           onRemove={removeAttachment}
@@ -86,11 +86,11 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
         <div className="chat-input-actions">
           <div className="chat-input-action-group">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Attach Image">
+            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} title="Attach Image" className="!p-1">
               <Icon name="Plus" size={22} />
             </Button>
 
-            <Button variant="ghost" size="icon" title="Search">
+            <Button variant="ghost" size="icon" title="Search" className="!p-1">
               <Icon name="Globe" size={18} />
             </Button>
           </div>

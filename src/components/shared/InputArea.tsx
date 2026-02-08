@@ -42,7 +42,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
       <InputWrapper leftIcon={leftIcon} rightIcon={rightIcon} containerClassName={containerClassName}>
         <input
           ref={ref}
-          className={clsx('input-base', leftIcon ? 'pl-9' : 'pl-3', rightIcon ? 'pr-9' : 'pr-3', className)}
+          className={clsx('input-base', leftIcon && 'pl-9', rightIcon && 'pr-9', className)}
           value={localValue}
           onChange={handleChange}
           {...props}
@@ -99,9 +99,7 @@ interface InputTextareaProps extends TextareaAutosizeProps {
 export const InputTextarea = forwardRef<HTMLTextAreaElement, InputTextareaProps>(({ className, value, onChange, debounceMs, ...props }, ref) => {
   const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
-  return (
-    <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />
-  );
+  return <TextareaAutosize ref={ref} className={clsx('input-base resize-none', className)} value={localValue} onChange={handleChange} {...props} />;
 });
 
 interface InputTagProps {
@@ -134,7 +132,7 @@ export const InputTag: FC<InputTagProps> = ({ tags, onChange, placeholder, maxLe
         </div>
       ))}
       <input
-        className="flex-1 bg-transparent border-none outline-none py-1 px-1 text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
+        className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
         placeholder={tags.length === 0 ? placeholder : ''}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === 'Tab') {

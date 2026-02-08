@@ -101,7 +101,7 @@ export const Sidebar: FC = () => {
         </Button>
 
         <div className="abs-center flex-center pointer-events-none">
-          <button onClick={() => setActiveThread(null)} className="sidebar-logo">
+          <button onClick={() => setActiveThread(null)} className="sidebar-logo pointer-events-auto">
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
           </button>
@@ -117,7 +117,7 @@ export const Sidebar: FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search threads..."
-          className="py-2 bg-surface/50 border-transparent focus:border-line/30 focus:bg-surface"
+          className="py-2! bg-surface/50 border-transparent! focus:border-line/30! focus:bg-surface!"
         />
       </div>
 
@@ -202,9 +202,7 @@ export const Sidebar: FC = () => {
 
       <div className="sidebar-footer">
         <Button variant="sidebar" onClick={toggleSetting}>
-          <div className="avatar-sm bg-surface-hover flex-center">
-            {getFirstChar(settings.personalisation.userName) || <Icon name="User" size={12} />}
-          </div>
+          <div className="avatar-sm">{getFirstChar(settings.personalisation.userName) || <Icon name="User" size={12} />}</div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
           </div>

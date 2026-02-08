@@ -21,10 +21,10 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-[#0a0a0a] text-white p-6 text-center">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background text-text-primary p-6 text-center">
       <div className="max-w-md w-full space-y-6">
         <div className="flex justify-center">
-          <div className="p-4 bg-red-500/10 rounded-full">
+          <div className="p-4 bg-danger/10 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="48"
@@ -35,7 +35,7 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="text-red-500"
+              className="text-danger"
             >
               <path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
               <line x1="3" y1="10" x2="21" y2="10" />
@@ -45,23 +45,23 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight">Database Conflict Detected</h1>
-          <p className="text-zinc-400">
+          <p className="text-text-secondary">
             Yuji encountered a problem while loading your database. This usually happens after an update or if the database was manually modified.
           </p>
         </div>
 
-        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 text-left overflow-auto max-h-[200px]">
-          <p className="text-xs font-mono text-red-400 break-all">{error}</p>
+        <div className="p-4 bg-background-raised rounded-lg border border-line text-left overflow-auto max-h-[200px]">
+          <p className="text-xs font-mono text-danger break-all">{error}</p>
         </div>
 
         <div className="pt-4">
           <button
             onClick={handleClearDatabase}
-            className="w-full py-3 px-4 bg-white text-black font-semibold rounded-lg hover:bg-zinc-200 transition-colors"
+            className="w-full py-3 px-4 bg-primary text-background font-semibold rounded-lg hover:opacity-90 transition-opacity"
           >
             Reset Database & Reload
           </button>
-          <p className="mt-4 text-xs text-zinc-500">Warning: This will permanently delete all your local chat history and settings.</p>
+          <p className="mt-4 text-xs text-text-tertiary">Warning: This will permanently delete all your local chat history and settings.</p>
         </div>
       </div>
     </div>

@@ -19,7 +19,7 @@ export interface DropdownItemProps {
 export const DropdownItem: FC<DropdownItemProps> = ({ icon, iconClassName, label, onClick, variant = 'default', className }) => (
   <button
     type="button"
-    className={clsx('dropdown-item', variant === 'danger' ? 'danger' : '!text-text-primary', className)}
+    className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', className)}
     onClick={(e) => {
       e.stopPropagation();
       onClick();
@@ -47,7 +47,7 @@ export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, position, childre
   return (
     <div
       ref={ref}
-      className={clsx('dropdown-menu fixed w-44 py-1 origin-top-right z-50', className)}
+      className={clsx('dropdown-menu fixed w-44 py-1 origin-top-right', className)}
       style={{
         top: `${position.top}px`,
         left: `${position.left}px`,

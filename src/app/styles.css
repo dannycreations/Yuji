@@ -299,7 +299,7 @@
   }
 
   .btn-icon {
-    @apply btn-ghost;
+    @apply btn-ghost !p-2;
     &.active {
       @apply text-text-primary bg-surface;
     }
@@ -330,12 +330,15 @@
 
   .btn-sidebar {
     @apply w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary;
+    & .avatar-sm {
+      @apply bg-surface-hover flex-center;
+    }
   }
 
   .input-base {
-    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl py-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-all placeholder:text-text-tertiary;
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl px-3 py-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-all placeholder:text-text-tertiary;
     &.input-sm {
-      @apply py-2 text-xs;
+      @apply px-3 py-2 text-xs;
     }
   }
 
@@ -398,7 +401,7 @@
   }
 
   .input-tag-container {
-    @apply flex flex-wrap gap-1 p-1 bg-surface-hover/40 border border-separator/30 rounded-xl focus-within:border-line/50 focus-within:bg-surface transition-all min-h-[46px];
+    @apply flex flex-wrap gap-1 p-2 bg-surface-hover/40 border border-separator/30 rounded-xl focus-within:border-line/50 focus-within:bg-surface transition-all min-h-[46px];
   }
 
   .tag-item {
@@ -453,7 +456,7 @@
   }
 
   .sidebar-logo {
-    @apply flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto;
+    @apply flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto text-text-primary;
   }
 
   .sidebar-content {
@@ -532,6 +535,10 @@
 
   .confirm-modal-actions {
     @apply flex justify-end px-3 pb-3 gap-3;
+  }
+
+  .message-branch-indicator-slash {
+    @apply text-text-tertiary mx-0.5;
   }
 
   .chat-container {
@@ -751,6 +758,14 @@
     @apply flex-center w-12 h-12 bg-primary rounded-full shadow-lg shadow-separator mb-3;
   }
 
+  .message-thinking-dot-delay-1 {
+    @apply [animation-delay:0.2s];
+  }
+
+  .message-thinking-dot-delay-2 {
+    @apply [animation-delay:0.4s];
+  }
+
   .text-semibold {
     @apply font-semibold;
   }
@@ -927,6 +942,16 @@
 
   .settings-label {
     @apply block text-sm text-text-primary mb-2;
+  }
+
+  .settings-tab-icon {
+    @apply transition-colors;
+    .list-item-interactive:hover & {
+      @apply text-text-primary;
+    }
+    .list-item-interactive.active & {
+      @apply text-text-primary;
+    }
   }
 
   .settings-appearance-btn {

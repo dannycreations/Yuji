@@ -143,7 +143,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <InputTextarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="chat-input-textarea !overflow-hidden"
+                  className="chat-input-textarea overflow-hidden!"
                   minRows={2}
                   debounceMs={0}
                   onKeyDown={(e) => {
@@ -167,8 +167,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 {isThinking && !message.content ? (
                   <div className="message-thinking-container">
                     <div className="message-thinking-dot" />
-                    <div className="message-thinking-dot [animation-delay:0.2s]" />
-                    <div className="message-thinking-dot [animation-delay:0.4s]" />
+                    <div className="message-thinking-dot message-thinking-dot-delay-1" />
+                    <div className="message-thinking-dot message-thinking-dot-delay-2" />
                   </div>
                 ) : (
                   <Markdown content={message.content} components={markdownComponents} />
@@ -193,7 +193,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                     </Button>
                     <span className="message-branch-indicator">
                       {currentIndex + 1}
-                      <span className="text-text-tertiary mx-0.5">/</span>
+                      <span className="message-branch-indicator-slash">/</span>
                       {siblings.length}
                     </span>
                     <Button
@@ -232,7 +232,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   <Icon name="Pencil" size={16} />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={handleDelete} className="hover:!text-danger" title="Delete">
+                <Button variant="ghost" size="icon" onClick={handleDelete} className="hover:text-danger!" title="Delete">
                   <Icon name="Trash2" size={16} />
                 </Button>
               </div>
