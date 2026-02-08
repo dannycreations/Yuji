@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema, Stream, SubscriptionRef } from 'effect';
+import { Context, Effect, Either, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
 import { AppRuntimeState, AppStoreState, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
@@ -23,6 +23,7 @@ export interface StoreService {
   readonly loadMessages: (threadId: string) => Effect.Effect<void>;
   readonly loadMoreMessages: () => Effect.Effect<void>;
   readonly loadMoreThreads: () => Effect.Effect<void>;
+  readonly clearDatabase: () => Effect.Effect<void>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -63,6 +64,7 @@ const INITIAL_STATE: AppRuntimeState = {
   notifications: [],
   pinnedThreadIds: [],
   backgroundThreadIds: [],
+  initializationError: undefined,
 };
 
 const OnConfirmStore = new Map<string, () => void>();
@@ -73,8 +75,21 @@ export const StoreServiceLive = Layer.effect(
     const storage = yield* StorageService;
 
     const loadState = Effect.gen(function* () {
-      const metadata = yield* storage.getMetadata().pipe(Effect.catchAll(() => Effect.succeed(null)));
-      const threadHeaders = yield* storage.getThreadsMetadata({ limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+      const result = yield* Effect.all({
+        metadata: storage.getMetadata(),
+        threadHeaders: storage.getThreadsMetadata({ limit: 30 }),
+      }).pipe(Effect.sandbox, Effect.either);
+
+      if (Either.isLeft(result)) {
+        console.error('[StoreService] Database initialization failed:', result.left);
+        return {
+          ...INITIAL_STATE,
+          isHydrated: true,
+          initializationError: String(result.left),
+        };
+      }
+
+      const { metadata, threadHeaders } = result.right;
 
       if (metadata) {
         const threadsMap: Record<string, ChatMetadata> = {};
@@ -99,7 +114,16 @@ export const StoreServiceLive = Layer.effect(
           activeThread,
           threads: threadsMap,
           isHydrated: true,
-        }).pipe(Effect.orDie);
+        }).pipe(
+          Effect.catchAll((err) => {
+            console.error('[StoreService] State hydration failed:', err);
+            return Effect.succeed({
+              ...INITIAL_STATE,
+              isHydrated: true,
+              initializationError: String(err),
+            });
+          }),
+        );
       }
       return { ...INITIAL_STATE, isHydrated: true };
     });
@@ -182,7 +206,7 @@ export const StoreServiceLive = Layer.effect(
           // Only skip if both ID matches and the thread object is correctly populated
           if (currentState.activeThreadId === threadId && currentState.activeThread?.id === threadId) return;
 
-          const thread = yield* storage.getThread(threadId, { limit: 20 });
+          const thread = yield* storage.getThread(threadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
           if (!thread) return;
 
           yield* update((s) => {
@@ -208,7 +232,7 @@ export const StoreServiceLive = Layer.effect(
           const currentMessages = Object.values(s.activeThread.messages);
           const offset = currentMessages.length;
 
-          const moreMessages = yield* storage.getMessages(threadId, { offset, limit: 20 });
+          const moreMessages = yield* storage.getMessages(threadId, { offset, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (moreMessages.length === 0) return;
 
           yield* update((s) => {
@@ -237,7 +261,7 @@ export const StoreServiceLive = Layer.effect(
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
           const currentCount = Object.keys(s.threads).length;
-          const moreHeaders = yield* storage.getThreadsMetadata({ offset: currentCount, limit: 30 });
+          const moreHeaders = yield* storage.getThreadsMetadata({ offset: currentCount, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
 
           if (moreHeaders.length === 0) return;
 
@@ -249,6 +273,7 @@ export const StoreServiceLive = Layer.effect(
             return { ...s, threads: newThreads };
           });
         }),
+      clearDatabase: () => storage.clearDatabase(),
     });
   }),
 );

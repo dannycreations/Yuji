@@ -137,6 +137,7 @@ export const AppRuntimeState = Schema.extend(
     isHydrated: Schema.Boolean,
     confirm: ConfirmState,
     notifications: Schema.Array(Notification),
+    initializationError: Schema.optional(Schema.String),
   }),
 );
 export type AppRuntimeState = Schema.Schema.Type<typeof AppRuntimeState>;

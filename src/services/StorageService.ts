@@ -21,6 +21,7 @@ export interface StorageService {
   readonly saveMessages: (threadId: string, messages: ChatMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
   readonly deleteMessages: (threadId: string) => Effect.Effect<void>;
+  readonly clearDatabase: () => Effect.Effect<void>;
 }
 
 export const StorageService = Context.GenericTag<StorageService>('@services/StorageService');
@@ -60,8 +61,8 @@ export const StorageServiceLive = Layer.effect(
           const db = yield* getDB;
           const metadata = yield* Effect.promise(() => db.get(STORES.METADATA, 'current'));
           if (!metadata) return null;
-          return yield* Schema.decode(AppStoreState)(metadata).pipe(Effect.orDie);
-        }),
+          return yield* Schema.decode(AppStoreState)(metadata);
+        }).pipe(Effect.orDie),
 
       saveMetadata: (metadata) =>
         Effect.gen(function* () {
@@ -74,12 +75,12 @@ export const StorageServiceLive = Layer.effect(
           if (!options) {
             const db = yield* getDB;
             const threads = yield* Effect.promise(() => db.getAll(STORES.THREADS));
-            return yield* Schema.decode(Schema.Array(ChatMetadata))(threads).pipe(Effect.orDie);
+            return yield* Schema.decode(Schema.Array(ChatMetadata))(threads);
           }
 
           const threads = yield* storage.paginate<ChatMetadata>(STORES.THREADS, options);
-          return yield* Schema.decode(Schema.Array(ChatMetadata))(threads).pipe(Effect.orDie);
-        }),
+          return yield* Schema.decode(Schema.Array(ChatMetadata))(threads);
+        }).pipe(Effect.orDie),
 
       getThread: (id, options) =>
         Effect.gen(function* () {
@@ -90,8 +91,8 @@ export const StorageServiceLive = Layer.effect(
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
-          return yield* Schema.decode(ChatThread)({ ...thread, messages: messagesRecord }).pipe(Effect.orDie);
-        }),
+          return yield* Schema.decode(ChatThread)({ ...thread, messages: messagesRecord });
+        }).pipe(Effect.orDie),
 
       saveThread: (thread) =>
         Effect.gen(function* () {
@@ -151,7 +152,7 @@ export const StorageServiceLive = Layer.effect(
           if (!options) {
             const db = yield* getDB;
             const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId));
-            return yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
+            return yield* Schema.decode(Schema.Array(ChatMessage))(messages);
           }
 
           const messages = yield* storage.paginate<ChatMessage>(STORES.MESSAGES, {
@@ -160,9 +161,9 @@ export const StorageServiceLive = Layer.effect(
             indexValue: threadId,
           });
 
-          const decoded = yield* Schema.decode(Schema.Array(ChatMessage))(messages).pipe(Effect.orDie);
+          const decoded = yield* Schema.decode(Schema.Array(ChatMessage))(messages);
           return [...decoded].reverse();
-        }),
+        }).pipe(Effect.orDie),
 
       saveMessage: (threadId, message) =>
         Effect.gen(function* () {
@@ -197,6 +198,25 @@ export const StorageServiceLive = Layer.effect(
           }
 
           yield* Effect.promise(() => tx.done);
+        }),
+
+      clearDatabase: () =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          db.close();
+          yield* Effect.promise(
+            () =>
+              new Promise((resolve, reject) => {
+                const request = indexedDB.deleteDatabase(DB_NAME);
+                request.onsuccess = () => resolve(undefined);
+                request.onerror = () => reject(request.error);
+                request.onblocked = () => {
+                  // If blocked, we still reload to try and clear things up
+                  resolve(undefined);
+                };
+              }),
+          );
+          window.location.reload();
         }),
     });
 
