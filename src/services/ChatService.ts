@@ -162,17 +162,28 @@ export const ChatServiceLive = Layer.effect(
 
           let fullContent = '';
           let lastSavedContent = '';
+          let lastUISaveContent = '';
           let lastSaveTime = Date.now();
-          const SAVE_INTERVAL = 1000;
+          let lastUITime = Date.now();
+
+          // ~30fps for smooth rendering without overloading React
+          const UI_UPDATE_INTERVAL = 33;
+          const STORAGE_SAVE_INTERVAL = 1000;
 
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {
               fullContent += token;
               const now = Date.now();
-              // Update UI immediately, but debounce storage write
-              yield* chatService.updateMessage(sessionId, id, fullContent, false, true, true);
 
-              if (now - lastSaveTime > SAVE_INTERVAL) {
+              // Throttle UI updates to prevent React reconciliation bottleneck
+              if (now - lastUITime > UI_UPDATE_INTERVAL) {
+                lastUITime = now;
+                lastUISaveContent = fullContent;
+                yield* chatService.updateMessage(sessionId, id, fullContent, false, true, true);
+              }
+
+              // Throttle Storage updates to prevent IDB write bottleneck
+              if (now - lastSaveTime > STORAGE_SAVE_INTERVAL) {
                 lastSaveTime = now;
                 lastSavedContent = fullContent;
                 yield* chatService.updateMessage(sessionId, id, fullContent, false, true);
@@ -180,10 +191,14 @@ export const ChatServiceLive = Layer.effect(
             }),
           );
 
-          // Ensure final state is saved
+          // Ensure final state is synchronized to both UI and Storage
+          if (fullContent !== lastUISaveContent) {
+            yield* chatService.updateMessage(sessionId, id, fullContent, false, true, true);
+          }
           if (fullContent !== lastSavedContent) {
             yield* chatService.updateMessage(sessionId, id, fullContent, false, true);
           }
+
           // Update timestamp once when stream is finished
           yield* chatService.updateSession(sessionId, (s) => s);
         }).pipe(
@@ -459,34 +474,44 @@ export const ChatServiceLive = Layer.effect(
           const now = Date.now();
           const id = uuid();
 
-          // We only take the path to this message
           const path = getMessagePath(sourceSession, messageId);
           const branchedMessages: Record<string, ChatMessage> = {};
-          const idMap: Record<string, string> = {};
 
-          path.forEach((m) => {
+          // We create new identities for the path
+          // to ensure the branch is isolated from future changes in the source,
+          const idMap = new Map<string, string>();
+          const messagesToSave: ChatMessage[] = [];
+
+          for (const m of path) {
             const newMsgId = uuid();
-            idMap[m.id] = newMsgId;
-            branchedMessages[newMsgId] = {
+            idMap.set(m.id, newMsgId);
+
+            const branchedMsg: ChatMessage = {
               ...m,
               id: newMsgId,
-              parentId: m.parentId ? idMap[m.parentId] : undefined,
-              childrenIds: [], // Branches start fresh without children
+              parentId: m.parentId ? idMap.get(m.parentId) : undefined,
+              childrenIds: [], // Branches start fresh
             };
-          });
 
-          // Link children back to parents in the new branched set
-          Object.values(branchedMessages).forEach((m) => {
+            branchedMessages[newMsgId] = branchedMsg;
+            messagesToSave.push(branchedMsg);
+          }
+
+          // Restore internal links for the new set
+          for (const m of messagesToSave) {
             if (m.parentId && branchedMessages[m.parentId]) {
-              const parentId = m.parentId;
-              branchedMessages[parentId] = {
-                ...branchedMessages[parentId],
-                childrenIds: [...(branchedMessages[parentId].childrenIds || []), m.id],
+              const parent = branchedMessages[m.parentId];
+              branchedMessages[m.parentId] = {
+                ...parent,
+                childrenIds: [...(parent.childrenIds || []), m.id],
               };
             }
-          });
+          }
 
-          const newActiveMessageId = idMap[messageId];
+          // Update the list of messages to save with linked versions
+          const finalMessagesToSave = Object.values(branchedMessages);
+
+          const newActiveMessageId = idMap.get(messageId);
 
           const newSession: ChatSession = {
             ...sourceSession,
@@ -507,7 +532,7 @@ export const ChatServiceLive = Layer.effect(
           }));
 
           yield* storage.saveSession(newSession);
-          yield* storage.saveMessages(id, Object.values(branchedMessages));
+          yield* storage.saveMessages(id, finalMessagesToSave);
 
           return newSession;
         }),

@@ -83,13 +83,19 @@ export const StoreServiceLive = Layer.effect(
         }
 
         let activeSession: ChatSession | null = null;
+        let settings = metadata.settings;
+
         if (metadata.activeSessionId) {
           activeSession = yield* storage.getSession(metadata.activeSessionId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
+          if (activeSession?.general.model) {
+            settings = { ...settings, model: activeSession.general.model };
+          }
         }
 
         return yield* Schema.decode(AppRuntimeState)({
           ...INITIAL_STATE,
           ...metadata,
+          settings,
           activeSession,
           sessions: sessionsMap,
           isHydrated: true,
@@ -126,7 +132,14 @@ export const StoreServiceLive = Layer.effect(
           if (id === s.activeSessionId && s.activeSession?.id === id) return s;
 
           const session = typeof activeSessionOrId === 'string' ? null : activeSessionOrId;
-          return { ...s, activeSessionId: id, activeSession: session };
+          const nextModel = session?.general.model || s.settings.model;
+
+          return {
+            ...s,
+            activeSessionId: id,
+            activeSession: session,
+            settings: { ...s.settings, model: nextModel },
+          };
         }),
       updateSetting: (updates) =>
         update((s) => ({
@@ -177,10 +190,13 @@ export const StoreServiceLive = Layer.effect(
             // Ensure we only update if the user hasn't switched to another session in the meantime
             if (s.activeSessionId !== sessionId) return s;
 
+            const nextModel = session.general.model || s.settings.model;
+
             return {
               ...s,
               activeSessionId: sessionId,
               activeSession: session,
+              settings: { ...s.settings, model: nextModel },
             };
           });
         }),
