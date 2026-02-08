@@ -46,6 +46,8 @@ export const Sidebar: FC = () => {
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimerRef = useRef<number | null>(null);
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads) as ChatThread[]), [threads]);
 
@@ -120,11 +122,20 @@ export const Sidebar: FC = () => {
       </div>
 
       <div
-        className="sidebar-content"
+        className={clsx('sidebar-content scrollbar-autohide', isScrolling && 'scrolling')}
         ref={scrollContainerRef}
         onScroll={(e) => {
           onScroll(e);
           handleInfiniteScroll(e);
+
+          setIsScrolling(true);
+          if (scrollTimerRef.current) {
+            window.clearTimeout(scrollTimerRef.current);
+          }
+          scrollTimerRef.current = window.setTimeout(() => {
+            setIsScrolling(false);
+            scrollTimerRef.current = null;
+          }, 1500);
         }}
       >
         <div style={{ height: totalHeight, position: 'relative' }}>

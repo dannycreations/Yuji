@@ -19,11 +19,14 @@ import type { FC } from 'react';
 import type { Components } from 'react-markdown';
 import type { ChatMessage, ConfirmOptions } from '../../app/Schema';
 
-const Markdown = memo(({ content, components }: { content: string; components: Components }) => (
-  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
-    {content}
-  </ReactMarkdown>
-));
+const Markdown = memo(
+  ({ content, components }: { content: string; components: Components }) => (
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
+      {content}
+    </ReactMarkdown>
+  ),
+  (prev, next) => prev.content === next.content,
+);
 
 interface ChatMessageBubbleProps {
   readonly message: ChatMessage;
@@ -63,11 +66,14 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const siblings = childrenIds || [];
   const currentIndex = siblings.indexOf(message.id);
 
-  const handleSwitch = (newId: string) => {
-    handleSwitchBranch(threadId, newId);
-  };
+  const handleSwitch = useCallback(
+    (newId: string) => {
+      handleSwitchBranch(threadId, newId);
+    },
+    [handleSwitchBranch, threadId],
+  );
 
-  const handleCopy = () => setCopy(message.content);
+  const handleCopy = useCallback(() => setCopy(message.content), [message.content, setCopy]);
 
   const handleSaveEdit = useCallback(() => {
     if (editContent.trim() !== message.content.trim()) {

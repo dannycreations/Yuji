@@ -162,9 +162,9 @@ export const ChatServiceLive = Layer.effect(
           let lastUITime = Date.now();
           let lastSaveTime = Date.now();
 
-          // ~30fps for smooth rendering without overloading React
-          const UI_UPDATE_INTERVAL = 33;
-          const STORAGE_SAVE_INTERVAL = 1000;
+          // ~20fps for smoother scrolling while still feeling responsive
+          const UI_UPDATE_INTERVAL = 50;
+          const STORAGE_SAVE_INTERVAL = 2000;
 
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {

@@ -69,7 +69,9 @@ export const ChatInterface: FC = () => {
     if (!el || !containerHeight) return;
 
     if (isAtBottomRef.current) {
-      el.scrollTop = el.scrollHeight;
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
     }
   }, [
     visibleMessages.length,

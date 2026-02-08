@@ -229,6 +229,22 @@
     @apply bg-line;
   }
 
+  .scrollbar-autohide::-webkit-scrollbar-thumb {
+    background-color: transparent;
+  }
+
+  .scrollbar-autohide:hover::-webkit-scrollbar-thumb,
+  .scrollbar-autohide:active::-webkit-scrollbar-thumb,
+  .scrollbar-autohide.scrolling::-webkit-scrollbar-thumb {
+    @apply bg-line/60;
+  }
+
+  .scrollbar-autohide:hover::-webkit-scrollbar-thumb:hover,
+  .scrollbar-autohide:active::-webkit-scrollbar-thumb:hover,
+  .scrollbar-autohide.scrolling::-webkit-scrollbar-thumb:hover {
+    @apply bg-line;
+  }
+
   input::placeholder,
   textarea::placeholder {
     @apply select-none;

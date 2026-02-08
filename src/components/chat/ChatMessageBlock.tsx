@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import mermaid from 'mermaid';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -65,9 +65,9 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
   );
 };
 
-const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
+const CodeBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
   const theme = useStore((s) => s.settings.theme);
-  const handleDownload = () => downloadFile(value, `code-${randomId(6)}.txt`);
+  const handleDownload = useCallback(() => downloadFile(value, `code-${randomId(6)}.txt`), [value]);
 
   return (
     <BaseMessageBlock label={language || 'code'} value={value} onDownload={handleDownload}>
@@ -96,9 +96,9 @@ const CodeBlock: FC<CodeBlockProps> = ({ language, value }) => {
       </SyntaxHighlighter>
     </BaseMessageBlock>
   );
-};
+});
 
-const MermaidBlock: FC<{ code: string }> = ({ code }) => {
+const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   const theme = useStore((s) => s.settings.theme);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -131,19 +131,22 @@ const MermaidBlock: FC<{ code: string }> = ({ code }) => {
     };
   }, [code, mermaidConfig]);
 
+  const handleFullscreen = useCallback(() => setIsFullscreen(true), []);
+  const handleCloseFullscreen = useCallback(() => setIsFullscreen(false), []);
+
   return (
     <>
-      <BaseMessageBlock label="diagram" value={code} onFullscreen={svg ? () => setIsFullscreen(true) : undefined}>
+      <BaseMessageBlock label="diagram" value={code} onFullscreen={svg ? handleFullscreen : undefined}>
         {error ? (
           <pre className="code-error">{code}</pre>
         ) : (
           <div ref={containerRef} className="mermaid-container" dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </BaseMessageBlock>
-      {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={() => setIsFullscreen(false)} />}
+      {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={handleCloseFullscreen} />}
     </>
   );
-};
+});
 
 export const ChatMessageBlock: FC<CodeBlockProps> = ({ language, value }) => {
   if (language === 'mermaid') {
