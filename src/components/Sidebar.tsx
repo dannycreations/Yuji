@@ -210,22 +210,33 @@ export const Sidebar: FC = () => {
             icon="Pin"
             iconClassName={clsx(pinnedThreadIds.includes(menuOpenId) && 'rotate-45')}
             label={pinnedThreadIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
-            onClick={() => handleTogglePin(menuOpenId)}
+            onClick={() => {
+              setMenuOpenId(null);
+              handleTogglePin(menuOpenId);
+            }}
           />
-          <DropdownItem icon="Settings" label="Settings" onClick={() => setSettingsOpenId(menuOpenId)} />
+          <DropdownItem
+            icon="Settings"
+            label="Settings"
+            onClick={() => {
+              setMenuOpenId(null);
+              setSettingsOpenId(menuOpenId);
+            }}
+          />
           <DropdownItem
             icon="Trash2"
             label="Delete"
             variant="danger"
-            onClick={() =>
+            onClick={() => {
+              setMenuOpenId(null);
               showConfirm({
                 title: 'Delete chat?',
                 message: `This will delete **${menuThreadMetadata?.title}** permanently.`,
                 confirmLabel: 'Delete',
                 onConfirm: () => handleDeleteThread(menuOpenId),
                 variant: 'danger',
-              })
-            }
+              });
+            }}
           />
         </Dropdown>
       )}

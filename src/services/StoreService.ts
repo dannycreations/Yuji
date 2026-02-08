@@ -105,15 +105,15 @@ export const StoreServiceLive = Layer.effect(
 
         if (metadata.activeThreadId) {
           activeThread = yield* storage.getThread(metadata.activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
-          if (activeThread?.general.model) {
-            settings = { ...settings, model: activeThread.general.model };
-          }
         }
 
         return yield* Schema.decode(AppRuntimeState)({
           ...INITIAL_STATE,
           ...metadata,
-          settings,
+          settings: {
+            ...settings,
+            model: activeThread?.general.model || settings.model,
+          },
           activeThread,
           threads: threadsMap,
           isHydrated: true,

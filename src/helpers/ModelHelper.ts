@@ -26,11 +26,12 @@ export const getFilteredModels = (
   options: {
     includeDisabled?: boolean;
     sort?: boolean;
-  } = { sort: true },
+  } = {},
 ): Model[] => {
-  let models = options.includeDisabled ? [...availableModels] : getActiveModels(availableModels, disabledModels);
+  const { includeDisabled = false, sort = true } = options;
+  let models = includeDisabled ? [...availableModels] : getActiveModels(availableModels, disabledModels);
   models = filterModels(models, search);
-  if (options.sort) {
+  if (sort) {
     return sortModels(models, disabledModels);
   }
   return models;

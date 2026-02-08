@@ -126,7 +126,7 @@ export const ChatServiceLive = Layer.effect(
           backgroundThreadIds: [...new Set([...s.backgroundThreadIds, threadId])],
         }));
 
-        const id = crypto.randomUUID();
+        const id = randomId();
         const assistantMessage: ChatMessage = {
           id,
           role: 'assistant',
@@ -158,8 +158,8 @@ export const ChatServiceLive = Layer.effect(
           let fullContent = '';
           let lastSavedContent = '';
           let lastUISaveContent = '';
-          let lastSaveTime = Date.now();
           let lastUITime = Date.now();
+          let lastSaveTime = Date.now();
 
           // ~30fps for smooth rendering without overloading React
           const UI_UPDATE_INTERVAL = 33;
@@ -324,14 +324,23 @@ export const ChatServiceLive = Layer.effect(
       importThreads: (threads) =>
         Effect.gen(function* () {
           const metadatas: Record<string, ChatMetadata> = {};
+          const saveEffects: Effect.Effect<void>[] = [];
+
           for (const [id, thread] of Object.entries(threads)) {
             metadatas[id] = yield* Schema.decode(ChatMetadata)(thread).pipe(Effect.orDie);
-            yield* storage.saveThread(thread);
+            saveEffects.push(storage.saveThread(thread));
           }
-          yield* store.update((s) => ({
-            ...s,
-            threads: { ...s.threads, ...metadatas },
-          }));
+
+          yield* Effect.all(
+            [
+              store.update((s) => ({
+                ...s,
+                threads: { ...s.threads, ...metadatas },
+              })),
+              ...saveEffects,
+            ],
+            { discard: true },
+          );
         }),
 
       addMessage: (threadId, message) =>
