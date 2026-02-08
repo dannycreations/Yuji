@@ -1,15 +1,12 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
-import { YujiRuntime } from '../../app/Runtime';
 import { getMessagePath } from '../../helpers/SessionHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useChatAction } from '../../hooks/useChatAction';
-import { useStore, useStoreAction } from '../../hooks/useStore';
+import { useLoadMoreMessages, useStore, useStoreAction } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
-import { StoreService } from '../../services/StoreService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
@@ -26,6 +23,7 @@ export const ChatInterface: FC = () => {
   const { isLoading, handleSend, stop: handleStop } = useChatAction();
 
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
+  const loadMoreMessages = useLoadMoreMessages();
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
@@ -142,7 +140,7 @@ export const ChatInterface: FC = () => {
           isAtBottomRef.current = isAtBottom;
 
           if (el.scrollTop === 0 && !isLoading && !isEmpty) {
-            YujiRuntime.runPromise(Effect.flatMap(StoreService, (s: StoreService) => s.loadMoreMessages())).catch(console.error);
+            loadMoreMessages().catch(console.error);
           }
         }}
       >

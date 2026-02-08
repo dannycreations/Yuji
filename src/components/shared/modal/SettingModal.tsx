@@ -2,7 +2,7 @@ import clsx from 'clsx';
 
 import { Button } from '../Button';
 import { Icon } from '../Icon';
-import { Modal } from './Modal';
+import { Modal, ModalHeader } from './Modal';
 
 import type { FC, ReactNode } from 'react';
 
@@ -48,9 +48,7 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
 
       {/* Main Content */}
       <div className="settings-main-content bg-background">
-        <div className="modal-header">
-          <div className="header-title">{activeTabLabel}</div>
-        </div>
+        <ModalHeader title={activeTabLabel} />
 
         <div className="flex-1 min-h-0">
           <div className="w-full h-full">{children}</div>

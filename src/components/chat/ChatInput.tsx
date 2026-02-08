@@ -105,6 +105,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          debounceMs={0}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder="Type your message here..."

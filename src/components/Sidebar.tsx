@@ -1,16 +1,13 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { YujiRuntime } from '../app/Runtime';
 import { filterSessions, groupSessions, sortSessionsByDate } from '../helpers/SessionHelper';
 import { useChatAction } from '../hooks/useChatAction';
-import { useClickOutside } from '../hooks/useClickOutside';
-import { useConfirm, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
+import { useConfirm, useLoadMoreSessions, useStore, useStoreAction, useToggleSetting, useToggleSidebar } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
-import { StoreService } from '../services/StoreService';
 import { SessionSettingModal } from './setting/SessionSettingModal';
 import { Button } from './shared/Button';
+import { Dropdown, DropdownItem } from './shared/Dropdown';
 import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
@@ -26,6 +23,7 @@ export const Sidebar: FC = () => {
   const backgroundSessionIds = useStore((s) => s.backgroundSessionIds);
 
   const setActiveSession = useStoreAction((s, id: string | null) => s.setActiveSession(id));
+  const loadMoreSessions = useLoadMoreSessions();
   const toggleSidebar = useToggleSidebar();
   const toggleSetting = useToggleSetting();
   const showConfirm = useConfirm();
@@ -36,7 +34,6 @@ export const Sidebar: FC = () => {
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(0);
 
@@ -45,13 +42,6 @@ export const Sidebar: FC = () => {
       setContainerHeight(scrollContainerRef.current.clientHeight);
     }
   }, [isSidebarOpen]);
-
-  useClickOutside(menuRef, () => {
-    if (menuOpenId) {
-      setMenuOpenId(null);
-      setMenuPosition(null);
-    }
-  });
 
   const sortedSessions = useMemo(() => sortSessionsByDate(Object.values(sessions) as ChatSession[]), [sessions]);
 
@@ -121,7 +111,7 @@ export const Sidebar: FC = () => {
           onScroll(e);
           const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
           if (scrollHeight - scrollTop <= clientHeight + 100) {
-            YujiRuntime.runPromise(Effect.flatMap(StoreService, (s: StoreService) => s.loadMoreSessions())).catch(console.error);
+            loadMoreSessions().catch(console.error);
           }
         }}
       >
@@ -205,55 +195,36 @@ export const Sidebar: FC = () => {
       {settingsOpenId && <SessionSettingModal sessionId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 
       {menuOpenId && menuPosition && menuSessionMetadata && (
-        <div
-          ref={menuRef}
-          className="dropdown-menu fixed w-44 py-1 origin-top-right"
-          style={{
-            top: `${menuPosition.top}px`,
-            left: `${menuPosition.left}px`,
+        <Dropdown
+          isOpen={true}
+          position={menuPosition}
+          onClose={() => {
+            setMenuOpenId(null);
+            setMenuPosition(null);
           }}
-          onClick={(e) => e.stopPropagation()}
         >
-          {[
-            {
-              icon: 'Pin',
-              label: pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin',
-              onClick: () => handleTogglePin(menuOpenId),
-              className: pinnedSessionIds.includes(menuOpenId) && 'rotate-45',
-            },
-            {
-              icon: 'Settings',
-              label: 'Settings',
-              onClick: () => setSettingsOpenId(menuOpenId),
-            },
-            {
-              icon: 'Trash2',
-              label: 'Delete',
-              variant: 'danger',
-              onClick: () =>
-                showConfirm({
-                  title: 'Delete chat?',
-                  message: `This will delete **${menuSessionMetadata?.title}** permanently.`,
-                  confirmLabel: 'Delete',
-                  onConfirm: () => handleDeleteSession(menuOpenId),
-                  variant: 'danger',
-                }),
-            },
-          ].map((item, idx) => (
-            <button
-              key={idx}
-              className={clsx('dropdown-item', item.variant === 'danger' ? 'danger' : '!text-text-primary')}
-              onClick={() => {
-                item.onClick();
-                setMenuOpenId(null);
-                setMenuPosition(null);
-              }}
-            >
-              <Icon name={item.icon} size={16} className={clsx(item.variant !== 'danger' && 'text-text-tertiary', item.className)} />
-              <span className="flex-1 text-left">{item.label}</span>
-            </button>
-          ))}
-        </div>
+          <DropdownItem
+            icon="Pin"
+            label={pinnedSessionIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
+            onClick={() => handleTogglePin(menuOpenId)}
+            className={clsx(pinnedSessionIds.includes(menuOpenId) && 'rotate-45')}
+          />
+          <DropdownItem icon="Settings" label="Settings" onClick={() => setSettingsOpenId(menuOpenId)} />
+          <DropdownItem
+            icon="Trash2"
+            label="Delete"
+            variant="danger"
+            onClick={() =>
+              showConfirm({
+                title: 'Delete chat?',
+                message: `This will delete **${menuSessionMetadata?.title}** permanently.`,
+                confirmLabel: 'Delete',
+                onConfirm: () => handleDeleteSession(menuOpenId),
+                variant: 'danger',
+              })
+            }
+          />
+        </Dropdown>
       )}
     </div>
   );

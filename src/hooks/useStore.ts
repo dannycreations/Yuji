@@ -2,9 +2,10 @@ import { Effect, Fiber, Stream } from 'effect';
 import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Runtime';
+import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 
-import type { AppRuntimeState, ConfirmState } from '../app/Schema';
+import type { AppRuntimeState, ChatSession, ConfirmState } from '../app/Schema';
 
 export const StoreContext = createContext<StoreService | null>(null);
 
@@ -84,5 +85,11 @@ export const useUpdateSetting = () =>
     s.updateSetting(updates),
   );
 export const useConfirm = () => useStoreAction((s, config: Omit<ConfirmState, 'isOpen' | 'id'> & { onConfirm: () => void }) => s.setConfirm(config));
-
 export const useNotify = () => useStoreAction((s, type: 'error' | 'warning' | 'info' | 'success', message: string) => s.notify(type, message));
+export const useLoadMoreMessages = () => useStoreAction((s) => s.loadMoreMessages());
+export const useLoadMoreSessions = () => useStoreAction((s) => s.loadMoreSessions());
+export const useUpdateSession = () =>
+  useStoreAction(
+    (_s, sessionId: string, f: (session: ChatSession, now: number) => ChatSession, options?: Parameters<ChatService['updateSession']>[2]) =>
+      Effect.flatMap(ChatService, (chat) => chat.updateSession(sessionId, f, options)),
+  );

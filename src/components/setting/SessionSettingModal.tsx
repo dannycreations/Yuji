@@ -1,9 +1,7 @@
 import { Effect } from 'effect';
 import { useEffect, useState } from 'react';
 
-import { YujiRuntime } from '../../app/Runtime';
-import { useStore, useStoreAction } from '../../hooks/useStore';
-import { ChatService } from '../../services/ChatService';
+import { useStore, useStoreEffect, useUpdateSession } from '../../hooks/useStore';
 import { StorageService } from '../../services/StorageService';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
@@ -28,17 +26,16 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
   const activeSession = useStore((s) => s.activeSession);
   const [localSession, setLocalSession] = useState<ChatSession | null>(null);
 
-  const updateTargetSession = useStoreAction((_, targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) =>
-    Effect.gen(function* () {
-      const chat = yield* ChatService;
-      yield* chat.updateSession(targetId, f, { metadataOnly: metadataOnly as boolean });
-      if (!metadataOnly) {
-        const storage = yield* StorageService;
-        const session = yield* storage.getSession(targetId);
-        if (session) setLocalSession(session);
-      }
-    }),
-  );
+  const updateSession = useUpdateSession();
+  const getSession = useStoreEffect((id: string) => Effect.flatMap(StorageService, (storage) => storage.getSession(id)));
+
+  const updateTargetSession = async (targetId: string, f: (s: ChatSession, now: number) => ChatSession, metadataOnly = false) => {
+    await updateSession(targetId, f, { metadataOnly: metadataOnly as boolean });
+    if (!metadataOnly) {
+      const session = await getSession(targetId);
+      if (session) setLocalSession(session);
+    }
+  };
 
   const [activeTab, setActiveTab] = useState('general');
 
@@ -46,9 +43,9 @@ export const SessionSettingModal: FC<SessionSettingModalProps> = ({ sessionId, o
     if (activeSession?.id === sessionId) {
       setLocalSession(null);
     } else {
-      YujiRuntime.runPromise(Effect.flatMap(StorageService, (storage) => storage.getSession(sessionId))).then((s) => s && setLocalSession(s));
+      getSession(sessionId).then((s) => s && setLocalSession(s));
     }
-  }, [sessionId, activeSession?.id]);
+  }, [sessionId, activeSession?.id, getSession]);
 
   const session = activeSession?.id === sessionId ? activeSession : localSession;
   if (!session) return null;

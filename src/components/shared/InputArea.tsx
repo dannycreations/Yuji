@@ -17,7 +17,7 @@ interface InputWrapperProps {
   readonly disabled?: boolean;
 }
 
-const InputWrapper: FC<InputWrapperProps> = ({ leftIcon, rightIcon, containerClassName, children, disabled }) => {
+export const InputWrapper: FC<InputWrapperProps> = ({ leftIcon, rightIcon, containerClassName, children, disabled }) => {
   return (
     <div className={clsx('input-wrapper', containerClassName, disabled && 'disabled')}>
       {leftIcon && <Icon name={leftIcon} size={14} className="input-icon left" />}
@@ -92,8 +92,12 @@ export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled 
   );
 };
 
-export const InputTextarea = forwardRef<HTMLTextAreaElement, TextareaAutosizeProps>(({ className, value, onChange, ...props }, ref) => {
-  const [localValue, handleChange] = useLocalValue(value, onChange);
+interface InputTextareaProps extends TextareaAutosizeProps {
+  readonly debounceMs?: number;
+}
+
+export const InputTextarea = forwardRef<HTMLTextAreaElement, InputTextareaProps>(({ className, value, onChange, debounceMs, ...props }, ref) => {
+  const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
   return (
     <TextareaAutosize ref={ref} className={clsx('input-base px-3 resize-none', className)} value={localValue} onChange={handleChange} {...props} />

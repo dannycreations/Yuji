@@ -4,8 +4,25 @@ import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useModalAnimation } from '../../../hooks/useModalAnimation';
+import { Button } from '../Button';
+import { Icon } from '../Icon';
 
 import type { FC, ReactNode } from 'react';
+
+export const ModalHeader: FC<{ readonly title: ReactNode; readonly onClose?: () => void }> = ({ title, onClose }) => (
+  <div className="modal-header">
+    <div className="header-title">{title}</div>
+    {onClose && (
+      <Button variant="ghost" size="icon" onClick={onClose} className="ml-auto">
+        <Icon name="X" size={18} />
+      </Button>
+    )}
+  </div>
+);
+
+export const ModalFooter: FC<{ readonly children: ReactNode; readonly className?: string }> = ({ children, className }) => (
+  <div className={clsx('modal-footer', className)}>{children}</div>
+);
 
 interface ModalProps {
   readonly isOpen: boolean;

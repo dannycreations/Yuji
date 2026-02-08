@@ -52,7 +52,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
 
   // Logic to find siblings for navigation
   const siblings = childrenIds || [];
-
   const currentIndex = siblings.indexOf(message.id);
 
   const handleSwitch = (newId: string) => {
@@ -135,6 +134,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, se
                   onChange={(e) => setEditContent(e.target.value)}
                   className="chat-input-textarea !overflow-hidden"
                   minRows={2}
+                  debounceMs={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                       handleSaveEdit();
