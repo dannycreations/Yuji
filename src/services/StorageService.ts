@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Schema } from 'effect';
+import { Context, Effect, Layer } from 'effect';
 import { openDB } from 'idb';
 
 import { AppStoreState, ChatMessage, ChatMetadata, ChatThread } from '../app/Schema';
@@ -61,7 +61,7 @@ export const StorageServiceLive = Layer.effect(
           const db = yield* getDB;
           const metadata = yield* Effect.promise(() => db.get(STORES.METADATA, 'current'));
           if (!metadata) return null;
-          return yield* Schema.decode(AppStoreState)(metadata);
+          return metadata as AppStoreState;
         }).pipe(Effect.orDie),
 
       saveMetadata: (metadata) =>
@@ -75,11 +75,11 @@ export const StorageServiceLive = Layer.effect(
           if (!options) {
             const db = yield* getDB;
             const threads = yield* Effect.promise(() => db.getAll(STORES.THREADS));
-            return yield* Schema.decode(Schema.Array(ChatMetadata))(threads);
+            return threads as ChatMetadata[];
           }
 
           const threads = yield* storage.paginate<ChatMetadata>(STORES.THREADS, options);
-          return yield* Schema.decode(Schema.Array(ChatMetadata))(threads);
+          return threads as ChatMetadata[];
         }).pipe(Effect.orDie),
 
       getThread: (id, options) =>
@@ -91,7 +91,7 @@ export const StorageServiceLive = Layer.effect(
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
-          return yield* Schema.decode(ChatThread)({ ...thread, messages: messagesRecord });
+          return { ...thread, messages: messagesRecord } as ChatThread;
         }).pipe(Effect.orDie),
 
       saveThread: (thread) =>
@@ -156,7 +156,7 @@ export const StorageServiceLive = Layer.effect(
           if (!options) {
             const db = yield* getDB;
             const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId));
-            return yield* Schema.decode(Schema.Array(ChatMessage))(messages);
+            return messages as ChatMessage[];
           }
 
           const messages = yield* storage.paginate<ChatMessage>(STORES.MESSAGES, {
@@ -165,8 +165,7 @@ export const StorageServiceLive = Layer.effect(
             indexValue: threadId,
           });
 
-          const decoded = yield* Schema.decode(Schema.Array(ChatMessage))(messages);
-          return [...decoded].reverse();
+          return [...(messages as ChatMessage[])].reverse();
         }).pipe(Effect.orDie),
 
       saveMessage: (threadId, message) =>

@@ -21,6 +21,7 @@ export interface ChatService {
     isError?: boolean,
     skipUpdateTimestamp?: boolean,
     uiOnly?: boolean,
+    metadataOnly?: boolean,
   ) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (threadId: string, messageId: string) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError>;
   readonly renameThread: (threadId: string, title: string) => Effect.Effect<void, ThreadNotFoundError>;
@@ -74,7 +75,7 @@ export const ChatServiceLive = Layer.effect(
 
         const storeUpdate = store.update((s) => ({
           ...s,
-          threads: { ...s.threads, [threadId]: metadata },
+          threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: metadata },
           activeThread: isActive ? finalUpdated : s.activeThread,
         }));
 
@@ -174,28 +175,28 @@ export const ChatServiceLive = Layer.effect(
               if (now - lastUITime > UI_UPDATE_INTERVAL) {
                 lastUITime = now;
                 lastUISaveContent = fullContent;
-                yield* chatService.updateMessage(threadId, id, fullContent, false, true, true);
+                yield* chatService.updateMessage(threadId, id, fullContent, false, true, true, false);
               }
 
               // Throttle Storage updates to prevent IDB write bottleneck
               if (now - lastSaveTime > STORAGE_SAVE_INTERVAL) {
                 lastSaveTime = now;
                 lastSavedContent = fullContent;
-                yield* chatService.updateMessage(threadId, id, fullContent, false, true);
+                yield* chatService.updateMessage(threadId, id, fullContent, false, true, false, false);
               }
             }),
           );
 
           // Ensure final state is synchronized to both UI and Storage
           if (fullContent !== lastUISaveContent) {
-            yield* chatService.updateMessage(threadId, id, fullContent, false, true, true);
+            yield* chatService.updateMessage(threadId, id, fullContent, false, true, true, false);
           }
           if (fullContent !== lastSavedContent) {
-            yield* chatService.updateMessage(threadId, id, fullContent, false, true);
+            yield* chatService.updateMessage(threadId, id, fullContent, false, true, false, false);
           }
 
           // Update timestamp once when stream is finished
-          yield* chatService.updateThread(threadId, (s) => s);
+          yield* chatService.updateMessage(threadId, id, fullContent, false, false, false, true);
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
@@ -373,9 +374,15 @@ export const ChatServiceLive = Layer.effect(
           yield* storage.saveMessages(threadId, messagesToSave);
         }),
 
-      updateMessage: (threadId, messageId, content, isError, skipUpdateTimestamp, uiOnly) =>
+      updateMessage: (threadId, messageId, content, isError, skipUpdateTimestamp, uiOnly, metadataOnly) =>
         Effect.gen(function* () {
           let updatedMessage: ChatMessage | undefined;
+
+          if (metadataOnly) {
+            yield* updateThread(threadId, (s) => s);
+            return;
+          }
+
           yield* updateThread(
             threadId,
             (thread) => {

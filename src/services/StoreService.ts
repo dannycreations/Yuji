@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
 import { YujiRuntime } from '../app/Runtime';
 import { AppRuntimeState, AppStoreState, ChatMessage, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
 import { getMessagePath } from '../helpers/ThreadHelper';
-import { formatError, randomId } from '../utilities/CommonUtil';
+import { randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
 export interface StoreService {
@@ -108,7 +108,7 @@ export const StoreServiceLive = Layer.effect(
           activeThread = yield* storage.getThread(metadata.activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
         }
 
-        return yield* Schema.decode(AppRuntimeState)({
+        return {
           ...INITIAL_STATE,
           ...metadata,
           settings: {
@@ -118,16 +118,7 @@ export const StoreServiceLive = Layer.effect(
           activeThread,
           threads: threadsMap,
           isHydrated: true,
-        }).pipe(
-          Effect.catchAll((err) => {
-            console.error('[StoreService] State hydration failed:', err);
-            return Effect.succeed({
-              ...INITIAL_STATE,
-              isHydrated: true,
-              initializationError: formatError(err),
-            });
-          }),
-        );
+        } as AppRuntimeState;
       }
       return { ...INITIAL_STATE, isHydrated: true };
     });
@@ -167,7 +158,11 @@ export const StoreServiceLive = Layer.effect(
           if (s.activeThreadId === id && s.activeThread?.id === id) {
             return s.activeThread;
           }
-          return yield* storage.getThread(id);
+          const thread = yield* storage.getThread(id);
+          if (thread && s.activeThreadId === id) {
+            yield* update((s) => (s.activeThreadId === id ? { ...s, activeThread: thread } : s));
+          }
+          return thread;
         }),
       setActiveThread: (activeThreadOrId) =>
         update((s) => {

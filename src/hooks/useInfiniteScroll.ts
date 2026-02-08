@@ -8,13 +8,7 @@ interface InfiniteScrollOptions {
   readonly enabled?: boolean;
 }
 
-export const useInfiniteScroll = ({
-  onLoadMore,
-  threshold = 100,
-  isLoading = false,
-  direction = 'bottom',
-  enabled = true,
-}: InfiniteScrollOptions) => {
+export const useInfiniteScroll = ({ onLoadMore, threshold = 20, isLoading = false, direction = 'bottom', enabled = true }: InfiniteScrollOptions) => {
   const isHandlingRef = useRef(false);
 
   const handleScroll = useCallback(

@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { filterThreads, groupThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
@@ -19,7 +19,10 @@ import type { FC } from 'react';
 import type { ChatThread, ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
-  const threads = useStore((s) => s.threads);
+  const threads = useStore(
+    (s) => s.threads,
+    (a, b) => a === b,
+  );
   const settings = useStore((s) => s.settings);
   const activeThreadId = useStore((s) => s.activeThreadId);
   const pinnedThreadIds = useStore((s) => s.pinnedThreadIds);
@@ -39,14 +42,20 @@ export const Sidebar: FC = () => {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deferredQuery, setDeferredQuery] = useState('');
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads) as ChatThread[]), [threads]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const flattenedThreads = useMemo(() => {
-    const filtered = filterThreads(sortedThreads, searchQuery);
+    const filtered = filterThreads(sortedThreads, deferredQuery);
     const grouped = groupThreads(filtered, pinnedThreadIds);
 
     const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: ChatThread }> = [];
@@ -75,7 +84,7 @@ export const Sidebar: FC = () => {
       loadMoreThreads().catch(console.error);
     },
     direction: 'bottom',
-    threshold: 100,
+    threshold: 20,
   });
 
   const menuThreadMetadata = menuOpenId ? threads[menuOpenId] : null;
