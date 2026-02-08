@@ -1,20 +1,22 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/ThreadHelper';
 import { getGreeting } from '../../helpers/UserHelper';
-import { useChatAction } from '../../hooks/useChatAction';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
-import { useStore, useStoreAction } from '../../hooks/useStore';
+import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
+import { ChatService } from '../../services/ChatService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
 
 import type { FC } from 'react';
+import type { Attachment } from '../../app/Schema';
 
 export const ChatInterface: FC = () => {
   const activeThreadId = useStore((s) => s.activeThreadId);
@@ -22,7 +24,13 @@ export const ChatInterface: FC = () => {
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 
-  const { isLoading, handleSend, stop: handleStop } = useChatAction();
+  const backgroundThreadIds = useStore((s) => s.backgroundThreadIds);
+  const isLoading = activeThreadId ? backgroundThreadIds.includes(activeThreadId) : false;
+
+  const handleSend = useStoreEffect((content: string, attachments?: ReadonlyArray<Attachment>) =>
+    Effect.flatMap(ChatService, (chat) => chat.sendMessage(content, attachments)),
+  );
+  const handleStop = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.stop(activeThreadId || undefined)));
 
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
   const loadMoreMessages = useStoreAction((s) => s.loadMoreMessages());
@@ -42,7 +50,9 @@ export const ChatInterface: FC = () => {
   const isEmpty = !activeThread || Object.keys(activeThread.messages).length === 0;
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
-    onLoadMore: () => loadMoreMessages().catch(console.error),
+    onLoadMore: () => {
+      loadMoreMessages().catch(console.error);
+    },
     direction: 'top',
     threshold: 50,
     isLoading,

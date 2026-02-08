@@ -1,8 +1,9 @@
-import { Context, Effect, Either, Layer, Schema, Stream, SubscriptionRef } from 'effect';
+import { Context, Effect, Either, Fiber, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
+import { YujiRuntime } from '../app/Runtime';
 import { AppRuntimeState, AppStoreState, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
-import { randomId } from '../utilities/CommonUtil';
+import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
 export interface StoreService {
@@ -24,6 +25,7 @@ export interface StoreService {
   readonly loadMoreMessages: () => Effect.Effect<void>;
   readonly loadMoreThreads: () => Effect.Effect<void>;
   readonly clearDatabase: () => Effect.Effect<void>;
+  readonly subscribe: (onStoreChange: () => void) => () => void;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -120,7 +122,7 @@ export const StoreServiceLive = Layer.effect(
             return Effect.succeed({
               ...INITIAL_STATE,
               isHydrated: true,
-              initializationError: String(err),
+              initializationError: formatError(err),
             });
           }),
         );
@@ -130,6 +132,13 @@ export const StoreServiceLive = Layer.effect(
 
     const initialState = yield* loadState;
     const state = yield* SubscriptionRef.make(initialState);
+
+    const subscribe = (onStoreChange: () => void) => {
+      const fiber = YujiRuntime.runFork(Stream.runForEach(state.changes, () => Effect.sync(onStoreChange)));
+      return () => {
+        YujiRuntime.runFork(Fiber.interrupt(fiber));
+      };
+    };
 
     // Persistence Loop: Metadata (Debounced & Differential)
     yield* Effect.forkDaemon(
@@ -148,6 +157,7 @@ export const StoreServiceLive = Layer.effect(
       state,
       getSnapshot: () => SubscriptionRef.get(state).pipe(Effect.runSync),
       update,
+      subscribe,
       patch: (updates) => update((s) => ({ ...s, ...updates })),
       setActiveThread: (activeThreadOrId) =>
         update((s) => {
@@ -202,27 +212,22 @@ export const StoreServiceLive = Layer.effect(
         })),
       loadMessages: (threadId) =>
         Effect.gen(function* () {
-          const currentState = yield* SubscriptionRef.get(state);
-          // Only skip if both ID matches and the thread object is correctly populated
-          if (currentState.activeThreadId === threadId && currentState.activeThread?.id === threadId) return;
+          const s = yield* SubscriptionRef.get(state);
+          if (s.activeThreadId === threadId && s.activeThread?.id === threadId) return;
 
           const thread = yield* storage.getThread(threadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
           if (!thread) return;
 
-          yield* update((s) => {
-            // Ensure we only update if the user hasn't switched to another thread in the meantime
-            if (s.activeThreadId !== threadId) return s;
-
-            const nextModel = thread.general.model || s.settings.model;
-
-            return {
-              ...s,
-              activeThreadId: threadId,
-              activeThread: thread,
-              settings: { ...s.settings, model: nextModel },
-            };
-          });
-        }),
+          yield* update((s) =>
+            s.activeThreadId === threadId
+              ? {
+                  ...s,
+                  activeThread: thread,
+                  settings: { ...s.settings, model: thread.general.model || s.settings.model },
+                }
+              : s,
+          );
+        }).pipe(Effect.orDie),
       loadMoreMessages: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);

@@ -1,4 +1,4 @@
-import { Effect, Fiber, Stream } from 'effect';
+import { Effect } from 'effect';
 import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Runtime';
@@ -16,27 +16,20 @@ export const useStoreService = (): StoreService => {
   return service;
 };
 
-export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual?: (a: T, b: T) => boolean): T => {
+export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T => {
   const storeService = useStoreService();
   const lastSelectedState = useRef<T | null>(null);
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
-      const fiber = YujiRuntime.runFork(
-        Stream.runForEach(storeService.state.changes, (state) =>
-          Effect.sync(() => {
-            const nextSelectedState = selector(state);
-            const changed = isEqual ? !isEqual(lastSelectedState.current as T, nextSelectedState) : nextSelectedState !== lastSelectedState.current;
+      return storeService.subscribe(() => {
+        const nextSelectedState = selector(storeService.getSnapshot());
+        const changed = isEqual ? !isEqual(lastSelectedState.current as T, nextSelectedState) : nextSelectedState !== lastSelectedState.current;
 
-            if (changed) {
-              callback();
-            }
-          }),
-        ),
-      );
-      return () => {
-        YujiRuntime.runFork(Fiber.interrupt(fiber));
-      };
+        if (changed) {
+          callback();
+        }
+      });
     };
   }, [storeService, selector, isEqual]);
 
@@ -55,19 +48,17 @@ export const useStoreEffect = <A extends unknown[], R, E, I>(effectFn: (...args:
 
   return useMemo(
     () =>
-      (...args: A) =>
+      (...args: A): Promise<R | null> =>
         YujiRuntime.runPromise(
-          Effect.flatMap(
-            StoreService,
-            (store) =>
-              effectFnRef.current(...args).pipe(
-                Effect.catchAll((err) => {
-                  const message = (err as { message: string })?.message || (typeof err === 'string' ? err : JSON.stringify(err));
-                  return store.notify('error', message).pipe(Effect.map(() => null));
-                }),
-                Effect.orDie,
-              ) as unknown as Effect.Effect<R, never, never>,
-          ),
+          Effect.flatMap(StoreService, (store) =>
+            effectFnRef.current(...args).pipe(
+              Effect.catchAll((err) => {
+                const message = (err as { message: string })?.message || (typeof err === 'string' ? err : JSON.stringify(err));
+                return store.notify('error', message).pipe(Effect.as(null));
+              }),
+              Effect.orDie,
+            ),
+          ) as unknown as Effect.Effect<R | null, never, never>,
         ),
     [],
   );

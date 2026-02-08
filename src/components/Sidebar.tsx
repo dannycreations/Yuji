@@ -1,12 +1,13 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { filterThreads, groupThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
-import { useChatAction } from '../hooks/useChatAction';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../hooks/useResizeObserver';
-import { useStore, useStoreAction } from '../hooks/useStore';
+import { useStore, useStoreAction, useStoreEffect } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
+import { ChatService } from '../services/ChatService';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Button } from './shared/Button';
@@ -31,7 +32,9 @@ export const Sidebar: FC = () => {
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
-  const { handleCreateThread, handleDeleteThread, handleTogglePin } = useChatAction();
+  const handleCreateThread = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.createThread()));
+  const handleDeleteThread = useStoreEffect((id: string) => Effect.flatMap(ChatService, (chat) => chat.deleteThread(id)));
+  const handleTogglePin = useStoreAction((s, id: string) => s.togglePin(id));
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -70,7 +73,9 @@ export const Sidebar: FC = () => {
   });
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
-    onLoadMore: () => loadMoreThreads().catch(console.error),
+    onLoadMore: () => {
+      loadMoreThreads().catch(console.error);
+    },
     direction: 'bottom',
     threshold: 100,
   });

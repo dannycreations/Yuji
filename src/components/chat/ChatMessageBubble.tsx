@@ -1,13 +1,14 @@
 import clsx from 'clsx';
+import { Effect } from 'effect';
 import { memo, useCallback, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
-import { useChatAction } from '../../hooks/useChatAction';
 import { useCopy } from '../../hooks/useCopy';
-import { useStore, useStoreAction } from '../../hooks/useStore';
+import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
+import { ChatService } from '../../services/ChatService';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
@@ -48,7 +49,15 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
 
-  const { handleBranch, handleSwitchBranch, handleDeleteMessage, handleRegenerate, handleEdit } = useChatAction();
+  const handleBranch = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.branchChat(tid, mid)));
+  const handleSwitchBranch = useStoreEffect((_tid: string, mid: string) =>
+    Effect.flatMap(ChatService, (chat) => chat.updateActiveThread((t) => ({ ...t, activeMessageId: mid }))),
+  );
+  const handleDeleteMessage = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.deleteMessage(tid, mid)));
+  const handleRegenerate = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.regenerateMessage(tid, mid)));
+  const handleEdit = useStoreEffect((tid: string, mid: string, content: string) =>
+    Effect.flatMap(ChatService, (chat) => chat.updateMessage(tid, mid, content)),
+  );
 
   // Logic to find siblings for navigation
   const siblings = childrenIds || [];
