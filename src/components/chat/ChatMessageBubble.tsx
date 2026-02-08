@@ -38,6 +38,7 @@ interface ChatMessageBubbleProps {
 
 export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, onUpdateHeight }) => {
   const isUser = message.role === 'user';
+  const saveAfterEditing = useStore((s) => s.settings.saveAfterEditing);
   const childrenIds = useStore(
     (s) => {
       if (!message.parentId) return undefined;
@@ -80,8 +81,13 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       handleEdit(threadId, message.id, editContent);
       onUpdateHeight?.();
     }
+
+    if (!saveAfterEditing) {
+      handleRegenerate(threadId, message.id);
+    }
+
     setIsEditing(false);
-  }, [editContent, message.content, threadId, message.id, handleEdit, onUpdateHeight]);
+  }, [editContent, message.content, message.role, threadId, message.id, handleEdit, handleRegenerate, saveAfterEditing, onUpdateHeight]);
 
   const onConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
@@ -158,7 +164,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <div className="chat-input-edit-actions">
                   <Button onClick={() => setIsEditing(false)}>Cancel</Button>
                   <Button variant="primary" onClick={handleSaveEdit}>
-                    Save
+                    {saveAfterEditing ? 'Save' : 'Regenerate'}
                   </Button>
                 </div>
               </div>

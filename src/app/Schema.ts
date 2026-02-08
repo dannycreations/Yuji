@@ -49,6 +49,7 @@ export const GlobalSettings = Schema.Struct({
   enterToSend: Schema.Boolean,
   expandCodeblock: Schema.Boolean,
   showSuggestions: Schema.Boolean,
+  saveAfterEditing: Schema.Boolean,
   instruction: Instruction,
   personalisation: Personalisation,
   disabledModels: Schema.Array(Schema.String),

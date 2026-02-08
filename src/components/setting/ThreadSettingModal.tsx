@@ -79,7 +79,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
               />
             </SettingField>
 
-            <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group mt-2 pt-2">
+            <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group pt-2">
               <InputSwitch checked={!!thread.general.overrideInstruction} onChange={(checked) => handleGeneral({ overrideInstruction: checked })} />
             </SettingItem>
 

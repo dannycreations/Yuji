@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   enterToSend: true,
   expandCodeblock: true,
   showSuggestions: true,
+  saveAfterEditing: true,
   instruction: {
     systemPrompt: DEFAULT_SYSTEM_PROMPT,
   },

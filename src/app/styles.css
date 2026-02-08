@@ -405,7 +405,7 @@
   }
 
   .tag-item {
-    @apply flex items-center gap-1 px-2 py-1 bg-white/10 text-text-primary text-xs rounded-lg animate-fade-in border border-white/5;
+    @apply flex items-center gap-1 px-2 py-1 bg-line text-text-primary text-xs rounded-lg animate-fade-in border border-separator;
     & .tag-remove {
       @apply text-text-tertiary hover:text-text-primary transition-colors;
     }

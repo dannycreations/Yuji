@@ -112,6 +112,7 @@ export const StoreServiceLive = Layer.effect(
           ...INITIAL_STATE,
           ...metadata,
           settings: {
+            ...DEFAULT_SETTINGS,
             ...settings,
             model: activeThread?.general.model || settings.model,
           },

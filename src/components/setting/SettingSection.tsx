@@ -83,6 +83,10 @@ export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) 
       <SettingItem label="Show suggestions" description="Show prompt suggestions on the initial chat page.">
         <InputSwitch checked={settings.showSuggestions} onChange={(checked) => onChange({ showSuggestions: checked })} />
       </SettingItem>
+
+      <SettingItem label="Save after editing" description="If disabled, the save button will be changed to regenerate.">
+        <InputSwitch checked={settings.saveAfterEditing} onChange={(checked) => onChange({ saveAfterEditing: checked })} />
+      </SettingItem>
     </SectionWrapper>
   );
 };
