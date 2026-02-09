@@ -44,8 +44,8 @@ export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[
 };
 
 export const filterThreads = <T extends ThreadMetadata | Thread>(threads: T[], query: string): T[] => {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (!normalizedQuery) return threads;
+  if (!query) return threads;
+  const normalizedQuery = query.toLowerCase();
   return threads.filter((s) => s.title.toLowerCase().includes(normalizedQuery));
 };
 

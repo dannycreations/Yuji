@@ -73,7 +73,7 @@ export const Sidebar: FC = () => {
       }
     }
     return result;
-  }, [sortedThreads, searchQuery, pinnedThreadIds]);
+  }, [sortedThreads, deferredQuery, pinnedThreadIds]);
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
     containerHeight,
