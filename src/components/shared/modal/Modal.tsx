@@ -50,8 +50,12 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, className, co
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={clsx('modal-overlay', isClosing ? 'animate-fade-out' : 'animate-fade-in', className)}>
-      <div ref={containerRef} className={clsx('modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up', containerClassName)}>
+    <div className={clsx('modal-overlay', isClosing ? 'animate-fade-out' : 'animate-fade-in', className)} onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={containerRef}
+        className={clsx('modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up', containerClassName)}
+        onClick={(e) => e.stopPropagation()}
+      >
         {children}
       </div>
     </div>,
