@@ -31,12 +31,13 @@ const Markdown = memo(
 interface ChatMessageBubbleProps {
   readonly message: ChatMessage;
   readonly threadId: string;
-  readonly isLast: boolean;
+  readonly isLast?: boolean;
   readonly isThinking?: boolean;
   readonly onUpdateHeight?: () => void;
+  readonly readOnly?: boolean;
 }
 
-export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, onUpdateHeight }) => {
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, onUpdateHeight, readOnly }) => {
   const isUser = message.role === 'user';
   const saveAfterEditing = useStore((s) => s.settings.saveAfterEditing);
   const childrenIds = useStore(
@@ -140,7 +141,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   return (
     <div className="group w-full" data-message-id={message.id}>
       <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
-        <div className={clsx('message-container', isUser ? 'user' : 'assistant')}>
+        <div className={clsx('message-container', isUser ? 'user' : 'assistant', readOnly && 'no-actions')}>
           <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
             <AttachmentGrid attachments={message.attachments || []} className="message-attachment-grid mb-2" />
 
@@ -183,7 +184,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
             )}
           </div>
 
-          {!isEditing && (
+          {!isEditing && !readOnly && (
             <div className={clsx('message-action-bar', isThinking && 'opacity-0 pointer-events-none')}>
               <div className="message-actions">
                 {siblings.length > 1 && (

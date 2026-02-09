@@ -38,6 +38,7 @@ export const Sidebar: FC = () => {
   const handleCreateThread = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.createThread()));
   const handleDeleteThread = useStoreEffect((id: string) => Effect.flatMap(ChatService, (chat) => chat.deleteThread(id)));
   const handleTogglePin = useStoreAction((s, id: string) => s.togglePin(id));
+  const handleToggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export const Sidebar: FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
 
-  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads) as ChatThread[]), [threads]);
+  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads)).filter((t) => !t.archived), [threads]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
@@ -229,6 +230,14 @@ export const Sidebar: FC = () => {
             onClick={() => {
               setMenuOpenId(null);
               handleTogglePin(menuOpenId);
+            }}
+          />
+          <DropdownItem
+            icon="Archive"
+            label="Archive"
+            onClick={() => {
+              setMenuOpenId(null);
+              handleToggleArchive(menuOpenId);
             }}
           />
           <DropdownItem

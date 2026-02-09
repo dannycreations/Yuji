@@ -18,6 +18,7 @@ export interface StoreService {
   ) => Effect.Effect<void>;
   readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void>;
   readonly togglePin: (threadId: string) => Effect.Effect<void>;
+  readonly toggleArchive: (threadId: string) => Effect.Effect<void>;
   readonly setConfirm: (options: ConfirmOptions) => Effect.Effect<void>;
   readonly executeConfirm: (id: string) => Effect.Effect<void>;
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
@@ -191,6 +192,28 @@ export const StoreServiceLive = Layer.effect(
           const isPinned = s.pinnedThreadIds.includes(threadId);
           const pinnedThreadIds = isPinned ? s.pinnedThreadIds.filter((id) => id !== threadId) : [...s.pinnedThreadIds, threadId];
           return { ...s, pinnedThreadIds };
+        }),
+      toggleArchive: (threadId) =>
+        Effect.gen(function* () {
+          const s = yield* SubscriptionRef.get(state);
+          const thread = s.threads[threadId];
+          if (!thread) return;
+
+          const archived = !thread.archived;
+          yield* update((s) => ({
+            ...s,
+            threads: {
+              ...s.threads,
+              [threadId]: { ...thread, archived },
+            },
+          }));
+
+          // Persistence: Update the thread in StorageService
+          yield* storage.saveThread({ ...thread, archived });
+
+          if (archived && s.activeThreadId === threadId) {
+            yield* SubscriptionRef.update(state, (s) => ({ ...s, activeThreadId: null, activeThread: null }));
+          }
         }),
       setConfirm: (options) =>
         Effect.gen(function* () {

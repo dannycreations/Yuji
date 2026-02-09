@@ -2,13 +2,21 @@ import { useState } from 'react';
 
 import { useStore, useStoreAction } from '../../hooks/useStore';
 import { SettingModal } from '../shared/modal/SettingModal';
-import { ConnectionSection, GeneralSection, HistorySection, InstructionSection, ModelsSection, PersonalisationSection } from './SettingSection';
+import {
+  ArchiveSection,
+  ConnectionSection,
+  GeneralSection,
+  HistorySection,
+  InstructionSection,
+  ModelsSection,
+  PersonalisationSection,
+} from './SettingSection';
 
 import type { FC } from 'react';
 import type { AppRuntimeState } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
-type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history';
+type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history' | 'archive';
 
 const GLOBAL_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Settings', id: 'general', label: 'General' },
@@ -17,6 +25,7 @@ const GLOBAL_SETTING_TABS: SettingTabItem[] = [
   { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
   { icon: 'User', id: 'persona', label: 'Personalization' },
   { icon: 'History', id: 'history', label: 'History & Sync' },
+  { icon: 'Archive', id: 'archive', label: 'Archive' },
 ];
 
 export const GlobalSettingModal: FC = () => {
@@ -58,6 +67,8 @@ export const GlobalSettingModal: FC = () => {
         );
       case 'history':
         return <HistorySection threads={threads} />;
+      case 'archive':
+        return <ArchiveSection threads={threads} />;
     }
   };
 

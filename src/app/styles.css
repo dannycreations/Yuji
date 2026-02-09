@@ -820,6 +820,9 @@
     &.assistant {
       @apply items-start;
     }
+    &.no-actions {
+      @apply mb-0!;
+    }
   }
 
   .message-content-wrapper {

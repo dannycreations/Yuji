@@ -71,6 +71,7 @@ export const ChatMetadata = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
   activeMessageId: Schema.optional(Schema.String),
+  archived: Schema.optional(Schema.Boolean),
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
 });

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 
 import { Icon } from '../shared/Icon';
-import { Modal } from '../shared/modal/Modal';
+import { FullscreenModal } from '../shared/modal/FullscreenModal';
 
 import type { FC } from 'react';
 
@@ -83,15 +83,12 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
   };
 
   return (
-    <Modal
+    <FullscreenModal
       isOpen={true}
       onClose={onClose}
-      className="!p-0 !bg-background"
-      containerClassName="!w-full !h-full !max-w-none !rounded-none flex flex-col overflow-hidden"
-    >
-      <div className="flex-between p-4 border-b border-separator/50" onMouseDown={(e) => e.stopPropagation()}>
-        <h3 className="text-sm font-medium text-text-primary">Diagram Preview</h3>
-        <div className="flex items-center gap-2">
+      title="Diagram Preview"
+      headerActions={
+        <>
           <button onClick={resetZoom} className="btn-icon" title="Reset Zoom">
             <Icon name="RefreshCw" size={16} />
           </button>
@@ -101,15 +98,13 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
           <button onClick={() => handleZoom(0.8)} className="btn-icon" title="Zoom Out">
             <Icon name="ZoomOut" size={16} />
           </button>
-          <div className="w-px h-4 bg-separator/50 mx-1" />
-          <button onClick={onClose} className="btn-icon" title="Close">
-            <Icon name="X" size={18} />
-          </button>
-        </div>
-      </div>
+        </>
+      }
+      bodyClassName="cursor-grab active:cursor-grabbing select-none"
+    >
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden cursor-grab active:cursor-grabbing relative select-none"
+        className="w-full h-full overflow-hidden"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -126,6 +121,6 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
         />
         <div className="mermaid-fullscreen-indicator">Scroll to zoom • Drag to move</div>
       </div>
-    </Modal>
+    </FullscreenModal>
   );
 };

@@ -3,16 +3,18 @@ import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
-import { sortThreadsByDate } from '../../helpers/ThreadHelper';
+import { getMessagePath, sortThreadsByDate } from '../../helpers/ThreadHelper';
 import { useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { ChatService } from '../../services/ChatService';
 import { downloadFile } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
+import { ChatMessageBubble } from '../chat/ChatMessageBubble';
 import { Button } from '../shared/Button';
 import { Checkbox } from '../shared/Checkbox';
 import { Icon } from '../shared/Icon';
 import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
+import { FullscreenModal } from '../shared/modal/FullscreenModal';
 import { ModelItem } from '../shared/ModelItem';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
@@ -204,6 +206,96 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
   );
 };
 
+interface SettingTableProps<T> {
+  info: string;
+  headerPrefix?: ReactNode;
+  headerLabel?: string;
+  headerActions?: ReactNode;
+  items: T[];
+  totalItems: number;
+  currentPage: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  renderRow: (item: T, index: number) => ReactNode;
+  emptyIcon: string;
+  emptyLabel: string;
+  children?: ReactNode;
+}
+
+export const SettingTable = <T,>({
+  info,
+  headerPrefix,
+  headerLabel = 'Title',
+  headerActions,
+  items,
+  totalItems,
+  currentPage,
+  pageSize,
+  onPageChange,
+  renderRow,
+  emptyIcon,
+  emptyLabel,
+  children,
+}: SettingTableProps<T>) => {
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  return (
+    <SectionWrapper className="space-y-3">
+      {children}
+      <div className="flex flex-col gap-3 flex-shrink-0">
+        <p className="settings-info-box">{info}</p>
+      </div>
+
+      <div className="settings-history-table">
+        <div className="settings-history-header">
+          {headerPrefix}
+          <div className={clsx('flex-1 label-caps text-text-primary', !headerPrefix && 'pl-3')}>{headerLabel}</div>
+          <div className={clsx('flex items-center gap-2', !headerPrefix && 'pr-3')}>{headerActions}</div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-separator">
+          {items.length > 0 ? (
+            items.map((item, index) => renderRow(item, index))
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2">
+              <Icon name={emptyIcon as any} size={32} className="opacity-20" />
+              <p className="text-sm">{emptyLabel}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex-between pt-2 flex-shrink-0">
+          <div className="text-xs text-text-tertiary">
+            Page {currentPage + 1} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+              disabled={currentPage === 0}
+              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              <Icon name="ChevronLeft" size={12} />
+              Prev
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
+              disabled={currentPage >= totalPages - 1}
+              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Next
+              <Icon name="ChevronRight" size={12} />
+            </Button>
+          </div>
+        </div>
+      )}
+    </SectionWrapper>
+  );
+};
+
 export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
   const [selectedThreadIds, setSelectedThreadIds] = useState<Set<string>>(new Set());
   const [historyPage, setHistoryPage] = useState(0);
@@ -256,8 +348,7 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
     });
   };
 
-  const sortedThreads = sortThreadsByDate(Object.values(threads) as ChatThread[]);
-  const totalHistoryPages = Math.ceil(sortedThreads.length / ITEMS_PER_PAGE);
+  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => !t.archived)), [threads]);
   const currentHistoryItems = sortedThreads.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
 
   const toggleSelectAll = () => {
@@ -276,96 +367,155 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
   };
 
   return (
-    <SectionWrapper className="space-y-3">
-      <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
-      <div className="flex flex-col gap-3 flex-shrink-0">
-        <p className="settings-info-box">
-          Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations.
-        </p>
-      </div>
-      <div className="settings-history-table">
-        <div className="settings-history-header">
-          <div className="settings-history-checkbox-col">
-            <Checkbox
-              checked={currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedThreadIds.has(s.id))}
-              indeterminate={
-                currentHistoryItems.length > 0 &&
-                !currentHistoryItems.every((s) => selectedThreadIds.has(s.id)) &&
-                currentHistoryItems.some((s) => selectedThreadIds.has(s.id))
-              }
-              onChange={toggleSelectAll}
-            />
-          </div>
-          <div className="flex-1 label-caps text-text-primary">Title</div>
-          <div className="flex items-center gap-2">
-            {selectedThreadIds.size > 0 && (
-              <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline bg-danger/10! text-danger! border-danger/20">
-                <Icon name="Trash2" size={12} />
-                Delete ({selectedThreadIds.size})
-              </Button>
-            )}
-            <Button variant="ghost" onClick={handleExport} className="badge-outline text-text-primary!">
-              <Icon name="Upload" size={12} />
-              Export {selectedThreadIds.size > 0 ? `(${selectedThreadIds.size})` : ''}
-            </Button>
-            <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
-              <Icon name="Download" size={12} />
-              Import
-            </Button>
-          </div>
+    <SettingTable
+      info="Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations."
+      items={currentHistoryItems}
+      totalItems={sortedThreads.length}
+      currentPage={historyPage}
+      pageSize={ITEMS_PER_PAGE}
+      onPageChange={setHistoryPage}
+      emptyIcon="Inbox"
+      emptyLabel="No chat history available."
+      headerPrefix={
+        <div className="settings-history-checkbox-col">
+          <Checkbox
+            checked={currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedThreadIds.has(s.id))}
+            indeterminate={
+              currentHistoryItems.length > 0 &&
+              !currentHistoryItems.every((s) => selectedThreadIds.has(s.id)) &&
+              currentHistoryItems.some((s) => selectedThreadIds.has(s.id))
+            }
+            onChange={toggleSelectAll}
+          />
         </div>
-
-        <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-separator">
-          {currentHistoryItems.length > 0 ? (
-            currentHistoryItems.map((thread) => (
-              <div key={thread.id} className={clsx('settings-history-row', selectedThreadIds.has(thread.id) && 'settings-history-row-active')}>
-                <div className="settings-history-checkbox-col">
-                  <Checkbox checked={selectedThreadIds.has(thread.id)} onChange={() => toggleSelectThread(thread.id)} />
-                </div>
-                <div className="flex-1 min-w-0 pr-3">
-                  <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
-                  <div className="text-xs text-text-tertiary font-mono mt-1">{thread.id}</div>
-                </div>
-                <div className="text-xs text-text-tertiary whitespace-nowrap tabular-nums">{timeAgo(thread.updatedAt)}</div>
-              </div>
-            ))
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2">
-              <Icon name="Inbox" size={32} className="opacity-20" />
-              <p className="text-sm">No chat history available.</p>
-            </div>
+      }
+      headerActions={
+        <>
+          {selectedThreadIds.size > 0 && (
+            <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline bg-danger/10! text-danger! border-danger/20">
+              <Icon name="Trash2" size={12} />
+              Delete ({selectedThreadIds.size})
+            </Button>
           )}
-        </div>
-      </div>
-
-      {totalHistoryPages > 1 && (
-        <div className="flex-between pt-2 flex-shrink-0">
-          <div className="text-xs text-text-tertiary">
-            Page {historyPage + 1} of {totalHistoryPages}
+          <Button variant="ghost" onClick={handleExport} className="badge-outline text-text-primary!">
+            <Icon name="Upload" size={12} />
+            Export {selectedThreadIds.size > 0 ? `(${selectedThreadIds.size})` : ''}
+          </Button>
+          <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
+            <Icon name="Download" size={12} />
+            Import
+          </Button>
+        </>
+      }
+      renderRow={(thread) => (
+        <div key={thread.id} className={clsx('settings-history-row', selectedThreadIds.has(thread.id) && 'settings-history-row-active')}>
+          <div className="settings-history-checkbox-col">
+            <Checkbox checked={selectedThreadIds.has(thread.id)} onChange={() => toggleSelectThread(thread.id)} />
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
-              disabled={historyPage === 0}
-              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              <Icon name="ChevronLeft" size={12} />
-              Prev
+          <div className="flex-1 min-w-0 pr-3">
+            <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
+            <div className="text-xs text-text-tertiary font-mono mt-1">{thread.id}</div>
+          </div>
+          <div className="text-xs text-text-tertiary whitespace-nowrap tabular-nums">{timeAgo(thread.updatedAt)}</div>
+        </div>
+      )}
+    >
+      <input type="file" accept=".json" className="hidden" ref={fileInputRef} onChange={handleFileChange} />
+    </SettingTable>
+  );
+};
+
+export const ArchiveSection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
+  const toggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
+  const getThread = useStoreAction((s, id: string) => s.getThread(id));
+  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => t.archived)), [threads]);
+
+  const [archivePage, setArchivePage] = useState(0);
+  const [previewThread, setPreviewThread] = useState<ChatThread | null>(null);
+  const ITEMS_PER_PAGE = 6;
+  const currentArchiveItems = sortedThreads.slice(archivePage * ITEMS_PER_PAGE, (archivePage + 1) * ITEMS_PER_PAGE);
+
+  const handlePreview = (id: string) => {
+    getThread(id).then((thread) => {
+      if (thread) setPreviewThread(thread);
+    });
+  };
+
+  const previewMessages = useMemo(() => {
+    if (!previewThread) return [];
+    const { activeMessageId, messages } = previewThread;
+    if (activeMessageId) return getMessagePath(previewThread, activeMessageId);
+    return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+  }, [previewThread]);
+
+  return (
+    <SettingTable
+      info="View and manage your archived conversations. Archived chats are hidden from the sidebar but can be restored at any time."
+      items={currentArchiveItems}
+      totalItems={sortedThreads.length}
+      currentPage={archivePage}
+      pageSize={ITEMS_PER_PAGE}
+      onPageChange={setArchivePage}
+      emptyIcon="Archive"
+      emptyLabel="No archived conversations."
+      headerActions={
+        <Button
+          variant="ghost"
+          onClick={() => downloadFile(JSON.stringify(threads), `yuji-archive-${new Date().toISOString().split('T')[0]}.json`, 'application/json')}
+          className="badge-outline text-text-primary!"
+        >
+          <Icon name="Upload" size={12} />
+          Export
+        </Button>
+      }
+      renderRow={(thread) => (
+        <div key={thread.id} className="settings-history-row group">
+          <div className="flex-1 min-w-0 px-3">
+            <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
+            <div className="text-xs text-text-tertiary mt-1">{timeAgo(thread.updatedAt)}</div>
+          </div>
+          <div className="flex items-center gap-2 pr-3">
+            <Button variant="ghost" onClick={() => toggleArchive(thread.id)} className="badge-outline text-text-primary!" title="Unarchive">
+              <Icon name="ArchiveRestore" size={12} />
+              Restore
             </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setHistoryPage((p) => Math.min(totalHistoryPages - 1, p + 1))}
-              disabled={historyPage >= totalHistoryPages - 1}
-              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-            >
-              Next
-              <Icon name="ChevronRight" size={12} />
+            <Button variant="ghost" onClick={() => handlePreview(thread.id)} className="badge-outline text-text-primary!" title="View Conversation">
+              <Icon name="Maximize2" size={12} />
+              View
             </Button>
           </div>
         </div>
       )}
-    </SectionWrapper>
+    >
+      {previewThread && (
+        <FullscreenModal
+          isOpen={!!previewThread}
+          onClose={() => setPreviewThread(null)}
+          title={previewThread.title}
+          subtitle={`${timeAgo(previewThread.updatedAt)} • ${previewMessages.length} messages`}
+          headerActions={
+            <Button
+              variant="ghost"
+              onClick={() => {
+                toggleArchive(previewThread.id);
+                setPreviewThread(null);
+              }}
+              className="badge-outline text-text-primary!"
+            >
+              <Icon name="ArchiveRestore" size={14} />
+              Restore
+            </Button>
+          }
+          bodyClassName="bg-surface/30 overflow-y-auto"
+        >
+          <div className="max-w-3xl mx-auto py-4">
+            {previewMessages.map((message) => (
+              <ChatMessageBubble key={message.id} message={message} threadId={previewThread.id} readOnly />
+            ))}
+          </div>
+        </FullscreenModal>
+      )}
+    </SettingTable>
   );
 };
 
