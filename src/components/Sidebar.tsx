@@ -97,23 +97,23 @@ export const Sidebar: FC = () => {
   return (
     <div className="sidebar-container">
       <div className="sidebar-header relative">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
+        <Button onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />
         </Button>
 
         <div className="abs-center flex-center pointer-events-none">
-          <button onClick={() => setActiveThread(null)} className="sidebar-logo pointer-events-auto">
+          <Button variant="logo" onClick={() => setActiveThread(null)}>
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
-          </button>
+          </Button>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleCreateThread} className="z-chat-input" title="New Chat">
+        <Button onClick={handleCreateThread} className="z-chat-input" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </Button>
       </div>
 
-      <div className="px-3 mb-2">
+      <div className="px-2 mb-2">
         <InputSearch
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -144,7 +144,7 @@ export const Sidebar: FC = () => {
             {flattenedThreads.slice(startIndex, endIndex).map((item) => {
               if (item.type === 'label') {
                 return (
-                  <h3 key={`label-${item.label}`} className="label-caps px-2 py-2 mb-1 h-[40px] mt-1">
+                  <h3 key={`label-${item.label}`} className="label-caps p-2 h-[40px]">
                     {item.label}
                   </h3>
                 );
@@ -153,10 +153,10 @@ export const Sidebar: FC = () => {
               return (
                 <div
                   key={thread.id}
-                  className={clsx('sidebar-thread-item group h-[40px] mt-1', activeThreadId === thread.id && 'sidebar-thread-item-active')}
+                  className={clsx('sidebar-thread-item group h-[40px] mb-1', activeThreadId === thread.id && 'sidebar-thread-item-active')}
                   onClick={() => setActiveThread(thread.id)}
                 >
-                  <div className="sidebar-thread-title flex items-center gap-2 min-w-0">
+                  <div className="sidebar-thread-title flex items-center gap-2">
                     <span className="block truncate">{thread.title}</span>
                   </div>
 
@@ -178,8 +178,6 @@ export const Sidebar: FC = () => {
                       )
                     )}
                     <Button
-                      variant="ghost"
-                      size="icon"
                       className={clsx(
                         '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
                         menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',

@@ -58,7 +58,6 @@
   /* Animations */
   --animate-fade-in: fadeIn 0.2s ease-out;
   --animate-fade-out: fadeOut 0.2s ease-out;
-  --animate-slide-in: slideIn 0.2s ease-out;
   --animate-slide-up: slideUp 0.2s ease-out;
   --animate-slide-down: slideDown 0.2s ease-out;
 
@@ -76,16 +75,6 @@
     }
     100% {
       opacity: 0;
-    }
-  }
-  @keyframes slideIn {
-    0% {
-      transform: translateY(10px);
-      opacity: 0;
-    }
-    100% {
-      transform: translateY(0);
-      opacity: 1;
     }
   }
   @keyframes slideUp {
@@ -108,70 +97,6 @@
       opacity: 0;
     }
   }
-}
-
-@keyframes progress {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-
-@utility dropdown-menu-base {
-  @apply absolute bg-surface border border-separator/50 rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown animate-fade-in select-none;
-}
-
-@utility layout-chat-container {
-  @apply max-w-chat mx-auto w-full px-3 md:px-0;
-}
-
-@utility avatar-base {
-  @apply flex-center rounded-full text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
-  @apply w-8 h-8;
-}
-
-@utility message-bubble-base {
-  @apply break-words w-full flex flex-col gap-1;
-  & > :first-child {
-    @apply mt-0! pt-0!;
-  }
-  & > :last-child {
-    @apply mb-0! pb-0!;
-  }
-}
-
-@utility btn-base {
-  @apply inline-flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-}
-
-@utility flex-center {
-  @apply flex items-center justify-center;
-}
-
-@utility flex-between {
-  @apply flex items-center justify-between;
-}
-
-@utility abs-center {
-  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
-}
-
-@utility overlay-base {
-  @apply fixed inset-0 backdrop-blur-sm bg-overlay z-modal;
-}
-
-@utility btn-pill {
-  @apply btn-base px-3 py-2 text-sm font-medium rounded-full;
-}
-
-@utility btn-ghost {
-  @apply btn-base p-2 text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg disabled:opacity-30;
-}
-
-@utility badge-base {
-  @apply flex-center px-1 py-1 rounded text-xs font-bold uppercase tracking-wider;
 }
 
 :root.light {
@@ -251,6 +176,78 @@
   }
 }
 
+@keyframes progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility dropdown-menu-base {
+  @apply absolute bg-surface border border-separator/50 rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown animate-fade-in select-none;
+}
+
+@utility layout-chat-container {
+  @apply max-w-chat mx-auto w-full px-3 md:px-0;
+}
+
+@utility avatar-base {
+  @apply flex-center rounded-full text-text-primary border border-separator transition-colors overflow-hidden flex-shrink-0;
+  @apply w-8 h-8;
+}
+
+@utility message-bubble-base {
+  @apply break-words w-full flex flex-col gap-1;
+  & > :first-child {
+    @apply mt-0! pt-0!;
+  }
+  & > :last-child {
+    @apply mb-0! pb-0!;
+  }
+}
+
+@utility btn-base {
+  @apply inline-flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+@utility flex-center {
+  @apply flex items-center justify-center;
+}
+
+@utility flex-between {
+  @apply flex items-center justify-between;
+}
+
+@utility abs-center {
+  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+}
+
+@utility overlay-base {
+  @apply fixed inset-0 backdrop-blur-sm bg-overlay z-modal;
+}
+
+@utility btn-pill {
+  @apply btn-base px-3 py-2 text-sm font-medium rounded-full;
+}
+
+@utility btn-ghost {
+  @apply btn-base p-2 text-text-secondary hover:text-text-primary hover:bg-surface rounded-lg disabled:opacity-30;
+}
+
+@utility badge-base {
+  @apply flex-center p-1 rounded text-xs font-bold uppercase tracking-wider;
+}
+
 @utility prose-chat {
   @apply max-w-none text-text-primary text-sm font-sans w-full flex flex-col;
   & > :first-child {
@@ -298,11 +295,8 @@
     box-shadow: 0 0 8px var(--color-primary);
   }
 
-  .btn-icon {
-    @apply btn-ghost !p-2;
-    &.active {
-      @apply text-text-primary bg-surface;
-    }
+  .btn-logo {
+    @apply flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto text-text-primary;
   }
 
   .btn-primary {
@@ -316,16 +310,16 @@
     }
   }
 
-  .btn-danger {
-    @apply btn-pill text-white bg-danger hover:bg-red-600;
+  .btn-info {
+    @apply btn-pill bg-primary text-black hover:opacity-90 transition-opacity;
   }
 
   .btn-warning {
     @apply btn-pill text-white bg-amber-500 hover:bg-amber-600;
   }
 
-  .btn-info {
-    @apply btn-pill bg-primary text-black hover:opacity-90 transition-opacity;
+  .btn-danger {
+    @apply btn-pill text-white bg-danger hover:bg-red-600;
   }
 
   .btn-sidebar {
@@ -336,14 +330,14 @@
   }
 
   .input-base {
-    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl px-3 py-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-all placeholder:text-text-tertiary;
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl p-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-all placeholder:text-text-tertiary;
     &.input-sm {
       @apply px-3 py-2 text-xs;
     }
   }
 
   .chat-input-textarea {
-    @apply bg-transparent! border-none! focus:border-none! px-3 py-3 text-sm font-sans shadow-none outline-none ring-0!;
+    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none outline-none ring-0!;
     &::placeholder {
       @apply font-medium;
     }
@@ -417,7 +411,7 @@
   }
 
   .model-picker-header {
-    @apply p-3 border-b border-separator;
+    @apply p-2 border-b border-separator;
   }
 
   .model-picker-list {
@@ -425,7 +419,7 @@
   }
 
   .model-picker-item {
-    @apply w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover;
+    @apply w-full flex items-start gap-3 p-2 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover;
     & .model-picker-item-title {
       @apply text-sm font-medium truncate text-text-secondary transition-colors;
     }
@@ -452,11 +446,7 @@
   }
 
   .sidebar-header {
-    @apply flex-between px-3 py-3 h-14;
-  }
-
-  .sidebar-logo {
-    @apply flex items-center gap-1 hover:opacity-70 transition-opacity select-none cursor-pointer pointer-events-auto text-text-primary;
+    @apply flex-between p-3 h-14;
   }
 
   .sidebar-content {
@@ -468,7 +458,7 @@
   }
 
   .sidebar-thread-item {
-    @apply relative flex items-center rounded-lg px-2 py-2 text-sm transition-colors cursor-pointer text-text-primary hover:bg-surface;
+    @apply relative flex items-center rounded-lg p-2 text-sm transition-colors cursor-pointer text-text-primary hover:bg-surface;
   }
 
   .sidebar-thread-item-active {
@@ -605,7 +595,7 @@
   }
 
   .dropdown-item {
-    @apply flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
+    @apply flex items-center gap-3 p-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
     &.active {
       @apply bg-highlight text-text-primary font-medium;
     }
@@ -615,7 +605,7 @@
   }
 
   .panel-section {
-    @apply py-3 border-b border-separator/50 last:border-b-0;
+    @apply gap-3 py-3 border-b border-separator/50 last:border-b-0;
   }
 
   .panel-section-group {
@@ -661,7 +651,7 @@
   }
 
   .code-inline {
-    @apply bg-line px-1 py-1 rounded text-[0.9em] font-mono;
+    @apply bg-line p-1 rounded text-[0.9em] font-mono;
   }
 
   .code-block-container {
@@ -669,7 +659,7 @@
   }
 
   .code-block-header {
-    @apply flex items-center justify-between px-2 py-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-chat-input backdrop-blur-md;
+    @apply flex items-center justify-between p-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-chat-input backdrop-blur-md;
     &.collapsed {
       @apply border-b-transparent;
     }
@@ -784,11 +774,11 @@
   }
 
   .suggestion-grid {
-    @apply grid grid-cols-2 gap-3 w-full;
+    @apply grid grid-cols-2 gap-2 w-full;
   }
 
   .suggestion-item {
-    @apply flex flex-col gap-2 p-3 rounded-xl bg-surface/40 border border-separator/50 hover:bg-surface-hover transition-all text-left;
+    @apply flex flex-col gap-2 p-2 rounded-xl bg-surface/40 border border-separator/50 hover:bg-surface-hover transition-all text-left;
     & .suggestion-item-icon {
       @apply text-text-secondary;
     }
@@ -836,7 +826,7 @@
   }
 
   .message-bubble-user {
-    @apply message-bubble-base bg-surface px-3 py-2 rounded-2xl;
+    @apply message-bubble-base prose-chat whitespace-break-spaces p-3 bg-surface rounded-2xl;
   }
 
   .message-bubble-assistant {
@@ -931,12 +921,12 @@
 
   /* Select/Dropdown */
   .select-base {
-    @apply w-full appearance-none bg-surface border border-transparent rounded-xl px-3 py-3 text-sm text-text-primary outline-none focus:border-line transition-all;
+    @apply w-full appearance-none bg-surface border border-transparent rounded-xl p-3 text-sm text-text-primary outline-none focus:border-line transition-all;
   }
 
   /* Settings */
   .settings-main-content {
-    @apply flex-1 flex flex-col min-w-0 bg-background relative px-3 py-3;
+    @apply flex-1 flex flex-col min-w-0 bg-background relative p-3;
   }
 
   .settings-section-title {
@@ -978,11 +968,11 @@
   }
 
   .settings-history-header {
-    @apply flex items-center px-3 py-3 border-b border-separator/50 bg-line;
+    @apply flex items-center p-2 border-b border-separator/50 bg-line;
   }
 
   .settings-history-row {
-    @apply flex items-center px-3 py-3 hover:bg-separator transition-colors;
+    @apply flex items-center p-2 hover:bg-separator transition-colors;
   }
 
   .settings-history-row-active {
@@ -1078,13 +1068,5 @@
 
   .settings-footer-note {
     @apply text-xs text-text-tertiary pl-1;
-  }
-}
-
-@utility scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
   }
 }

@@ -21,10 +21,10 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background text-text-primary p-6 text-center">
-      <div className="max-w-md w-full space-y-6">
+    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background text-text-primary text-center">
+      <div className="max-w-md w-full space-y-2">
         <div className="flex justify-center">
-          <div className="p-4 bg-danger/10 rounded-full">
+          <div className="p-3 bg-danger/10 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="48"
@@ -50,18 +50,20 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
           </p>
         </div>
 
-        <div className="p-4 bg-background-raised rounded-lg border border-line text-left overflow-auto max-h-[200px]">
-          <p className="text-xs font-mono text-danger break-all">{error}</p>
-        </div>
+        {error && (
+          <div className="p-3 bg-background-raised rounded-lg border border-line text-left overflow-auto max-h-[200px]">
+            <p className="text-xs font-mono text-danger break-all">{error}</p>
+          </div>
+        )}
 
-        <div className="pt-4">
+        <div>
           <button
             onClick={handleClearDatabase}
-            className="w-full py-3 px-4 bg-primary text-background font-semibold rounded-lg hover:opacity-90 transition-opacity"
+            className="w-full p-3 bg-primary text-background font-semibold rounded-lg hover:opacity-90 transition-opacity"
           >
             Reset Database & Reload
           </button>
-          <p className="mt-4 text-xs text-text-tertiary">Warning: This will permanently delete all your local chat history and settings.</p>
+          <p className="mt-2 text-xs text-text-tertiary">Warning: This will permanently delete all your local chat history and settings.</p>
         </div>
       </div>
     </div>

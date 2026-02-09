@@ -109,16 +109,16 @@ export const Header: FC = () => {
     <div className="sticky-header">
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} title="Open Sidebar">
+          <Button onClick={toggleSidebar} title="Open Sidebar">
             <Icon name="PanelLeftOpen" size={20} />
           </Button>
         )}
 
         <div className="relative" ref={pickerRef}>
-          <button onClick={() => setShowModelPicker(!showModelPicker)} className="header-model-button">
-            <span className="header-title">{currentModelName}</span>
+          <Button onClick={() => setShowModelPicker(!showModelPicker)}>
+            <span className="header-title pr-1">{currentModelName}</span>
             <Icon name="ChevronDown" size={16} className="text-text-secondary" />
-          </button>
+          </Button>
 
           {showModelPicker && <ModelPicker currentModel={currentModelId} onSelect={handleModelSelect} onClose={() => setShowModelPicker(false)} />}
         </div>

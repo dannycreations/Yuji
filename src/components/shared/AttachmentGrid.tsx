@@ -30,7 +30,7 @@ export const AttachmentGrid: FC<AttachmentGridProps> = ({
           {onRemove && (
             <button
               onClick={() => onRemove(att.id)}
-              className="absolute -top-1.5 -right-1.5 bg-background border border-separator rounded-full p-0.5 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute -top-1.5 -right-1.5 bg-background border border-separator rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <Icon name="X" size={10} />
             </button>

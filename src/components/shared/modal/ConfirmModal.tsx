@@ -32,8 +32,10 @@ export const ConfirmModal: FC = () => {
       </div>
 
       <ModalFooter className="confirm-modal-actions">
-        <Button onClick={handleCancel}>{cancelLabel}</Button>
-        <Button onClick={handleConfirm} variant={variant === 'info' ? 'primary' : variant}>
+        <Button variant="secondary" onClick={handleCancel}>
+          {cancelLabel}
+        </Button>
+        <Button variant={variant === 'info' ? 'primary' : variant} onClick={handleConfirm}>
           {confirmLabel}
         </Button>
       </ModalFooter>

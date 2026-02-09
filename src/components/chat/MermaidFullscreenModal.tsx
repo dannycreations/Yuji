@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 
+import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
 
@@ -89,15 +90,15 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
       title="Diagram Preview"
       headerActions={
         <>
-          <button onClick={resetZoom} className="btn-icon" title="Reset Zoom">
-            <Icon name="RefreshCw" size={16} />
-          </button>
-          <button onClick={() => handleZoom(1.2)} className="btn-icon" title="Zoom In">
-            <Icon name="ZoomIn" size={16} />
-          </button>
-          <button onClick={() => handleZoom(0.8)} className="btn-icon" title="Zoom Out">
-            <Icon name="ZoomOut" size={16} />
-          </button>
+          <Button onClick={resetZoom} title="Reset Zoom">
+            <Icon name="RefreshCw" size={18} />
+          </Button>
+          <Button onClick={() => handleZoom(1.2)} title="Zoom In">
+            <Icon name="ZoomIn" size={18} />
+          </Button>
+          <Button onClick={() => handleZoom(0.8)} title="Zoom Out">
+            <Icon name="ZoomOut" size={18} />
+          </Button>
         </>
       }
       bodyClassName="cursor-grab active:cursor-grabbing select-none"

@@ -162,7 +162,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   autoFocus
                 />
                 <div className="chat-input-edit-actions">
-                  <Button onClick={() => setIsEditing(false)}>Cancel</Button>
+                  <Button variant="secondary" onClick={() => setIsEditing(false)}>
+                    Cancel
+                  </Button>
                   <Button variant="primary" onClick={handleSaveEdit}>
                     {saveAfterEditing ? 'Save' : 'Regenerate'}
                   </Button>
@@ -188,13 +190,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
               <div className="message-actions">
                 {siblings.length > 1 && (
                   <div className="message-branch-navigation">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={currentIndex === 0}
-                      onClick={() => handleSwitch(siblings[currentIndex - 1])}
-                      title="Previous Version"
-                    >
+                    <Button disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} title="Previous Version">
                       <Icon name="ChevronLeft" size={16} />
                     </Button>
                     <span className="message-branch-indicator">
@@ -203,8 +199,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                       {siblings.length}
                     </span>
                     <Button
-                      variant="ghost"
-                      size="icon"
                       disabled={currentIndex === siblings.length - 1}
                       onClick={() => handleSwitch(siblings[currentIndex + 1])}
                       title="Next Version"
@@ -214,21 +208,19 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   </div>
                 )}
 
-                <Button variant="ghost" size="icon" onClick={() => handleBranch(threadId, message.id)} title="Branch">
+                <Button onClick={() => handleBranch(threadId, message.id)} title="Branch">
                   <Icon name="GitFork" size={16} />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={() => handleRegenerate(threadId, message.id)} title="Regenerate">
+                <Button onClick={() => handleRegenerate(threadId, message.id)} title="Regenerate">
                   <Icon name="RefreshCw" size={16} />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={handleCopy} title="Copy">
+                <Button onClick={handleCopy} title="Copy">
                   <Icon name={copied ? 'Check' : 'Copy'} size={16} />
                 </Button>
 
                 <Button
-                  variant="ghost"
-                  size="icon"
                   onClick={() => {
                     setEditContent(message.content);
                     setIsEditing(true);
@@ -238,7 +230,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   <Icon name="Pencil" size={16} />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={handleDelete} className="hover:text-danger!" title="Delete">
+                <Button onClick={handleDelete} className="hover:text-danger!" title="Delete">
                   <Icon name="Trash2" size={16} />
                 </Button>
               </div>

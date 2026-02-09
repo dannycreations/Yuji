@@ -30,10 +30,10 @@ export const SettingItem: FC<{ label: string; description?: string; children: Re
   children,
   className,
 }) => (
-  <div className={clsx('panel-section flex-between gap-4', className)}>
+  <div className={clsx('panel-section flex-between', className)}>
     <div className="flex-1 min-w-0">
       <div className="text-sm text-text-primary">{label}</div>
-      {description && <div className="text-xs text-text-tertiary mt-0.5">{description}</div>}
+      {description && <div className="text-xs text-text-tertiary">{description}</div>}
     </div>
     <div className="flex-shrink-0">{children}</div>
   </div>
@@ -58,7 +58,7 @@ export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) 
         <InputSelect
           value={settings.theme}
           onChange={(e) => onChange({ theme: e.target.value as 'dark' | 'light' })}
-          className="py-1.5! text-xs! min-w-[100px]"
+          className="py-2! text-xs! min-w-[100px]"
         >
           <option value="dark">Dark</option>
           <option value="light">Light</option>
@@ -161,7 +161,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <Button variant="ghost" className="badge-outline whitespace-nowrap" onClick={handleRefreshModels} title="Refresh Library">
+        <Button className="badge-outline whitespace-nowrap" onClick={handleRefreshModels} title="Refresh Library">
           <Icon name="RefreshCw" size={14} />
           <span>Refresh</span>
         </Button>
@@ -178,7 +178,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
                 availableModels={availableModels}
                 isEnabled={isEnabled}
                 isDefault={effectiveModelId === model.id}
-                className={clsx('settings-model-card !p-3 cursor-default', isEnabled ? 'enabled' : 'disabled')}
+                className={clsx('settings-model-card !p-2 cursor-default', isEnabled ? 'enabled' : 'disabled')}
                 rightContent={<InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />}
               />
             );
@@ -299,13 +299,12 @@ export const SettingTable = <T,>({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex-between pt-2 flex-shrink-0">
+        <div className="flex-between flex-shrink-0">
           <div className="text-xs text-text-tertiary">
             Page {currentPage + 1} of {totalPages}
           </div>
           <div className="flex gap-2">
             <Button
-              variant="ghost"
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -314,7 +313,6 @@ export const SettingTable = <T,>({
               Prev
             </Button>
             <Button
-              variant="ghost"
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -389,7 +387,6 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
         <>
           {selectedIds.size > 0 && (
             <Button
-              variant="ghost"
               onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
               className="badge-outline bg-danger/10! text-danger! border-danger/20"
             >
@@ -397,11 +394,11 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </Button>
           )}
-          <Button variant="ghost" onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+          <Button onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </Button>
-          <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
+          <Button onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
             <Icon name="Download" size={12} />
             Import
           </Button>
@@ -483,7 +480,6 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
         <>
           {selectedIds.size > 0 && (
             <Button
-              variant="ghost"
               onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
               className="badge-outline bg-danger/10! text-danger! border-danger/20"
             >
@@ -491,7 +487,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </Button>
           )}
-          <Button variant="ghost" onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+          <Button onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </Button>
@@ -508,12 +504,12 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
             <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
             <div className="text-xs text-text-tertiary mt-1">{timeAgo(thread.updatedAt)}</div>
           </div>
-          <div className="flex items-center gap-2 pr-3">
-            <Button variant="ghost" onClick={() => toggleArchive(thread.id)} className="badge-outline text-text-primary!" title="Unarchive">
+          <div className="flex items-center gap-2">
+            <Button onClick={() => toggleArchive(thread.id)} className="badge-outline text-text-primary!" title="Unarchive">
               <Icon name="ArchiveRestore" size={12} />
               Restore
             </Button>
-            <Button variant="ghost" onClick={() => handlePreview(thread.id)} className="badge-outline text-text-primary!" title="View Conversation">
+            <Button onClick={() => handlePreview(thread.id)} className="badge-outline text-text-primary!" title="View Conversation">
               <Icon name="Maximize2" size={12} />
               View
             </Button>
@@ -529,7 +525,6 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           subtitle={`${timeAgo(previewThread.updatedAt)} • ${previewMessages.length} messages`}
           headerActions={
             <Button
-              variant="ghost"
               onClick={() => {
                 toggleArchive(previewThread.id);
                 setPreviewThread(null);
@@ -542,7 +537,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           }
           bodyClassName="bg-surface/30 overflow-y-auto"
         >
-          <div className="max-w-3xl mx-auto py-4">
+          <div className="max-w-3xl mx-auto">
             {previewMessages.map((message) => (
               <ChatMessageBubble key={message.id} message={message} threadId={previewThread.id} readOnly />
             ))}
@@ -630,7 +625,7 @@ export const OverrideSection = <T,>({ description, checked, onChange, children, 
       <div className="override-empty-state">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
-        <Button variant="ghost" onClick={() => onChange(true)} className="override-enable-btn">
+        <Button onClick={() => onChange(true)} className="override-enable-btn">
           Enable Override
         </Button>
       </div>

@@ -13,7 +13,7 @@ export const ModalHeader: FC<{ readonly title: ReactNode; readonly onClose?: () 
   <div className="modal-header">
     <div className="header-title">{title}</div>
     {onClose && (
-      <Button variant="ghost" size="icon" onClick={onClose} className="ml-auto">
+      <Button onClick={onClose} className="ml-auto">
         <Icon name="X" size={18} />
       </Button>
     )}
