@@ -31,7 +31,6 @@ const Markdown = memo(
 interface ChatMessageBubbleProps {
   readonly message: ChatMessage;
   readonly threadId: string;
-  readonly isLast?: boolean;
   readonly isThinking?: boolean;
   readonly onUpdateHeight?: () => void;
   readonly readOnly?: boolean;

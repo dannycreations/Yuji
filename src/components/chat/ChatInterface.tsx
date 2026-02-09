@@ -200,7 +200,6 @@ export const ChatInterface: FC = () => {
                       <ChatMessageBubble
                         message={message}
                         threadId={activeThread.id}
-                        isLast={idx === visibleMessages.length - 1}
                         isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
                         onUpdateHeight={() => handleUpdateHeight(message.id)}
                       />

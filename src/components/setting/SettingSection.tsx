@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
 import { getMessagePath, sortThreadsByDate } from '../../helpers/ThreadHelper';
@@ -207,37 +207,66 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
 };
 
 interface SettingTableProps<T> {
-  info: string;
-  headerPrefix?: ReactNode;
-  headerLabel?: string;
-  headerActions?: ReactNode;
-  items: T[];
-  totalItems: number;
-  currentPage: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  renderRow: (item: T, index: number) => ReactNode;
-  emptyIcon: string;
-  emptyLabel: string;
-  children?: ReactNode;
+  readonly info: string;
+  readonly emptyIcon: string;
+  readonly emptyLabel: string;
+  readonly items: T[];
+  readonly size?: number;
+  readonly getId: (item: T) => string;
+  readonly headerLabel?: string;
+  readonly headerActions?: (selectedIds: Set<string>, resetSelection: () => void) => ReactNode;
+  readonly renderRow: (item: T, index: number, selectionProps?: { checked: boolean; onChange: () => void }) => ReactNode;
+  readonly children?: ReactNode;
 }
 
 export const SettingTable = <T,>({
   info,
-  headerPrefix,
-  headerLabel = 'Title',
-  headerActions,
-  items,
-  totalItems,
-  currentPage,
-  pageSize,
-  onPageChange,
-  renderRow,
   emptyIcon,
   emptyLabel,
+  items,
+  size = 6,
+  getId,
+  headerLabel = 'Title',
+  headerActions,
+  renderRow,
   children,
 }: SettingTableProps<T>) => {
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Reset page if it's out of bounds after items change
+  const totalPages = Math.ceil(items.length / size);
+  useEffect(() => {
+    if (currentPage >= totalPages && totalPages > 0) {
+      setCurrentPage(totalPages - 1);
+    } else if (totalPages === 0) {
+      setCurrentPage(0);
+    }
+  }, [items.length, totalPages, currentPage]);
+
+  const currentItems = useMemo(() => items.slice(currentPage * size, (currentPage + 1) * size), [items, currentPage, size]);
+
+  const toggleSelectAll = () => {
+    if (!getId) return;
+    if (currentItems.length > 0 && currentItems.every((item) => selectedIds.has(getId(item)))) {
+      const next = new Set(selectedIds);
+      currentItems.forEach((item) => next.delete(getId(item)));
+      setSelectedIds(next);
+    } else {
+      const next = new Set(selectedIds);
+      currentItems.forEach((item) => next.add(getId(item)));
+      setSelectedIds(next);
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const resetSelection = () => setSelectedIds(new Set());
 
   return (
     <SectionWrapper className="space-y-3">
@@ -248,16 +277,32 @@ export const SettingTable = <T,>({
 
       <div className="settings-history-table">
         <div className="settings-history-header">
-          {headerPrefix}
-          <div className={clsx('flex-1 label-caps text-text-primary', !headerPrefix && 'pl-3')}>{headerLabel}</div>
-          <div className={clsx('flex items-center gap-2', !headerPrefix && 'pr-3')}>{headerActions}</div>
+          <div className="settings-history-checkbox-col">
+            <Checkbox
+              checked={currentItems.length > 0 && currentItems.every((s) => selectedIds.has(getId(s)))}
+              indeterminate={
+                currentItems.length > 0 &&
+                !currentItems.every((s) => selectedIds.has(getId(s))) &&
+                currentItems.some((s) => selectedIds.has(getId(s)))
+              }
+              onChange={toggleSelectAll}
+            />
+          </div>
+          <div className="flex-1 label-caps text-text-primary">{headerLabel}</div>
+          <div className="flex items-center gap-2">{headerActions?.(selectedIds, resetSelection)}</div>
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-separator">
-          {items.length > 0 ? (
-            items.map((item, index) => renderRow(item, index))
+          {currentItems.length > 0 ? (
+            currentItems.map((item, index) => {
+              const id = getId(item);
+              return renderRow(item, index, {
+                checked: selectedIds.has(id),
+                onChange: () => toggleSelectItem(id),
+              });
+            })
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2">
+            <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2 min-h-[200px]">
               <Icon name={emptyIcon as any} size={32} className="opacity-20" />
               <p className="text-sm">{emptyLabel}</p>
             </div>
@@ -273,7 +318,7 @@ export const SettingTable = <T,>({
           <div className="flex gap-2">
             <Button
               variant="ghost"
-              onClick={() => onPageChange(Math.max(0, currentPage - 1))}
+              onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
@@ -282,7 +327,7 @@ export const SettingTable = <T,>({
             </Button>
             <Button
               variant="ghost"
-              onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
+              onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
@@ -297,10 +342,7 @@ export const SettingTable = <T,>({
 };
 
 export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
-  const [selectedThreadIds, setSelectedThreadIds] = useState<Set<string>>(new Set());
-  const [historyPage, setHistoryPage] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const ITEMS_PER_PAGE = 6;
 
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
   const importThreads = useStoreEffect((newThreads: Record<string, ChatThread>) =>
@@ -308,10 +350,10 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
   );
   const deleteThreads = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(ids)));
 
-  const handleExport = () => {
+  const handleExport = (selectedIds: Set<string>) => {
     let dataToExport = threads;
-    if (selectedThreadIds.size > 0) {
-      dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedThreadIds.has(id)));
+    if (selectedIds.size > 0) {
+      dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedIds.has(id)));
     }
     downloadFile(JSON.stringify(dataToExport), `yuji-history-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
@@ -334,84 +376,58 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
     e.target.value = '';
   };
 
-  const handleDeleteSelected = () => {
-    if (selectedThreadIds.size === 0) return;
+  const handleDeleteSelected = (selectedIds: Set<string>, resetSelection: () => void) => {
+    if (selectedIds.size === 0) return;
     showConfirm({
       title: 'Delete History',
-      message: `Are you sure you want to delete **${selectedThreadIds.size}** selected thread${selectedThreadIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
+      message: `Are you sure you want to delete **${selectedIds.size}** selected thread${selectedIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: () => {
-        deleteThreads(selectedThreadIds);
-        setSelectedThreadIds(new Set());
+        deleteThreads(selectedIds);
+        resetSelection();
       },
     });
   };
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => !t.archived)), [threads]);
-  const currentHistoryItems = sortedThreads.slice(historyPage * ITEMS_PER_PAGE, (historyPage + 1) * ITEMS_PER_PAGE);
-
-  const toggleSelectAll = () => {
-    if (selectedThreadIds.size === currentHistoryItems.length) {
-      setSelectedThreadIds(new Set());
-    } else {
-      setSelectedThreadIds(new Set(currentHistoryItems.map((s) => s.id)));
-    }
-  };
-
-  const toggleSelectThread = (id: string) => {
-    const next = new Set(selectedThreadIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedThreadIds(next);
-  };
 
   return (
     <SettingTable
       info="Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations."
-      items={currentHistoryItems}
-      totalItems={sortedThreads.length}
-      currentPage={historyPage}
-      pageSize={ITEMS_PER_PAGE}
-      onPageChange={setHistoryPage}
       emptyIcon="Inbox"
       emptyLabel="No chat history available."
-      headerPrefix={
-        <div className="settings-history-checkbox-col">
-          <Checkbox
-            checked={currentHistoryItems.length > 0 && currentHistoryItems.every((s) => selectedThreadIds.has(s.id))}
-            indeterminate={
-              currentHistoryItems.length > 0 &&
-              !currentHistoryItems.every((s) => selectedThreadIds.has(s.id)) &&
-              currentHistoryItems.some((s) => selectedThreadIds.has(s.id))
-            }
-            onChange={toggleSelectAll}
-          />
-        </div>
-      }
-      headerActions={
+      items={sortedThreads}
+      getId={(t) => t.id}
+      headerActions={(selectedIds, resetSelection) => (
         <>
-          {selectedThreadIds.size > 0 && (
-            <Button variant="ghost" onClick={handleDeleteSelected} className="badge-outline bg-danger/10! text-danger! border-danger/20">
+          {selectedIds.size > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
+              className="badge-outline bg-danger/10! text-danger! border-danger/20"
+            >
               <Icon name="Trash2" size={12} />
-              Delete ({selectedThreadIds.size})
+              Delete ({selectedIds.size})
             </Button>
           )}
-          <Button variant="ghost" onClick={handleExport} className="badge-outline text-text-primary!">
+          <Button variant="ghost" onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
             <Icon name="Upload" size={12} />
-            Export {selectedThreadIds.size > 0 ? `(${selectedThreadIds.size})` : ''}
+            Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </Button>
           <Button variant="ghost" onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
             <Icon name="Download" size={12} />
             Import
           </Button>
         </>
-      }
-      renderRow={(thread) => (
-        <div key={thread.id} className={clsx('settings-history-row', selectedThreadIds.has(thread.id) && 'settings-history-row-active')}>
-          <div className="settings-history-checkbox-col">
-            <Checkbox checked={selectedThreadIds.has(thread.id)} onChange={() => toggleSelectThread(thread.id)} />
-          </div>
+      )}
+      renderRow={(thread, _, selection) => (
+        <div key={thread.id} className={clsx('settings-history-row', selection?.checked && 'settings-history-row-active')}>
+          {selection && (
+            <div className="settings-history-checkbox-col">
+              <Checkbox checked={selection.checked} onChange={selection.onChange} />
+            </div>
+          )}
           <div className="flex-1 min-w-0 pr-3">
             <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
             <div className="text-xs text-text-tertiary font-mono mt-1">{thread.id}</div>
@@ -428,12 +444,26 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
 export const ArchiveSection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
   const toggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
   const getThread = useStoreAction((s, id: string) => s.getThread(id));
+  const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
+  const deleteThreads = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(ids)));
+
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => t.archived)), [threads]);
 
-  const [archivePage, setArchivePage] = useState(0);
   const [previewThread, setPreviewThread] = useState<ChatThread | null>(null);
-  const ITEMS_PER_PAGE = 6;
-  const currentArchiveItems = sortedThreads.slice(archivePage * ITEMS_PER_PAGE, (archivePage + 1) * ITEMS_PER_PAGE);
+
+  const handleDeleteSelected = (selectedIds: Set<string>, resetSelection: () => void) => {
+    if (selectedIds.size === 0) return;
+    showConfirm({
+      title: 'Delete Archived History',
+      message: `Are you sure you want to delete **${selectedIds.size}** selected archived thread${selectedIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: () => {
+        deleteThreads(selectedIds);
+        resetSelection();
+      },
+    });
+  };
 
   const handlePreview = (id: string) => {
     getThread(id).then((thread) => {
@@ -448,29 +478,47 @@ export const ArchiveSection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
     return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
   }, [previewThread]);
 
+  const handleExport = (selectedIds: Set<string>) => {
+    let dataToExport = threads;
+    if (selectedIds.size > 0) {
+      dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedIds.has(id)));
+    }
+    downloadFile(JSON.stringify(dataToExport), `yuji-archive-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+  };
+
   return (
     <SettingTable
       info="View and manage your archived conversations. Archived chats are hidden from the sidebar but can be restored at any time."
-      items={currentArchiveItems}
-      totalItems={sortedThreads.length}
-      currentPage={archivePage}
-      pageSize={ITEMS_PER_PAGE}
-      onPageChange={setArchivePage}
       emptyIcon="Archive"
       emptyLabel="No archived conversations."
-      headerActions={
-        <Button
-          variant="ghost"
-          onClick={() => downloadFile(JSON.stringify(threads), `yuji-archive-${new Date().toISOString().split('T')[0]}.json`, 'application/json')}
-          className="badge-outline text-text-primary!"
-        >
-          <Icon name="Upload" size={12} />
-          Export
-        </Button>
-      }
-      renderRow={(thread) => (
-        <div key={thread.id} className="settings-history-row group">
-          <div className="flex-1 min-w-0 px-3">
+      items={sortedThreads}
+      getId={(t) => t.id}
+      headerActions={(selectedIds, resetSelection) => (
+        <>
+          {selectedIds.size > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
+              className="badge-outline bg-danger/10! text-danger! border-danger/20"
+            >
+              <Icon name="Trash2" size={12} />
+              Delete ({selectedIds.size})
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+            <Icon name="Upload" size={12} />
+            Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
+          </Button>
+        </>
+      )}
+      renderRow={(thread, _, selection) => (
+        <div key={thread.id} className={clsx('settings-history-row', selection?.checked && 'settings-history-row-active')}>
+          {selection && (
+            <div className="settings-history-checkbox-col">
+              <Checkbox checked={selection.checked} onChange={selection.onChange} />
+            </div>
+          )}
+          <div className="flex-1 min-w-0 pr-3">
             <div className="text-sm text-text-primary font-medium truncate">{thread.title}</div>
             <div className="text-xs text-text-tertiary mt-1">{timeAgo(thread.updatedAt)}</div>
           </div>
