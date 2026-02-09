@@ -11,7 +11,7 @@ import { InputSearch } from './shared/InputArea';
 import { ModelItem } from './shared/ModelItem';
 
 import type { FC } from 'react';
-import type { GlobalSettings } from '../app/Schema';
+import type { GlobalSetting } from '../app/Schema';
 
 interface ModelPickerProps {
   readonly currentModel: string;
@@ -69,7 +69,7 @@ export const Header: FC = () => {
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
 
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
-  const updateSetting = useStoreAction((s, updates: Partial<GlobalSettings>) => s.updateSetting(updates));
+  const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
 
   const setThreadModel = useStoreAction((_, model: string) =>
     Effect.flatMap(ChatService, (chat) =>

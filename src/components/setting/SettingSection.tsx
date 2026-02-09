@@ -18,16 +18,7 @@ import { FullscreenModal } from '../shared/modal/FullscreenModal';
 import { ModelItem } from '../shared/ModelItem';
 
 import type { ChangeEvent, FC, ReactNode } from 'react';
-import type {
-  AppRuntimeState,
-  ChatMetadata,
-  ChatThread,
-  ConfirmOptions,
-  GlobalSettings,
-  Instruction,
-  Model,
-  Personalisation,
-} from '../../app/Schema';
+import type { AppRuntimeState, ConfirmOptions, GlobalSetting, Instruction, Model, Personalisation, Thread, ThreadMetadata } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
@@ -56,8 +47,8 @@ export const SettingField: FC<{ label: string; children: ReactNode; className?: 
 );
 
 interface SettingSectionProps {
-  readonly settings: GlobalSettings;
-  readonly onChange: (updates: Partial<GlobalSettings> | ((s: GlobalSettings) => GlobalSettings)) => void;
+  readonly settings: GlobalSetting;
+  readonly onChange: (updates: Partial<GlobalSetting> | ((s: GlobalSetting) => GlobalSetting)) => void;
 }
 
 export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) => {
@@ -341,13 +332,11 @@ export const SettingTable = <T,>({
   );
 };
 
-export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
+export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
-  const importThreads = useStoreEffect((newThreads: Record<string, ChatThread>) =>
-    Effect.flatMap(ChatService, (chat) => chat.importThreads(newThreads)),
-  );
+  const importThreads = useStoreEffect((newThreads: Record<string, Thread>) => Effect.flatMap(ChatService, (chat) => chat.importThreads(newThreads)));
   const deleteThreads = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(ids)));
 
   const handleExport = (selectedIds: Set<string>) => {
@@ -441,7 +430,7 @@ export const HistorySection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
   );
 };
 
-export const ArchiveSection: FC<{ threads: Record<string, ChatMetadata> }> = ({ threads }) => {
+export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
   const toggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
   const getThread = useStoreAction((s, id: string) => s.getThread(id));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
@@ -449,7 +438,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ChatMetadata> }> = ({ 
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => t.archived)), [threads]);
 
-  const [previewThread, setPreviewThread] = useState<ChatThread | null>(null);
+  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
 
   const handleDeleteSelected = (selectedIds: Set<string>, resetSelection: () => void) => {
     if (selectedIds.size === 0) return;

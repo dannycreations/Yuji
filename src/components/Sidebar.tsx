@@ -16,7 +16,7 @@ import { Icon } from './shared/Icon';
 import { InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { ChatThread, ConfirmOptions } from '../app/Schema';
+import type { ConfirmOptions, Thread } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const threads = useStore(
@@ -36,7 +36,7 @@ export const Sidebar: FC = () => {
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
   const handleCreateThread = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.createThread()));
-  const handleDeleteThread = useStoreEffect((id: string) => Effect.flatMap(ChatService, (chat) => chat.deleteThread(id)));
+  const handleDeleteThread = useStoreEffect((id: string) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(id)));
   const handleTogglePin = useStoreAction((s, id: string) => s.togglePin(id));
   const handleToggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
 
@@ -61,7 +61,7 @@ export const Sidebar: FC = () => {
     const filtered = filterThreads(sortedThreads, deferredQuery);
     const grouped = groupThreads(filtered, pinnedThreadIds);
 
-    const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: ChatThread }> = [];
+    const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: Thread }> = [];
     const entries = Object.entries(grouped);
 
     for (let i = 0; i < entries.length; i++) {
@@ -69,7 +69,7 @@ export const Sidebar: FC = () => {
       if (group.length > 0) {
         result.push({ type: 'label', label });
         for (let j = 0; j < group.length; j++) {
-          result.push({ type: 'thread', thread: group[j] as ChatThread });
+          result.push({ type: 'thread', thread: group[j] as Thread });
         }
       }
     }

@@ -1,26 +1,24 @@
 import { Context, Effect, Layer } from 'effect';
 import { openDB } from 'idb';
 
-import { AppStoreState, ChatMessage, ChatMetadata, ChatThread } from '../app/Schema';
+import { AppStoreState, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 
 export interface StorageService {
   readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getThreadsMetadata: (options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMetadata>>;
-  readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<ChatThread | null>;
-  readonly saveThread: (thread: ChatThread | ChatMetadata) => Effect.Effect<void>;
+  readonly getThreadsMetadata: (options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
+  readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null>;
+  readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void>;
   readonly deleteThread: (id: string) => Effect.Effect<void>;
 
-  readonly getMessages: (threadId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ChatMessage>>;
+  readonly getMessages: (threadId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>>;
   readonly paginate: <T>(
     storeName: string,
     options: { offset?: number; limit?: number; indexName?: string; indexValue?: IDBValidKey },
   ) => Effect.Effect<ReadonlyArray<T>>;
-  readonly saveMessage: (threadId: string, message: ChatMessage) => Effect.Effect<void>;
-  readonly saveMessages: (threadId: string, messages: ChatMessage[]) => Effect.Effect<void>;
+  readonly saveMessages: (threadId: string, messages: ThreadMessage | ThreadMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
-  readonly deleteMessages: (threadId: string) => Effect.Effect<void>;
   readonly clearDatabase: () => Effect.Effect<void>;
 }
 
@@ -75,11 +73,11 @@ export const StorageServiceLive = Layer.effect(
           if (!options) {
             const db = yield* getDB;
             const threads = yield* Effect.promise(() => db.getAll(STORES.THREADS));
-            return threads as ChatMetadata[];
+            return threads as ThreadMetadata[];
           }
 
-          const threads = yield* storage.paginate<ChatMetadata>(STORES.THREADS, options);
-          return threads as ChatMetadata[];
+          const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, options);
+          return threads as ThreadMetadata[];
         }).pipe(Effect.orDie),
 
       getThread: (id, options) =>
@@ -91,7 +89,7 @@ export const StorageServiceLive = Layer.effect(
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
-          return { ...thread, messages: messagesRecord } as ChatThread;
+          return { ...thread, messages: messagesRecord } as Thread;
         }).pipe(Effect.orDie),
 
       saveThread: (thread) =>
@@ -101,7 +99,7 @@ export const StorageServiceLive = Layer.effect(
 
           // Strip messages before saving to THREADS store to prevent bloat
           // Messages are stored separately in STORES.MESSAGES
-          const { messages: _, ...metadata } = thread as ChatThread;
+          const { messages: _, ...metadata } = thread as Thread;
 
           const toSave = existing ? { ...existing, ...metadata } : metadata;
           yield* Effect.promise(() => db.put(STORES.THREADS, toSave));
@@ -156,29 +154,24 @@ export const StorageServiceLive = Layer.effect(
           if (!options) {
             const db = yield* getDB;
             const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId));
-            return messages as ChatMessage[];
+            return messages as ThreadMessage[];
           }
 
-          const messages = yield* storage.paginate<ChatMessage>(STORES.MESSAGES, {
+          const messages = yield* storage.paginate<ThreadMessage>(STORES.MESSAGES, {
             ...options,
             indexName: 'threadId',
             indexValue: threadId,
           });
 
-          return [...(messages as ChatMessage[])].reverse();
+          return [...(messages as ThreadMessage[])].reverse();
         }).pipe(Effect.orDie),
-
-      saveMessage: (threadId, message) =>
-        Effect.gen(function* () {
-          const db = yield* getDB;
-          yield* Effect.promise(() => db.put(STORES.MESSAGES, { ...message, threadId }));
-        }),
 
       saveMessages: (threadId, messages) =>
         Effect.gen(function* () {
           const db = yield* getDB;
+          const msgs = Array.isArray(messages) ? messages : [messages];
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
-          for (const m of messages) {
+          for (const m of msgs) {
             tx.store.put({ ...m, threadId });
           }
           yield* Effect.promise(() => tx.done);
@@ -188,19 +181,6 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           yield* Effect.promise(() => db.delete(STORES.MESSAGES, id));
-        }),
-
-      deleteMessages: (threadId) =>
-        Effect.gen(function* () {
-          const db = yield* getDB;
-          const tx = db.transaction(STORES.MESSAGES, 'readwrite');
-          const index = tx.store.index('threadId');
-          const keys = yield* Effect.promise(() => index.getAllKeys(IDBKeyRange.only(threadId)));
-          for (const key of keys) {
-            tx.store.delete(key);
-          }
-
-          yield* Effect.promise(() => tx.done);
         }),
 
       clearDatabase: () =>

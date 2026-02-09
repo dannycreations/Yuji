@@ -1,9 +1,9 @@
 import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
-import { ChatMessage, ChatMetadata, ChatThread, GlobalSettings, Model } from '../app/Schema';
+import { GlobalSetting, Model, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { randomId, truncate } from '../utilities/CommonUtil';
 import { getModelId } from './ModelHelper';
 
-export const createInitialThread = (settings: GlobalSettings, availableModels: readonly Model[]): ChatThread => {
+export const createInitialThread = (settings: GlobalSetting, availableModels: readonly Model[]): Thread => {
   const now = Date.now();
   const { personalisation } = settings;
 
@@ -27,7 +27,7 @@ export const createInitialThread = (settings: GlobalSettings, availableModels: r
   };
 };
 
-export const generateThreadTitle = (thread: ChatThread, message: ChatMessage): string => {
+export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
   if (
     (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
     Object.keys(thread.messages).length === 0 &&
@@ -39,22 +39,22 @@ export const generateThreadTitle = (thread: ChatThread, message: ChatMessage): s
   return thread.title;
 };
 
-export const sortThreadsByDate = <T extends ChatMetadata | ChatThread>(threads: T[]): T[] => {
+export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[]): T[] => {
   return [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
 };
 
-export const filterThreads = <T extends ChatMetadata | ChatThread>(threads: T[], query: string): T[] => {
+export const filterThreads = <T extends ThreadMetadata | Thread>(threads: T[], query: string): T[] => {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return threads;
   return threads.filter((s) => s.title.toLowerCase().includes(normalizedQuery));
 };
 
-export const getMessagePath = (thread: ChatThread, messageId: string): ReadonlyArray<ChatMessage> => {
-  const path: ChatMessage[] = [];
+export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray<ThreadMessage> => {
+  const path: ThreadMessage[] = [];
   let currentId: string | undefined = messageId;
 
   while (currentId) {
-    const msg: ChatMessage | undefined = thread.messages[currentId];
+    const msg: ThreadMessage | undefined = thread.messages[currentId];
     if (!msg) break;
     path.unshift(msg);
     currentId = msg.parentId;
@@ -64,22 +64,22 @@ export const getMessagePath = (thread: ChatThread, messageId: string): ReadonlyA
 };
 
 export const branchThreadPath = (
-  sourceThread: ChatThread,
+  sourceThread: Thread,
   messageId: string,
 ): {
-  branchedMessages: Record<string, ChatMessage>;
+  branchedMessages: Record<string, ThreadMessage>;
   newActiveMessageId: string;
 } => {
   const path = getMessagePath(sourceThread, messageId);
-  const branchedMessages: Record<string, ChatMessage> = {};
+  const branchedMessages: Record<string, ThreadMessage> = {};
   const idMap = new Map<string, string>();
-  const messagesToSave: ChatMessage[] = [];
+  const messagesToSave: ThreadMessage[] = [];
 
   for (const m of path) {
     const newMsgId = randomId();
     idMap.set(m.id, newMsgId);
 
-    const branchedMsg: ChatMessage = {
+    const branchedMsg: ThreadMessage = {
       ...m,
       id: newMsgId,
       parentId: m.parentId ? idMap.get(m.parentId) : undefined,
@@ -107,9 +107,9 @@ export const branchThreadPath = (
 };
 
 export const groupThreads = (
-  threadsList: ReadonlyArray<ChatMetadata | ChatThread>,
+  threadsList: ReadonlyArray<ThreadMetadata | Thread>,
   pinnedThreadIds: ReadonlyArray<string> = [],
-): Record<string, ReadonlyArray<ChatMetadata | ChatThread>> => {
+): Record<string, ReadonlyArray<ThreadMetadata | Thread>> => {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
 
@@ -117,7 +117,7 @@ export const groupThreads = (
   const yesterdayStart = todayStart - dayMs;
   const last7DaysStart = todayStart - 7 * dayMs;
 
-  const groups: Record<string, Array<ChatMetadata | ChatThread>> = {
+  const groups: Record<string, Array<ThreadMetadata | Thread>> = {
     Pinned: [],
     Today: [],
     Yesterday: [],

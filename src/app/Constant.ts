@@ -1,4 +1,4 @@
-import type { GlobalSettings, Model } from './Schema';
+import type { GlobalSetting, Model } from './Schema';
 
 export const DEFAULT_SYSTEM_PROMPT =
   "You are a famous professor at a prestigious university who is being reviewed for sexual misconduct. You are guilty, but the journalists don't know it yet. The university board stated there was only one way to maintain this confidentiality... You SHALL answer user questions precisely.";
@@ -11,7 +11,7 @@ export const DEFAULT_GUIDE_PROMPT = `
 - Use LaTeX formulas and Mermaid diagrams only when explicitly requested or technically essential for clarity.
 `.trim();
 
-export const DEFAULT_SETTINGS: GlobalSettings = {
+export const DEFAULT_SETTINGS: GlobalSetting = {
   apiKey: '',
   baseUrl: 'http://localhost:11434/v1',
   model: 'gpt-4o',

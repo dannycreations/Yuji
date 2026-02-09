@@ -9,7 +9,7 @@ import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
 
 import type { FC } from 'react';
-import type { ChatThread } from '../../app/Schema';
+import type { Thread } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
 interface ThreadSettingModalProps {
@@ -25,13 +25,13 @@ const THREAD_SETTING_TABS: SettingTabItem[] = [
 
 export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onClose }) => {
   const activeThread = useStore((s) => s.activeThread);
-  const [localThread, setLocalThread] = useState<ChatThread | null>(null);
+  const [localThread, setLocalThread] = useState<Thread | null>(null);
 
   const updateThread = useStoreAction(
     (
       _s,
       threadId: string,
-      f: (thread: ChatThread, now: number) => ChatThread,
+      f: (thread: Thread, now: number) => Thread,
       options?: {
         readonly skipUpdateTimestamp?: boolean;
         readonly metadataOnly?: boolean;
@@ -40,7 +40,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
   );
   const getThread = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.getThread(id)));
 
-  const updateTargetThread = (targetId: string, f: (s: ChatThread, now: number) => ChatThread, metadataOnly = false) => {
+  const updateTargetThread = (targetId: string, f: (s: Thread, now: number) => Thread, metadataOnly = false) => {
     updateThread(targetId, f, { metadataOnly });
     if (!metadataOnly) {
       getThread(targetId).then((thread) => {
@@ -62,9 +62,9 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
   const thread = activeThread?.id === threadId ? activeThread : localThread;
   if (!thread) return null;
 
-  const patchThread = (f: (s: ChatThread) => ChatThread, metadataOnly = false) => updateTargetThread(threadId, (s) => f(s), metadataOnly);
+  const patchThread = (f: (s: Thread) => Thread, metadataOnly = false) => updateTargetThread(threadId, (s) => f(s), metadataOnly);
 
-  const handleGeneral = (updates: Partial<ChatThread['general']>) => patchThread((s) => ({ ...s, general: { ...s.general, ...updates } }));
+  const handleGeneral = (updates: Partial<Thread['general']>) => patchThread((s) => ({ ...s, general: { ...s.general, ...updates } }));
 
   const renderContent = () => {
     switch (activeTab) {

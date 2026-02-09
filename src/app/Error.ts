@@ -12,8 +12,3 @@ export class ThreadNotFoundError extends Data.TaggedError('ThreadNotFoundError')
 export class MessageNotFoundError extends Data.TaggedError('MessageNotFoundError')<{
   readonly messageId: string;
 }> {}
-
-export class ParseError extends Data.TaggedError('ParseError')<{
-  readonly message: string;
-  readonly cause?: unknown;
-}> {}

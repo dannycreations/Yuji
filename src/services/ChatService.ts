@@ -1,7 +1,7 @@
 import { Context, Effect, Fiber, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { MessageNotFoundError, ThreadNotFoundError } from '../app/Error';
-import { Attachment, ChatMessage, ChatMetadata, ChatThread } from '../app/Schema';
+import { Attachment, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { branchThreadPath, createInitialThread, generateThreadTitle, getMessagePath } from '../helpers/ThreadHelper';
 import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
 import { formatError, randomId } from '../utilities/CommonUtil';
@@ -9,37 +9,38 @@ import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
 
 export interface ChatService {
-  readonly createThread: () => Effect.Effect<ChatMetadata>;
-  readonly deleteThread: (id: string) => Effect.Effect<void>;
-  readonly deleteThreads: (ids: Set<string>) => Effect.Effect<void>;
-  readonly importThreads: (threads: Record<string, ChatThread>) => Effect.Effect<void>;
-  readonly addMessage: (threadId: string, message: ChatMessage) => Effect.Effect<void, ThreadNotFoundError>;
+  readonly createThread: () => Effect.Effect<ThreadMetadata>;
+  readonly deleteThreads: (ids: string | Iterable<string>) => Effect.Effect<void>;
+  readonly importThreads: (threads: Record<string, Thread>) => Effect.Effect<void>;
+  readonly addMessage: (threadId: string, message: ThreadMessage) => Effect.Effect<void, ThreadNotFoundError>;
   readonly updateMessage: (
     threadId: string,
     messageId: string,
     content: string,
-    isError?: boolean,
-    skipUpdateTimestamp?: boolean,
-    uiOnly?: boolean,
-    metadataOnly?: boolean,
+    options?: {
+      readonly isError?: boolean;
+      readonly skipUpdateTimestamp?: boolean;
+      readonly uiOnly?: boolean;
+      readonly metadataOnly?: boolean;
+    },
   ) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError>;
   readonly deleteMessage: (threadId: string, messageId: string) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError>;
   readonly renameThread: (threadId: string, title: string) => Effect.Effect<void, ThreadNotFoundError>;
   readonly updateThread: (
     threadId: string,
-    f: (thread: ChatThread, now: number) => ChatThread,
+    f: (thread: Thread, now: number) => Thread,
     options?: {
       readonly skipUpdateTimestamp?: boolean;
       readonly metadataOnly?: boolean;
     },
   ) => Effect.Effect<void, ThreadNotFoundError>;
   readonly updateActiveThread: (
-    f: (thread: ChatThread, now: number) => ChatThread,
+    f: (thread: Thread, now: number) => Thread,
     skipUpdateTimestamp?: boolean,
   ) => Effect.Effect<void, ThreadNotFoundError>;
-  readonly getThreadPath: (threadId: string, messageId: string) => Effect.Effect<ReadonlyArray<ChatMessage>, ThreadNotFoundError>;
-  readonly branchChat: (threadId: string, messageId: string) => Effect.Effect<ChatMetadata, ThreadNotFoundError | MessageNotFoundError>;
-  readonly generate: (threadId: string, messagesToProcess: ReadonlyArray<ChatMessage>) => Effect.Effect<void>;
+  readonly getThreadPath: (threadId: string, messageId: string) => Effect.Effect<ReadonlyArray<ThreadMessage>, ThreadNotFoundError>;
+  readonly branchChat: (threadId: string, messageId: string) => Effect.Effect<ThreadMetadata, ThreadNotFoundError | MessageNotFoundError>;
+  readonly generate: (threadId: string, messagesToProcess: ReadonlyArray<ThreadMessage>) => Effect.Effect<void>;
   readonly stop: (threadId?: string) => Effect.Effect<void>;
   readonly sendMessage: (content: string, attachments?: ReadonlyArray<Attachment>) => Effect.Effect<void>;
   readonly regenerateMessage: (threadId: string, messageId: string) => Effect.Effect<void>;
@@ -57,8 +58,11 @@ export const ChatServiceLive = Layer.effect(
 
     const updateThread = (
       threadId: string,
-      f: (thread: ChatThread, now: number) => ChatThread,
-      options: { readonly skipUpdateTimestamp?: boolean; readonly metadataOnly?: boolean } = {},
+      f: (thread: Thread, now: number) => Thread,
+      options: {
+        readonly skipUpdateTimestamp?: boolean;
+        readonly metadataOnly?: boolean;
+      } = {},
     ) =>
       Effect.gen(function* () {
         const now = Date.now();
@@ -67,8 +71,8 @@ export const ChatServiceLive = Layer.effect(
         if (!thread) return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
 
         const updated = f(thread, now);
-        const finalUpdated: ChatThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-        const metadata = yield* Schema.decode(ChatMetadata)(finalUpdated).pipe(Effect.orDie);
+        const finalUpdated: Thread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+        const metadata = yield* Schema.decode(ThreadMetadata)(finalUpdated).pipe(Effect.orDie);
 
         const state = yield* SubscriptionRef.get(store.state);
         const isActive = state.activeThreadId === threadId && state.activeThread?.id === threadId;
@@ -89,7 +93,7 @@ export const ChatServiceLive = Layer.effect(
         }),
       );
 
-    const updateActiveThread = (f: (thread: ChatThread, now: number) => ChatThread, skipUpdateTimestamp = false) =>
+    const updateActiveThread = (f: (thread: Thread, now: number) => Thread, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
         const activeId = (yield* SubscriptionRef.get(store.state)).activeThreadId;
         if (!activeId) return yield* Effect.fail(new ThreadNotFoundError({ threadId: 'active' }));
@@ -112,7 +116,7 @@ export const ChatServiceLive = Layer.effect(
         }
       });
 
-    const generate = (threadId: string, messagesToProcess: ReadonlyArray<ChatMessage>) =>
+    const generate = (threadId: string, messagesToProcess: ReadonlyArray<ThreadMessage>) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
         const settings = state.settings;
@@ -128,7 +132,7 @@ export const ChatServiceLive = Layer.effect(
         }));
 
         const id = randomId();
-        const assistantMessage: ChatMessage = {
+        const assistantMessage: ThreadMessage = {
           id,
           role: 'assistant',
           content: '',
@@ -175,33 +179,33 @@ export const ChatServiceLive = Layer.effect(
               if (now - lastUITime > UI_UPDATE_INTERVAL) {
                 lastUITime = now;
                 lastUISaveContent = fullContent;
-                yield* chatService.updateMessage(threadId, id, fullContent, false, true, true, false);
+                yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
               }
 
               // Throttle Storage updates to prevent IDB write bottleneck
               if (now - lastSaveTime > STORAGE_SAVE_INTERVAL) {
                 lastSaveTime = now;
                 lastSavedContent = fullContent;
-                yield* chatService.updateMessage(threadId, id, fullContent, false, true, false, false);
+                yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
               }
             }),
           );
 
           // Ensure final state is synchronized to both UI and Storage
           if (fullContent !== lastUISaveContent) {
-            yield* chatService.updateMessage(threadId, id, fullContent, false, true, true, false);
+            yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
           }
           if (fullContent !== lastSavedContent) {
-            yield* chatService.updateMessage(threadId, id, fullContent, false, true, false, false);
+            yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
           }
 
           // Update timestamp once when stream is finished
-          yield* chatService.updateMessage(threadId, id, fullContent, false, false, false, true);
+          yield* chatService.updateMessage(threadId, id, fullContent, { metadataOnly: true });
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
               const msg = formatError(err);
-              yield* chatService.updateMessage(threadId, id, `*[Error: ${msg}]*`, true);
+              yield* chatService.updateMessage(threadId, id, `*[Error: ${msg}]*`, { isError: true });
               yield* store.notify('error', `Chat error: ${msg}`);
             }),
           ),
@@ -239,7 +243,7 @@ export const ChatServiceLive = Layer.effect(
             targetThreadId = thread.id;
           }
 
-          const userMessage: ChatMessage = {
+          const userMessage: ThreadMessage = {
             id: randomId(),
             role: 'user',
             content,
@@ -273,7 +277,7 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
           const newThread = createInitialThread(settings, availableModels);
-          const metadata = yield* Schema.decode(ChatMetadata)(newThread).pipe(Effect.orDie);
+          const metadata = yield* Schema.decode(ThreadMetadata)(newThread).pipe(Effect.orDie);
 
           yield* store.update((state) => ({
             ...state,
@@ -286,30 +290,19 @@ export const ChatServiceLive = Layer.effect(
           return metadata;
         }),
 
-      deleteThread: (id) =>
+      deleteThreads: (input) =>
         Effect.gen(function* () {
-          yield* stop(id);
-          yield* store.update((state) => {
-            const { [id]: _, ...threads } = state.threads;
-            return {
-              ...state,
-              threads,
-              activeThreadId: state.activeThreadId === id ? null : state.activeThreadId,
-              activeThread: state.activeThreadId === id ? null : state.activeThread,
-            };
-          });
-          yield* storage.deleteThread(id);
-        }),
+          const ids = typeof input === 'string' ? [input] : Array.from(input);
+          const idSet = new Set(ids);
 
-      deleteThreads: (ids) =>
-        Effect.gen(function* () {
           for (const id of ids) {
             yield* stop(id);
           }
+
           yield* store.update((state) => {
             const threads = { ...state.threads };
             ids.forEach((id) => delete threads[id]);
-            const isActiveDeleted = state.activeThreadId && ids.has(state.activeThreadId);
+            const isActiveDeleted = state.activeThreadId && idSet.has(state.activeThreadId);
             return {
               ...state,
               threads,
@@ -317,6 +310,7 @@ export const ChatServiceLive = Layer.effect(
               activeThread: isActiveDeleted ? null : state.activeThread,
             };
           });
+
           for (const id of ids) {
             yield* storage.deleteThread(id);
           }
@@ -324,11 +318,11 @@ export const ChatServiceLive = Layer.effect(
 
       importThreads: (threads) =>
         Effect.gen(function* () {
-          const metadatas: Record<string, ChatMetadata> = {};
+          const metadatas: Record<string, ThreadMetadata> = {};
           const saveEffects: Effect.Effect<void>[] = [];
 
           for (const [id, thread] of Object.entries(threads)) {
-            metadatas[id] = yield* Schema.decode(ChatMetadata)(thread).pipe(Effect.orDie);
+            metadatas[id] = yield* Schema.decode(ThreadMetadata)(thread).pipe(Effect.orDie);
             saveEffects.push(storage.saveThread(thread));
           }
 
@@ -346,10 +340,10 @@ export const ChatServiceLive = Layer.effect(
 
       addMessage: (threadId, message) =>
         Effect.gen(function* () {
-          let messagesToSave: ChatMessage[] = [message];
+          let messagesToSave: ThreadMessage[] = [message];
           yield* updateThread(threadId, (thread) => {
             const messages = { ...thread.messages };
-            let parent: ChatMessage | undefined;
+            let parent: ThreadMessage | undefined;
 
             if (message.parentId && messages[message.parentId]) {
               const p = messages[message.parentId];
@@ -374,11 +368,11 @@ export const ChatServiceLive = Layer.effect(
           yield* storage.saveMessages(threadId, messagesToSave);
         }),
 
-      updateMessage: (threadId, messageId, content, isError, skipUpdateTimestamp, uiOnly, metadataOnly) =>
+      updateMessage: (threadId, messageId, content, options = {}) =>
         Effect.gen(function* () {
-          let updatedMessage: ChatMessage | undefined;
+          let updatedMessage: ThreadMessage | undefined;
 
-          if (metadataOnly) {
+          if (options.metadataOnly) {
             yield* updateThread(threadId, (s) => s);
             return;
           }
@@ -388,7 +382,7 @@ export const ChatServiceLive = Layer.effect(
             (thread) => {
               const msg = thread.messages[messageId];
               if (!msg) return thread;
-              updatedMessage = { ...msg, content, isError };
+              updatedMessage = { ...msg, content, isError: options.isError };
               return {
                 ...thread,
                 messages: {
@@ -397,22 +391,22 @@ export const ChatServiceLive = Layer.effect(
                 },
               };
             },
-            { skipUpdateTimestamp },
+            { skipUpdateTimestamp: options.skipUpdateTimestamp },
           );
 
           if (!updatedMessage) {
             return yield* Effect.fail(new MessageNotFoundError({ messageId }));
           }
 
-          if (!uiOnly) {
-            yield* storage.saveMessage(threadId, updatedMessage);
+          if (!options.uiOnly) {
+            yield* storage.saveMessages(threadId, updatedMessage);
           }
         }),
 
       deleteMessage: (threadId, messageId) =>
         Effect.gen(function* () {
           let idsToDelete: string[] = [];
-          let updatedParent: ChatMessage | undefined;
+          let updatedParent: ThreadMessage | undefined;
 
           yield* updateThread(threadId, (thread) => {
             const messageToDelete = thread.messages[messageId];
@@ -450,7 +444,7 @@ export const ChatServiceLive = Layer.effect(
               yield* storage.deleteMessage(id);
             }
             if (updatedParent) {
-              yield* storage.saveMessage(threadId, updatedParent);
+              yield* storage.saveMessages(threadId, updatedParent);
             }
           }
         }).pipe(
@@ -486,7 +480,7 @@ export const ChatServiceLive = Layer.effect(
           const now = Date.now();
           const id = randomId();
 
-          const newThread: ChatThread = {
+          const newThread: Thread = {
             ...sourceThread,
             id,
             title: `${sourceThread.title} (Branch)`,
@@ -496,7 +490,7 @@ export const ChatServiceLive = Layer.effect(
             updatedAt: now,
           };
 
-          const metadata = yield* Schema.decode(ChatMetadata)(newThread).pipe(Effect.orDie);
+          const metadata = yield* Schema.decode(ThreadMetadata)(newThread).pipe(Effect.orDie);
           yield* store.update((s) => ({
             ...s,
             threads: { [id]: metadata, ...s.threads },

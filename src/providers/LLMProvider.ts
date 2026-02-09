@@ -3,9 +3,9 @@ import { Context, Effect, Stream } from 'effect';
 import { DEFAULT_GUIDE_PROMPT } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
 
-import type { ChatMessage, ChatThread, GlobalSettings, ModelConfig } from '../app/Schema';
+import type { GlobalSetting, Thread, ThreadMessage } from '../app/Schema';
 
-export const synthesizeSystemPrompt = (settings: GlobalSettings, thread: ChatThread): string => {
+export const synthesizeSystemPrompt = (settings: GlobalSetting, thread: Thread): string => {
   const instruction = thread.general.overrideInstruction ? thread.instruction.systemPrompt : settings.instruction.systemPrompt;
   const personalisation = thread.general.overridePersonalisation ? thread.personalisation : settings.personalisation;
 
@@ -27,12 +27,18 @@ interface LLMModel {
 
 export interface LLMProvider {
   readonly streamCompletion: (
-    messages: ReadonlyArray<ChatMessage>,
-    settings: GlobalSettings,
-    config: ModelConfig,
+    messages: ReadonlyArray<ThreadMessage>,
+    settings: GlobalSetting,
+    config: {
+      readonly provider: 'openai';
+      readonly model: string;
+      readonly temperature: number;
+      readonly maxTokens?: number;
+      readonly topP?: number;
+    },
     systemPrompt: string,
   ) => Effect.Effect<Stream.Stream<string, LLMProviderError>, LLMProviderError>;
-  readonly fetchModels: (settings: GlobalSettings) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
+  readonly fetchModels: (settings: GlobalSetting) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
 }
 
 export const LLMProvider = Context.GenericTag<LLMProvider>('@providers/LLMProvider');

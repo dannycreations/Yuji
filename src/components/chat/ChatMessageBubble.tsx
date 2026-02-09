@@ -17,7 +17,7 @@ import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
 import type { Components } from 'react-markdown';
-import type { ChatMessage, ConfirmOptions } from '../../app/Schema';
+import type { ConfirmOptions, ThreadMessage } from '../../app/Schema';
 
 const Markdown = memo(
   ({ content, components }: { content: string; components: Components }) => (
@@ -29,7 +29,7 @@ const Markdown = memo(
 );
 
 interface ChatMessageBubbleProps {
-  readonly message: ChatMessage;
+  readonly message: ThreadMessage;
   readonly threadId: string;
   readonly isThinking?: boolean;
   readonly onUpdateHeight?: () => void;

@@ -2,7 +2,7 @@ import { Context, Effect, Either, Fiber, Layer, Schema, Stream, SubscriptionRef 
 
 import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
 import { YujiRuntime } from '../app/Runtime';
-import { AppRuntimeState, AppStoreState, ChatMessage, ChatMetadata, ChatThread, ConfirmOptions } from '../app/Schema';
+import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { getMessagePath } from '../helpers/ThreadHelper';
 import { randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
@@ -12,7 +12,7 @@ export interface StoreService {
   readonly getSnapshot: () => AppRuntimeState;
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void>;
   readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void>;
-  readonly setActiveThread: (threadOrId: ChatThread | string | null) => Effect.Effect<void>;
+  readonly setActiveThread: (threadOrId: Thread | string | null) => Effect.Effect<void>;
   readonly updateSetting: (
     updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings']),
   ) => Effect.Effect<void>;
@@ -28,7 +28,7 @@ export interface StoreService {
   readonly loadMoreThreads: () => Effect.Effect<void>;
   readonly clearDatabase: () => Effect.Effect<void>;
   readonly subscribe: (onStoreChange: () => void) => () => void;
-  readonly getThread: (id: string) => Effect.Effect<ChatThread | null>;
+  readonly getThread: (id: string) => Effect.Effect<Thread | null>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -97,12 +97,12 @@ export const StoreServiceLive = Layer.effect(
       const { metadata, threadHeaders } = result.right;
 
       if (metadata) {
-        const threadsMap: Record<string, ChatMetadata> = {};
+        const threadsMap: Record<string, ThreadMetadata> = {};
         for (const header of threadHeaders) {
           threadsMap[header.id] = header;
         }
 
-        let activeThread: ChatThread | null = null;
+        let activeThread: Thread | null = null;
         let settings = metadata.settings;
 
         if (metadata.activeThreadId) {
@@ -288,7 +288,7 @@ export const StoreServiceLive = Layer.effect(
               );
 
               const sortedByRecent = messageList.sort((a, b) => b.timestamp - a.timestamp);
-              const result: Record<string, ChatMessage> = {};
+              const result: Record<string, ThreadMessage> = {};
 
               // 1. Always keep active path
               activePathIds.forEach((id) => {

@@ -4,7 +4,7 @@ import { Effect, Layer, Option, Schema, Stream } from 'effect';
 import { LLMProviderError } from '../app/Error';
 import { LLMProvider } from './LLMProvider';
 
-import type { Attachment, ChatMessage } from '../app/Schema';
+import type { Attachment, ThreadMessage } from '../app/Schema';
 
 interface OpenAIMessage {
   readonly role: string;
@@ -31,7 +31,7 @@ const mapAttachment = (att: Attachment): OpenAIContent => {
   }
 };
 
-const createApiMessages = (messages: readonly ChatMessage[], systemPrompt: string): OpenAIMessage[] => {
+const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: string): OpenAIMessage[] => {
   const system: OpenAIMessage = { role: 'system', content: systemPrompt };
   const userMessages = messages.map((m): OpenAIMessage => {
     if (!m.attachments || m.attachments.length === 0) {
