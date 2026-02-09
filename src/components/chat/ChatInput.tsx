@@ -4,9 +4,8 @@ import { useRef, useState } from 'react';
 import { useStore } from '../../hooks/useStore';
 import { handleFilesFromEvent, handleFilesFromPaste } from '../../utilities/FileUtil';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
-import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
-import { InputTextarea } from '../shared/InputArea';
+import { InputButton, InputTextarea } from '../shared/InputArea';
 
 import type { FC, KeyboardEvent } from 'react';
 import type { Attachment } from '../../app/Schema';
@@ -86,13 +85,13 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
         <div className="chat-input-actions">
           <div className="chat-input-action-group">
-            <Button onClick={() => fileInputRef.current?.click()} title="Attach Image" className="!p-1">
+            <InputButton onClick={() => fileInputRef.current?.click()} title="Attach Image" className="!p-1">
               <Icon name="Plus" size={22} />
-            </Button>
+            </InputButton>
 
-            <Button title="Search" className="!p-1">
+            <InputButton title="Search" className="!p-1">
               <Icon name="Globe" size={18} />
-            </Button>
+            </InputButton>
           </div>
 
           <button

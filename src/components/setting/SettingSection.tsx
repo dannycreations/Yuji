@@ -10,10 +10,9 @@ import { ChatService } from '../../services/ChatService';
 import { downloadFile } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { ChatMessageBubble } from '../chat/ChatMessageBubble';
-import { Button } from '../shared/Button';
 import { Checkbox } from '../shared/Checkbox';
 import { Icon } from '../shared/Icon';
-import { InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
+import { InputButton, InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
 import { ModelItem } from '../shared/ModelItem';
 
@@ -161,10 +160,10 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <Button className="badge-outline whitespace-nowrap" onClick={handleRefreshModels} title="Refresh Library">
+        <InputButton className="badge-outline whitespace-nowrap" onClick={handleRefreshModels} title="Refresh Library">
           <Icon name="RefreshCw" size={14} />
           <span>Refresh</span>
-        </Button>
+        </InputButton>
       </div>
 
       <div className="flex-1 min-h-0 space-y-2">
@@ -304,22 +303,22 @@ export const SettingTable = <T,>({
             Page {currentPage + 1} of {totalPages}
           </div>
           <div className="flex gap-2">
-            <Button
+            <InputButton
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <Icon name="ChevronLeft" size={12} />
               Prev
-            </Button>
-            <Button
+            </InputButton>
+            <InputButton
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
               className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               Next
               <Icon name="ChevronRight" size={12} />
-            </Button>
+            </InputButton>
           </div>
         </div>
       )}
@@ -386,22 +385,22 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       headerActions={(selectedIds, resetSelection) => (
         <>
           {selectedIds.size > 0 && (
-            <Button
+            <InputButton
               onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
               className="badge-outline bg-danger/10! text-danger! border-danger/20"
             >
               <Icon name="Trash2" size={12} />
               Delete ({selectedIds.size})
-            </Button>
+            </InputButton>
           )}
-          <Button onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
-          </Button>
-          <Button onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
+          </InputButton>
+          <InputButton onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
             <Icon name="Download" size={12} />
             Import
-          </Button>
+          </InputButton>
         </>
       )}
       renderRow={(thread, _, selection) => (
@@ -479,18 +478,18 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       headerActions={(selectedIds, resetSelection) => (
         <>
           {selectedIds.size > 0 && (
-            <Button
+            <InputButton
               onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
               className="badge-outline bg-danger/10! text-danger! border-danger/20"
             >
               <Icon name="Trash2" size={12} />
               Delete ({selectedIds.size})
-            </Button>
+            </InputButton>
           )}
-          <Button onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
-          </Button>
+          </InputButton>
         </>
       )}
       renderRow={(thread, _, selection) => (
@@ -505,14 +504,14 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
             <div className="text-xs text-text-tertiary mt-1">{timeAgo(thread.updatedAt)}</div>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => toggleArchive(thread.id)} className="badge-outline text-text-primary!" title="Unarchive">
+            <InputButton onClick={() => toggleArchive(thread.id)} className="badge-outline text-text-primary!" title="Unarchive">
               <Icon name="ArchiveRestore" size={12} />
               Restore
-            </Button>
-            <Button onClick={() => handlePreview(thread.id)} className="badge-outline text-text-primary!" title="View Conversation">
+            </InputButton>
+            <InputButton onClick={() => handlePreview(thread.id)} className="badge-outline text-text-primary!" title="View Conversation">
               <Icon name="Maximize2" size={12} />
               View
-            </Button>
+            </InputButton>
           </div>
         </div>
       )}
@@ -524,7 +523,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           title={previewThread.title}
           subtitle={`${timeAgo(previewThread.updatedAt)} • ${previewMessages.length} messages`}
           headerActions={
-            <Button
+            <InputButton
               onClick={() => {
                 toggleArchive(previewThread.id);
                 setPreviewThread(null);
@@ -533,7 +532,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
             >
               <Icon name="ArchiveRestore" size={14} />
               Restore
-            </Button>
+            </InputButton>
           }
           bodyClassName="bg-surface/30 overflow-y-auto"
         >
@@ -625,9 +624,9 @@ export const OverrideSection = <T,>({ description, checked, onChange, children, 
       <div className="override-empty-state">
         <Icon name="Lock" size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
-        <Button onClick={() => onChange(true)} className="override-enable-btn">
+        <InputButton onClick={() => onChange(true)} className="override-enable-btn">
           Enable Override
-        </Button>
+        </InputButton>
       </div>
     );
   }

@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 
-import { Button } from '../Button';
 import { Icon } from '../Icon';
+import { InputButton } from '../InputArea';
 import { Modal } from './Modal';
 
 import type { FC, ReactNode } from 'react';
@@ -42,9 +42,9 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
         <div className="flex items-center gap-2">
           {headerActions}
           {headerActions && <div className="w-px h-4 bg-separator/50 mx-1" />}
-          <Button onClick={onClose} title="Close">
+          <InputButton onClick={onClose} title="Close">
             <Icon name="X" size={18} />
-          </Button>
+          </InputButton>
         </div>
       </div>
       <div className={clsx('flex-1 overflow-hidden relative', bodyClassName)} onMouseDown={(e) => e.stopPropagation()}>

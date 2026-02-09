@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 
-import { Button } from '../Button';
 import { Icon } from '../Icon';
+import { InputButton } from '../InputArea';
 import { Modal, ModalHeader } from './Modal';
 
 import type { FC, ReactNode } from 'react';
@@ -31,9 +31,9 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
       {/* Sidebar */}
       <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator/50">
         <div className="flex justify-between items-center px-1 mb-2">
-          <Button onClick={onClose}>
+          <InputButton onClick={onClose}>
             <Icon name="X" size={18} />
-          </Button>
+          </InputButton>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1">
           {tabs.map((tab) => (

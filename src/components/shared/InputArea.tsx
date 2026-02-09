@@ -70,28 +70,6 @@ export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ cl
   );
 });
 
-interface InputSwitchProps {
-  readonly checked: boolean;
-  readonly onChange: (checked: boolean) => void;
-  readonly disabled?: boolean;
-  readonly className?: string;
-}
-
-export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled = false, className }) => {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => !disabled && onChange(!checked)}
-      className={clsx('input-switch', checked ? 'checked' : 'unchecked', disabled && 'opacity-50 cursor-not-allowed', className)}
-    >
-      <div className={clsx('input-switch-thumb', checked && 'checked')} />
-    </button>
-  );
-};
-
 interface InputTextareaProps extends TextareaAutosizeProps {
   readonly debounceMs?: number;
 }
@@ -148,5 +126,50 @@ export const InputTag: FC<InputTagProps> = ({ tags, onChange, placeholder, maxLe
         maxLength={maxLength}
       />
     </div>
+  );
+};
+
+const BUTTON_VARIANT = {
+  logo: 'btn-logo',
+  ghost: 'btn-ghost',
+  primary: 'btn-primary',
+  secondary: 'btn-secondary',
+  info: 'btn-info',
+  warning: 'btn-warning',
+  danger: 'btn-danger',
+  sidebar: 'btn-sidebar',
+} as const;
+
+interface InputButtonProps extends ComponentProps<'button'> {
+  readonly variant?: keyof typeof BUTTON_VARIANT;
+}
+
+export const InputButton = forwardRef<HTMLButtonElement, InputButtonProps>(({ className, variant = 'ghost', children, ...props }, ref) => {
+  return (
+    <button ref={ref} className={clsx(BUTTON_VARIANT[variant], className)} {...props}>
+      {children}
+    </button>
+  );
+});
+
+interface InputSwitchProps {
+  readonly checked: boolean;
+  readonly onChange: (checked: boolean) => void;
+  readonly disabled?: boolean;
+  readonly className?: string;
+}
+
+export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled = false, className }) => {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => !disabled && onChange(!checked)}
+      className={clsx('input-switch', checked ? 'checked' : 'unchecked', disabled && 'opacity-50 cursor-not-allowed', className)}
+    >
+      <div className={clsx('input-switch-thumb', checked && 'checked')} />
+    </button>
   );
 };

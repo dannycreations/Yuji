@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
 import { useModalAnimation } from '../../../hooks/useModalAnimation';
-import { Button } from '../Button';
 import { Icon } from '../Icon';
+import { InputButton } from '../InputArea';
 
 import type { FC, ReactNode } from 'react';
 
@@ -13,9 +13,9 @@ export const ModalHeader: FC<{ readonly title: ReactNode; readonly onClose?: () 
   <div className="modal-header">
     <div className="header-title">{title}</div>
     {onClose && (
-      <Button onClick={onClose} className="ml-auto">
+      <InputButton onClick={onClose} className="ml-auto">
         <Icon name="X" size={18} />
-      </Button>
+      </InputButton>
     )}
   </div>
 );

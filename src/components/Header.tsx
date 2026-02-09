@@ -5,9 +5,8 @@ import { getCurrentModelId, getFilteredModels, getModelName } from '../helpers/M
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useStore, useStoreAction } from '../hooks/useStore';
 import { ChatService } from '../services/ChatService';
-import { Button } from './shared/Button';
 import { Icon } from './shared/Icon';
-import { InputSearch } from './shared/InputArea';
+import { InputButton, InputSearch } from './shared/InputArea';
 import { ModelItem } from './shared/ModelItem';
 
 import type { FC } from 'react';
@@ -109,16 +108,16 @@ export const Header: FC = () => {
     <div className="sticky-header">
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
-          <Button onClick={toggleSidebar} title="Open Sidebar">
+          <InputButton onClick={toggleSidebar} title="Open Sidebar">
             <Icon name="PanelLeftOpen" size={20} />
-          </Button>
+          </InputButton>
         )}
 
         <div className="relative" ref={pickerRef}>
-          <Button onClick={() => setShowModelPicker(!showModelPicker)}>
+          <InputButton onClick={() => setShowModelPicker(!showModelPicker)}>
             <span className="header-title pr-1">{currentModelName}</span>
             <Icon name="ChevronDown" size={16} className="text-text-secondary" />
-          </Button>
+          </InputButton>
 
           {showModelPicker && <ModelPicker currentModel={currentModelId} onSelect={handleModelSelect} onClose={() => setShowModelPicker(false)} />}
         </div>

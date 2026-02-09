@@ -10,10 +10,9 @@ import { useVirtualList } from '../hooks/useVirtualList';
 import { ChatService } from '../services/ChatService';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
-import { Button } from './shared/Button';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
 import { Icon } from './shared/Icon';
-import { InputSearch } from './shared/InputArea';
+import { InputButton, InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
 import type { ConfirmOptions, Thread } from '../app/Schema';
@@ -97,20 +96,20 @@ export const Sidebar: FC = () => {
   return (
     <div className="sidebar-container">
       <div className="sidebar-header relative">
-        <Button onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
+        <InputButton onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />
-        </Button>
+        </InputButton>
 
         <div className="abs-center flex-center pointer-events-none">
-          <Button variant="logo" onClick={() => setActiveThread(null)}>
+          <InputButton variant="logo" onClick={() => setActiveThread(null)}>
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>
-          </Button>
+          </InputButton>
         </div>
 
-        <Button onClick={handleCreateThread} className="z-chat-input" title="New Chat">
+        <InputButton onClick={handleCreateThread} className="z-chat-input" title="New Chat">
           <Icon name="SquarePen" size={20} />
-        </Button>
+        </InputButton>
       </div>
 
       <div className="px-2 mb-2">
@@ -177,7 +176,7 @@ export const Sidebar: FC = () => {
                         </div>
                       )
                     )}
-                    <Button
+                    <InputButton
                       className={clsx(
                         '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
                         menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
@@ -190,7 +189,7 @@ export const Sidebar: FC = () => {
                       }}
                     >
                       <Icon name="MoreHorizontal" size={16} />
-                    </Button>
+                    </InputButton>
                   </div>
                 </div>
               );
@@ -200,7 +199,7 @@ export const Sidebar: FC = () => {
       </div>
 
       <div className="sidebar-footer">
-        <Button variant="sidebar" onClick={toggleSetting}>
+        <InputButton variant="sidebar" onClick={toggleSetting}>
           <div className="avatar-sm">{getFirstChar(settings.personalisation.userName) || <Icon name="User" size={12} />}</div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
@@ -208,7 +207,7 @@ export const Sidebar: FC = () => {
           <div className="text-text-tertiary flex items-center">
             <Icon name="Settings" size={16} />
           </div>
-        </Button>
+        </InputButton>
       </div>
       {settingsOpenId && <ThreadSettingModal threadId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 

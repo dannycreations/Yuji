@@ -10,9 +10,8 @@ import { useCopy } from '../../hooks/useCopy';
 import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
-import { Button } from '../shared/Button';
 import { Icon } from '../shared/Icon';
-import { InputTextarea } from '../shared/InputArea';
+import { InputButton, InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
@@ -162,12 +161,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   autoFocus
                 />
                 <div className="chat-input-edit-actions">
-                  <Button variant="secondary" onClick={() => setIsEditing(false)}>
+                  <InputButton variant="secondary" onClick={() => setIsEditing(false)}>
                     Cancel
-                  </Button>
-                  <Button variant="primary" onClick={handleSaveEdit}>
+                  </InputButton>
+                  <InputButton variant="primary" onClick={handleSaveEdit}>
                     {saveAfterEditing ? 'Save' : 'Regenerate'}
-                  </Button>
+                  </InputButton>
                 </div>
               </div>
             ) : (
@@ -190,37 +189,37 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
               <div className="message-actions">
                 {siblings.length > 1 && (
                   <div className="message-branch-navigation">
-                    <Button disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} title="Previous Version">
+                    <InputButton disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} title="Previous Version">
                       <Icon name="ChevronLeft" size={16} />
-                    </Button>
+                    </InputButton>
                     <span className="message-branch-indicator">
                       {currentIndex + 1}
                       <span className="message-branch-indicator-slash">/</span>
                       {siblings.length}
                     </span>
-                    <Button
+                    <InputButton
                       disabled={currentIndex === siblings.length - 1}
                       onClick={() => handleSwitch(siblings[currentIndex + 1])}
                       title="Next Version"
                     >
                       <Icon name="ChevronRight" size={16} />
-                    </Button>
+                    </InputButton>
                   </div>
                 )}
 
-                <Button onClick={() => handleBranch(threadId, message.id)} title="Branch">
+                <InputButton onClick={() => handleBranch(threadId, message.id)} title="Branch">
                   <Icon name="GitFork" size={16} />
-                </Button>
+                </InputButton>
 
-                <Button onClick={() => handleRegenerate(threadId, message.id)} title="Regenerate">
+                <InputButton onClick={() => handleRegenerate(threadId, message.id)} title="Regenerate">
                   <Icon name="RefreshCw" size={16} />
-                </Button>
+                </InputButton>
 
-                <Button onClick={handleCopy} title="Copy">
+                <InputButton onClick={handleCopy} title="Copy">
                   <Icon name={copied ? 'Check' : 'Copy'} size={16} />
-                </Button>
+                </InputButton>
 
-                <Button
+                <InputButton
                   onClick={() => {
                     setEditContent(message.content);
                     setIsEditing(true);
@@ -228,11 +227,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   title="Edit"
                 >
                   <Icon name="Pencil" size={16} />
-                </Button>
+                </InputButton>
 
-                <Button onClick={handleDelete} className="hover:text-danger!" title="Delete">
+                <InputButton onClick={handleDelete} className="hover:text-danger!" title="Delete">
                   <Icon name="Trash2" size={16} />
-                </Button>
+                </InputButton>
               </div>
             </div>
           )}
