@@ -4,12 +4,8 @@ export const Model = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
   description: Schema.String,
-  provider: Schema.Literal('OpenAI Compatible'),
   icon: Schema.String,
   color: Schema.String,
-  tags: Schema.Array(Schema.String),
-  premium: Schema.optional(Schema.Boolean),
-  isNew: Schema.optional(Schema.Boolean),
 });
 export type Model = Schema.Schema.Type<typeof Model>;
 

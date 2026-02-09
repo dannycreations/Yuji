@@ -138,10 +138,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         premium: false,
       }));
 
-      const staticIds = new Set(availableModels.map((m) => m.id));
-      const newModels = apiModels.filter((m) => !staticIds.has(m.id));
-
-      setAvailableModels([...availableModels, ...newModels]);
+      setAvailableModels(apiModels);
     }),
   );
 

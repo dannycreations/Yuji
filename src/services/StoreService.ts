@@ -1,6 +1,6 @@
 import { Context, Effect, Either, Fiber, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
-import { DEFAULT_SETTINGS, MODELS } from '../app/Constant';
+import { DEFAULT_SETTINGS } from '../app/Constant';
 import { YujiRuntime } from '../app/Runtime';
 import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { getMessagePath } from '../helpers/ThreadHelper';
@@ -57,7 +57,7 @@ const INITIAL_STATE: AppRuntimeState = {
   activeThreadId: null,
   activeThread: null,
   settings: DEFAULT_SETTINGS,
-  availableModels: MODELS,
+  availableModels: [],
   isSidebarOpen: true,
   isSettingOpen: false,
   isHydrated: false,
