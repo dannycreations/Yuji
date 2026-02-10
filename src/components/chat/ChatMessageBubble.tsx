@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
@@ -55,7 +55,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   const [isRegenerateDropdownOpen, setIsRegenerateDropdownOpen] = useState(false);
   const [customInstruction, setCustomInstruction] = useState('');
-  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+  const regenerateTriggerRef = useRef<HTMLButtonElement>(null);
 
   const handleBranch = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.branchChat(tid, mid)));
   const handleSwitchBranch = useStoreEffect((_tid: string, mid: string) =>
@@ -219,13 +219,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 </InputButton>
 
                 <div className="relative">
-                  <InputButton
-                    onClick={(e) => {
-                      setTriggerRect(e.currentTarget.getBoundingClientRect());
-                      setIsRegenerateDropdownOpen(true);
-                    }}
-                    title="Regenerate"
-                  >
+                  <InputButton ref={regenerateTriggerRef} onClick={() => setIsRegenerateDropdownOpen(true)} title="Regenerate">
                     <Icon name="RefreshCw" size={16} />
                   </InputButton>
 
@@ -235,7 +229,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                       setIsRegenerateDropdownOpen(false);
                       setCustomInstruction('');
                     }}
-                    triggerRect={triggerRect}
+                    triggerRef={regenerateTriggerRef}
                     className="w-55 p-0"
                   >
                     <div className="p-2 border-b border-separator/50">

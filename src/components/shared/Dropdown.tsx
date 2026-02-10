@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { Icon } from './Icon';
 
-import type { FC, ReactNode } from 'react';
+import type { FC, ReactNode, RefObject } from 'react';
 import type { IconName } from './Icon';
 
 export interface DropdownItemProps {
@@ -34,12 +34,12 @@ export const DropdownItem: FC<DropdownItemProps> = ({ icon, iconClassName, label
 interface DropdownProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly triggerRect: DOMRect | null;
+  readonly triggerRef: RefObject<HTMLElement | null>;
   readonly children: ReactNode;
   readonly className?: string;
 }
 
-export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRect, children, className }) => {
+export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRef, children, className }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
@@ -63,44 +63,58 @@ export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRect, chil
   }, [isOpen]);
 
   useLayoutEffect(() => {
-    if (isOpen && triggerRect && ref.current) {
-      const dropdownRect = ref.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
+    const updatePosition = () => {
+      if (isOpen && triggerRef.current && ref.current) {
+        const triggerRect = triggerRef.current.getBoundingClientRect();
+        const dropdownRect = ref.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
 
-      // Default to opening downwards
-      let top = triggerRect.bottom + 4;
-      // Align dropdown left edge with trigger left edge to match icon vertical alignment
-      let left = triggerRect.left - 4;
+        // Default to opening downwards
+        let top = triggerRect.bottom + 4;
+        // Align dropdown left edge with trigger left edge to match icon vertical alignment
+        let left = triggerRect.left - 4;
 
-      const MARGIN = 12;
-      const spaceBelow = viewportHeight - triggerRect.bottom - MARGIN;
-      const spaceAbove = triggerRect.top - MARGIN;
+        const MARGIN = 12;
+        const spaceBelow = viewportHeight - triggerRect.bottom - MARGIN;
+        const spaceAbove = triggerRect.top - MARGIN;
 
-      // If opening downwards would clip AND opening upwards provides more space or fits
-      if (spaceBelow < dropdownRect.height && spaceAbove > spaceBelow) {
-        top = triggerRect.top - dropdownRect.height - 4;
+        // If opening downwards would clip AND opening upwards provides more space or fits
+        if (spaceBelow < dropdownRect.height && spaceAbove > spaceBelow) {
+          top = triggerRect.top - dropdownRect.height - 4;
+        }
+
+        // Ensure we don't bleed out of top/bottom regardless of choice
+        if (top < MARGIN) {
+          top = MARGIN;
+        } else if (top + dropdownRect.height > viewportHeight - MARGIN) {
+          top = viewportHeight - dropdownRect.height - MARGIN;
+        }
+
+        // Horizontal boundary check
+        if (left < 4) {
+          left = 4;
+        } else if (left + dropdownRect.width > viewportWidth - 4) {
+          left = viewportWidth - dropdownRect.width - 4;
+        }
+
+        setCoords({ top, left });
+      } else if (!isOpen) {
+        setCoords(null);
       }
+    };
 
-      // Ensure we don't bleed out of top/bottom regardless of choice
-      if (top < MARGIN) {
-        top = MARGIN;
-      } else if (top + dropdownRect.height > viewportHeight - MARGIN) {
-        top = viewportHeight - dropdownRect.height - MARGIN;
-      }
+    updatePosition();
 
-      // Horizontal boundary check
-      if (left < 4) {
-        left = 4;
-      } else if (left + dropdownRect.width > viewportWidth - 4) {
-        left = viewportWidth - dropdownRect.width - 4;
-      }
-
-      setCoords({ top, left });
-    } else if (!isOpen) {
-      setCoords(null);
+    if (isOpen) {
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+      };
     }
-  }, [isOpen, triggerRect]);
+  }, [isOpen, triggerRef]);
 
   if (!isOpen) return null;
 

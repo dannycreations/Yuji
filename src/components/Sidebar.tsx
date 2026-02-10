@@ -43,7 +43,7 @@ export const Sidebar: FC = () => {
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deferredQuery, setDeferredQuery] = useState('');
-  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -177,13 +177,13 @@ export const Sidebar: FC = () => {
                       )
                     )}
                     <InputButton
+                      ref={menuOpenId === thread.id ? menuTriggerRef : null}
                       className={clsx(
                         'p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
                         menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setTriggerRect(e.currentTarget.getBoundingClientRect());
                         setMenuOpenId(menuOpenId === thread.id ? null : thread.id);
                       }}
                     >
@@ -210,15 +210,8 @@ export const Sidebar: FC = () => {
       </div>
       {settingsOpenId && <ThreadSettingModal threadId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 
-      {menuOpenId && triggerRect && menuThreadMetadata && (
-        <Dropdown
-          isOpen={true}
-          triggerRect={triggerRect}
-          onClose={() => {
-            setMenuOpenId(null);
-            setTriggerRect(null);
-          }}
-        >
+      {menuOpenId && menuThreadMetadata && (
+        <Dropdown isOpen={true} triggerRef={menuTriggerRef} onClose={() => setMenuOpenId(null)}>
           <DropdownItem
             icon="Pin"
             iconClassName={clsx(pinnedThreadIds.includes(menuOpenId) && 'rotate-45')}
