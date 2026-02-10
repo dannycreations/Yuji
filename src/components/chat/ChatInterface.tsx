@@ -24,8 +24,10 @@ export const ChatInterface: FC = () => {
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 
-  const backgroundThreadIds = useStore((s) => s.backgroundThreadIds);
-  const isLoading = activeThreadId ? backgroundThreadIds.includes(activeThreadId) : false;
+  const isLoading = useStore(
+    (s) => (s.activeThreadId ? s.backgroundThreadIds.includes(s.activeThreadId) : false),
+    (a, b) => a === b,
+  );
 
   const handleSend = useStoreEffect((content: string, attachments?: ReadonlyArray<Attachment>) =>
     Effect.flatMap(ChatService, (chat) => chat.sendMessage(content, attachments)),

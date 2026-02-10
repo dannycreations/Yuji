@@ -8,7 +8,7 @@ interface UseVirtualListOptions {
 }
 
 export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCount, overscan = 5 }: UseVirtualListOptions) => {
-  const [heights, setHeights] = useState<Record<number, number>>({});
+  const [heights, setHeights] = useState<Record<number, number>>(Object.create(null));
   const [range, setRange] = useState({ startIndex: 0, endIndex: 0 });
 
   const scrollTopRef = useRef(0);
@@ -56,8 +56,10 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
 
   const prefixSums = useMemo(() => {
     const sums = new Float64Array(totalCount + 1);
+    let currentSum = 0;
     for (let i = 0; i < totalCount; i++) {
-      sums[i + 1] = sums[i] + (heights[i] ?? estimatedItemHeight);
+      currentSum += heights[i] ?? estimatedItemHeight;
+      sums[i + 1] = currentSum;
     }
     return sums;
   }, [totalCount, heights, estimatedItemHeight]);

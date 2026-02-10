@@ -22,7 +22,7 @@ export const Sidebar: FC = () => {
     (s) => s.threads,
     (a, b) => a === b,
   );
-  const settings = useStore((s) => s.settings);
+  const userName = useStore((s) => s.settings.personalisation.userName);
   const activeThreadId = useStore((s) => s.activeThreadId);
   const pinnedThreadIds = useStore((s) => s.pinnedThreadIds);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
@@ -200,9 +200,9 @@ export const Sidebar: FC = () => {
 
       <div className="sidebar-footer">
         <InputButton variant="sidebar" onClick={toggleSetting}>
-          <div className="avatar-sm">{getFirstChar(settings.personalisation.userName) || <Icon name="User" size={12} />}</div>
+          <div className="avatar-sm">{getFirstChar(userName) || <Icon name="User" size={12} />}</div>
           <div className="flex-1 text-left min-w-0">
-            <div className="text-sm font-medium truncate">{settings.personalisation.userName || 'User'}</div>
+            <div className="text-sm font-medium truncate">{userName || 'User'}</div>
           </div>
           <div className="text-text-tertiary flex items-center">
             <Icon name="Settings" size={16} />

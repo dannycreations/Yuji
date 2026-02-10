@@ -148,10 +148,10 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   );
 });
 
-export const ChatMessageBlock: FC<CodeBlockProps> = ({ language, value }) => {
+export const ChatMessageBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
   if (language === 'mermaid') {
     return <MermaidBlock code={value} />;
   }
 
   return <CodeBlock language={language} value={value} />;
-};
+});
