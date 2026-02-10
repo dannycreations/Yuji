@@ -259,14 +259,32 @@
   & .prose-p {
     @apply leading-normal m-0 break-words;
   }
+  & .prose-table {
+    @apply overflow-x-auto rounded-lg border border-line;
+  }
+  & ul {
+    @apply list-disc pl-6 space-y-1 last:mb-0;
+  }
+  & ol {
+    @apply list-decimal pl-6 space-y-1 last:mb-0;
+  }
   & li {
     @apply leading-7;
   }
-  & ul {
-    @apply list-disc pl-3 space-y-1 last:mb-0;
+  & table {
+    @apply w-full divide-y divide-line table-auto;
   }
-  & ol {
-    @apply list-decimal pl-3 space-y-1 last:mb-0;
+  & th {
+    @apply px-3 py-2 bg-separator text-left text-sm font-semibold text-text-primary whitespace-nowrap;
+  }
+  & td {
+    @apply px-3 py-2 text-sm text-text-secondary border-t border-separator;
+    &:first-child {
+      @apply whitespace-nowrap w-px;
+    }
+    &:last-child {
+      @apply break-words;
+    }
   }
   & h1 {
     @apply text-xl font-bold last:mb-0;
@@ -278,7 +296,7 @@
     @apply text-sm font-bold last:mb-0;
   }
   & blockquote {
-    @apply border-l-2 border-highlight pl-3 text-text-secondary last:mb-0;
+    @apply border-l-2 border-highlight text-text-secondary last:mb-0;
   }
   & a {
     @apply text-primary hover:underline;
@@ -632,22 +650,6 @@
     &.disabled {
       @apply text-text-tertiary/50;
     }
-  }
-
-  .prose-table-container {
-    @apply overflow-x-auto rounded-lg border border-line;
-  }
-
-  .prose-table {
-    @apply min-w-full divide-y divide-line;
-  }
-
-  .prose-th {
-    @apply px-3 py-2 bg-separator text-left text-sm font-semibold text-text-primary;
-  }
-
-  .prose-td {
-    @apply px-3 py-2 text-sm text-text-secondary border-t border-separator break-words;
   }
 
   .code-inline {

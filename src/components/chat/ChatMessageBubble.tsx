@@ -125,12 +125,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       h3: ({ node, ...props }) => <h3 {...props} />,
       blockquote: ({ node, ...props }) => <blockquote {...props} />,
       table: ({ node, ...props }) => (
-        <div className="prose-table-container">
-          <table className="prose-table" {...props} />
+        <div className="prose-table">
+          <table {...props} />
         </div>
       ),
-      th: ({ node, ...props }) => <th className="prose-th" {...props} />,
-      td: ({ node, ...props }) => <td className="prose-td" {...props} />,
+      th: ({ node, ...props }) => <th {...props} />,
+      td: ({ node, ...props }) => <td {...props} />,
       p: ({ node, ...props }) => <div className="prose-p" {...props} />,
     }),
     [],
