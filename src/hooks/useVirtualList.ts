@@ -8,13 +8,10 @@ interface UseVirtualListOptions {
 }
 
 export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCount, overscan = 5 }: UseVirtualListOptions) => {
-  const [scrollTop, setScrollTop] = useState(0);
   const [heights, setHeights] = useState<Record<number, number>>({});
+  const [range, setRange] = useState({ startIndex: 0, endIndex: 0 });
 
-  const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  }, []);
-
+  const scrollTopRef = useRef(0);
   const pendingHeightsRef = useRef<Record<number, number>>({});
   const animationFrameRef = useRef<number | null>(null);
 
@@ -59,19 +56,14 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
 
   const prefixSums = useMemo(() => {
     const sums = new Float64Array(totalCount + 1);
-
     for (let i = 0; i < totalCount; i++) {
       sums[i + 1] = sums[i] + (heights[i] ?? estimatedItemHeight);
     }
     return sums;
   }, [totalCount, heights, estimatedItemHeight]);
 
-  const { startIndex, endIndex, translateY, totalHeight } = useMemo(() => {
-    if (totalCount === 0) {
-      return { startIndex: 0, endIndex: 0, translateY: 0, totalHeight: 0 };
-    }
-
-    const findIndex = (target: number) => {
+  const findIndex = useCallback(
+    (target: number) => {
       let low = 0;
       let high = totalCount;
       while (low < high) {
@@ -83,21 +75,54 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
         }
       }
       return low;
-    };
+    },
+    [prefixSums, totalCount],
+  );
 
-    const startIdx = findIndex(scrollTop);
-    const endIdx = findIndex(scrollTop + containerHeight);
+  const computeRange = useCallback(
+    (scrollTop: number) => {
+      if (totalCount === 0) return { startIndex: 0, endIndex: 0 };
 
-    const start = Math.max(0, startIdx - overscan);
-    const end = Math.min(totalCount, endIdx + overscan);
+      const startIdx = findIndex(scrollTop);
+      const endIdx = findIndex(scrollTop + containerHeight);
 
+      return {
+        startIndex: Math.max(0, startIdx - overscan),
+        endIndex: Math.min(totalCount, endIdx + overscan),
+      };
+    },
+    [containerHeight, findIndex, overscan, totalCount],
+  );
+
+  const onScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const nextScrollTop = e.currentTarget.scrollTop;
+      scrollTopRef.current = nextScrollTop;
+
+      const nextRange = computeRange(nextScrollTop);
+      if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+        setRange(nextRange);
+      }
+    },
+    [computeRange, range.endIndex, range.startIndex],
+  );
+
+  // Sync range when totalCount or heights change
+  useMemo(() => {
+    const nextRange = computeRange(scrollTopRef.current);
+    if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+      setRange(nextRange);
+    }
+  }, [computeRange]);
+
+  const { startIndex, endIndex, translateY, totalHeight } = useMemo(() => {
     return {
-      startIndex: start,
-      endIndex: end,
-      translateY: prefixSums[start],
-      totalHeight: prefixSums[totalCount],
+      startIndex: range.startIndex,
+      endIndex: range.endIndex,
+      translateY: prefixSums[range.startIndex] || 0,
+      totalHeight: prefixSums[totalCount] || 0,
     };
-  }, [scrollTop, containerHeight, totalCount, overscan, prefixSums]);
+  }, [range.startIndex, range.endIndex, prefixSums, totalCount]);
 
   return {
     startIndex,

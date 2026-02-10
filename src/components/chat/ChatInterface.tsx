@@ -96,13 +96,16 @@ export const ChatInterface: FC = () => {
   });
 
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  useEffect(() => {
-    const observer = new ResizeObserver((entries) => {
+  useLayoutEffect(() => {
+    resizeObserverRef.current = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const id = (entry.target as HTMLElement).getAttribute('data-id');
         if (id) {
-          const index = visibleMessages.findIndex((m) => m.id === id);
+          // Use a ref to get the latest messages without re-triggering effect
+          const currentMessages = visibleMessagesRef.current;
+          const index = currentMessages.findIndex((m) => m.id === id);
           if (index !== -1) {
             setItemHeight(index, entry.contentRect.height);
           }
@@ -110,18 +113,34 @@ export const ChatInterface: FC = () => {
       }
     });
 
+    return () => {
+      resizeObserverRef.current?.disconnect();
+    };
+  }, [setItemHeight]);
+
+  const visibleMessagesRef = useRef(visibleMessages);
+  useLayoutEffect(() => {
+    visibleMessagesRef.current = visibleMessages;
+  }, [visibleMessages]);
+
+  useEffect(() => {
+    const observer = resizeObserverRef.current;
+    if (!observer) return;
+
     const currentRefs = messageRefs.current;
-    visibleMessages.slice(startIndex, endIndex).forEach((msg) => {
+    const visibleSlice = visibleMessages.slice(startIndex, endIndex);
+
+    for (const msg of visibleSlice) {
       const el = currentRefs[msg.id];
       if (el) {
         observer.observe(el);
       }
-    });
+    }
 
     return () => {
       observer.disconnect();
     };
-  }, [startIndex, endIndex, visibleMessages, setItemHeight]);
+  }, [startIndex, endIndex, visibleMessages]);
 
   useEffect(() => {
     if (activeThreadId) {
