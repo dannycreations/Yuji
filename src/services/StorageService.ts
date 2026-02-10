@@ -60,7 +60,7 @@ export const StorageServiceLive = Layer.effect(
           const metadata = yield* Effect.promise(() => db.get(STORES.METADATA, 'current'));
           if (!metadata) return null;
           return metadata as AppStoreState;
-        }).pipe(Effect.orDie),
+        }),
 
       saveMetadata: (metadata) =>
         Effect.gen(function* () {
@@ -78,7 +78,7 @@ export const StorageServiceLive = Layer.effect(
 
           const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, options);
           return threads as ThreadMetadata[];
-        }).pipe(Effect.orDie),
+        }),
 
       getThread: (id, options) =>
         Effect.gen(function* () {
@@ -90,7 +90,7 @@ export const StorageServiceLive = Layer.effect(
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
 
           return { ...thread, messages: messagesRecord } as Thread;
-        }).pipe(Effect.orDie),
+        }),
 
       saveThread: (thread) =>
         Effect.gen(function* () {
@@ -164,7 +164,7 @@ export const StorageServiceLive = Layer.effect(
           });
 
           return [...(messages as ThreadMessage[])].reverse();
-        }).pipe(Effect.orDie),
+        }),
 
       saveMessages: (threadId, messages) =>
         Effect.gen(function* () {

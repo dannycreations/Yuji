@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS } from '../app/Constant';
 import { YujiRuntime } from '../app/Runtime';
 import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { getMessagePath } from '../helpers/ThreadHelper';
-import { randomId } from '../utilities/CommonUtil';
+import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
 export interface StoreService {
@@ -83,14 +83,15 @@ export const StoreServiceLive = Layer.effect(
       const result = yield* Effect.all({
         metadata: storage.getMetadata(),
         threadHeaders: storage.getThreadsMetadata({ limit: 30 }),
-      }).pipe(Effect.sandbox, Effect.either);
+      }).pipe(Effect.either);
 
       if (Either.isLeft(result)) {
-        console.error('[StoreService] Database initialization failed:', result.left);
+        const err = result.left;
+        console.error('[StoreService] Database initialization failed:', err);
         return {
           ...INITIAL_STATE,
           isHydrated: true,
-          initializationError: String(result.left),
+          initializationError: formatError(err),
         };
       }
 
@@ -139,7 +140,7 @@ export const StoreServiceLive = Layer.effect(
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
-        Stream.mapEffect(Schema.decode(AppStoreState)),
+        Stream.mapEffect((s) => Schema.decode(AppStoreState)(s).pipe(Effect.orDie)),
         Stream.changes,
         Stream.runForEach((meta) => storage.saveMetadata(meta)),
         Effect.orDie,

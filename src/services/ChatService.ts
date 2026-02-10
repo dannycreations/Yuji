@@ -70,30 +70,46 @@ export const ChatServiceLive = Layer.effect(
     ) =>
       Effect.gen(function* () {
         const now = Date.now();
-        const thread = yield* store.getThread(threadId);
+        let finalMetadata: ThreadMetadata | undefined;
+        let finalThread: Thread | undefined;
 
-        if (!thread) return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
+        yield* store.update((s) => {
+          const isActuallyActive = s.activeThreadId === threadId && s.activeThread?.id === threadId;
+          const thread = isActuallyActive ? s.activeThread : null;
 
-        const updated = f(thread, now);
-        const finalUpdated: Thread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-        const metadata = yield* Schema.decode(ThreadMetadata)(finalUpdated).pipe(Effect.orDie);
+          if (!thread) return s;
 
-        const state = yield* SubscriptionRef.get(store.state);
-        const isActive = state.activeThreadId === threadId && state.activeThread?.id === threadId;
+          const updated = f(thread, now);
+          finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+          finalMetadata = Schema.decodeSync(ThreadMetadata)(finalThread);
 
-        const storeUpdate = store.update((s) => ({
-          ...s,
-          threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: metadata },
-          activeThread: isActive ? finalUpdated : s.activeThread,
-        }));
+          return {
+            ...s,
+            threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata },
+            activeThread: isActuallyActive ? finalThread : s.activeThread,
+          };
+        });
 
-        const storageUpdate = storage.saveThread(options.metadataOnly ? metadata : finalUpdated);
+        if (!finalThread) {
+          const thread = yield* storage.getThread(threadId);
+          if (!thread) return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
 
-        yield* Effect.all([storeUpdate, storageUpdate], { discard: true });
+          const updated = f(thread, now);
+          finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+          finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread);
+
+          yield* store.update((s) => ({
+            ...s,
+            threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata! },
+            activeThread: s.activeThreadId === threadId ? finalThread! : s.activeThread,
+          }));
+        }
+
+        yield* storage.saveThread(options.metadataOnly ? finalMetadata! : finalThread!);
       }).pipe(
         Effect.catchAll((err) => {
           if (err instanceof ThreadNotFoundError) return Effect.fail(err);
-          return store.notify('error', formatError(err)).pipe(Effect.flatMap(() => Effect.fail(err)));
+          return store.notify('error', formatError(err)).pipe(Effect.flatMap(() => Effect.die(err)));
         }),
       );
 
@@ -221,13 +237,16 @@ export const ChatServiceLive = Layer.effect(
           Effect.ensuring(
             Effect.gen(function* () {
               fibers.delete(threadId);
-              const currentState = yield* SubscriptionRef.get(store.state);
-              yield* store.update((s) => ({
-                ...s,
-                backgroundThreadIds: s.backgroundThreadIds.filter((sid) => sid !== threadId),
-              }));
+              let wasActive = false;
+              yield* store.update((s) => {
+                wasActive = s.activeThreadId === threadId;
+                return {
+                  ...s,
+                  backgroundThreadIds: s.backgroundThreadIds.filter((sid) => sid !== threadId),
+                };
+              });
 
-              if (currentState.activeThreadId !== threadId) {
+              if (!wasActive) {
                 yield* store.notify('success', `Response generated for "${threadHeader.title}"`);
               }
             }),
@@ -264,7 +283,10 @@ export const ChatServiceLive = Layer.effect(
           yield* chatService.addMessage(targetThreadId, userMessage);
           const history = yield* chatService.getThreadPath(targetThreadId, userMessage.id);
           yield* chatService.generate(targetThreadId, history);
-        }).pipe(Effect.orDie),
+        }).pipe(
+          Effect.catchAll((err) => store.notify('error', `Failed to send message: ${formatError(err)}`)),
+          Effect.orDie,
+        ),
       regenerateMessage: (threadId, messageId, options) =>
         Effect.gen(function* () {
           const { activeThread } = yield* SubscriptionRef.get(store.state);
@@ -281,7 +303,10 @@ export const ChatServiceLive = Layer.effect(
               : yield* chatService.getThreadPath(threadId, messageId);
 
           yield* chatService.generate(threadId, history, options);
-        }).pipe(Effect.orDie),
+        }).pipe(
+          Effect.catchAll((err) => store.notify('error', `Failed to regenerate: ${formatError(err)}`)),
+          Effect.orDie,
+        ),
       createThread: () =>
         Effect.gen(function* () {
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
