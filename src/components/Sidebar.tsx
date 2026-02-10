@@ -43,7 +43,7 @@ export const Sidebar: FC = () => {
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [deferredQuery, setDeferredQuery] = useState('');
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -183,8 +183,7 @@ export const Sidebar: FC = () => {
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setMenuPosition({ top: rect.top + 36, left: rect.right - 36 });
+                        setTriggerRect(e.currentTarget.getBoundingClientRect());
                         setMenuOpenId(menuOpenId === thread.id ? null : thread.id);
                       }}
                     >
@@ -211,13 +210,13 @@ export const Sidebar: FC = () => {
       </div>
       {settingsOpenId && <ThreadSettingModal threadId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 
-      {menuOpenId && menuPosition && menuThreadMetadata && (
+      {menuOpenId && triggerRect && menuThreadMetadata && (
         <Dropdown
           isOpen={true}
-          position={menuPosition}
+          triggerRect={triggerRect}
           onClose={() => {
             setMenuOpenId(null);
-            setMenuPosition(null);
+            setTriggerRect(null);
           }}
         >
           <DropdownItem

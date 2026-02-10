@@ -10,6 +10,7 @@ import { useCopy } from '../../hooks/useCopy';
 import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
+import { Dropdown, DropdownItem } from '../shared/Dropdown';
 import { Icon } from '../shared/Icon';
 import { InputButton, InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
@@ -52,12 +53,18 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
 
+  const [isRegenerateDropdownOpen, setIsRegenerateDropdownOpen] = useState(false);
+  const [customInstruction, setCustomInstruction] = useState('');
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+
   const handleBranch = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.branchChat(tid, mid)));
   const handleSwitchBranch = useStoreEffect((_tid: string, mid: string) =>
     Effect.flatMap(ChatService, (chat) => chat.updateActiveThread((t) => ({ ...t, activeMessageId: mid }))),
   );
   const handleDeleteMessage = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.deleteMessage(tid, mid)));
-  const handleRegenerate = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.regenerateMessage(tid, mid)));
+  const handleRegenerate = useStoreEffect((tid: string, mid: string, options?: { instruction?: string }) =>
+    Effect.flatMap(ChatService, (chat) => chat.regenerateMessage(tid, mid, options)),
+  );
   const handleEdit = useStoreEffect((tid: string, mid: string, content: string) =>
     Effect.flatMap(ChatService, (chat) => chat.updateMessage(tid, mid, content)),
   );
@@ -211,9 +218,106 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   <Icon name="GitFork" size={16} />
                 </InputButton>
 
-                <InputButton onClick={() => handleRegenerate(threadId, message.id)} title="Regenerate">
-                  <Icon name="RefreshCw" size={16} />
-                </InputButton>
+                <div className="relative">
+                  <InputButton
+                    onClick={(e) => {
+                      setTriggerRect(e.currentTarget.getBoundingClientRect());
+                      setIsRegenerateDropdownOpen(true);
+                    }}
+                    title="Regenerate"
+                  >
+                    <Icon name="RefreshCw" size={16} />
+                  </InputButton>
+
+                  <Dropdown
+                    isOpen={isRegenerateDropdownOpen}
+                    onClose={() => {
+                      setIsRegenerateDropdownOpen(false);
+                      setCustomInstruction('');
+                    }}
+                    triggerRect={triggerRect}
+                    className="w-55! p-0"
+                  >
+                    <div className="p-2 border-b border-separator/50">
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          className="w-full bg-surface-hover/50 text-text-primary text-sm rounded-lg pl-3 pr-9 py-2 outline-none border border-transparent focus:border-line/30 transition-all placeholder:text-text-tertiary"
+                          placeholder="Ask to change response"
+                          value={customInstruction}
+                          onChange={(e) => setCustomInstruction(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && customInstruction.trim()) {
+                              handleRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
+                              setIsRegenerateDropdownOpen(false);
+                              setCustomInstruction('');
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          className={clsx(
+                            'absolute right-1.5 p-1 rounded-md transition-all',
+                            customInstruction.trim() ? 'bg-primary text-background' : 'text-text-tertiary opacity-50',
+                          )}
+                          onClick={() => {
+                            if (customInstruction.trim()) {
+                              handleRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
+                              setIsRegenerateDropdownOpen(false);
+                              setCustomInstruction('');
+                            }
+                          }}
+                        >
+                          <Icon name="ArrowUp" size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="py-1">
+                      <DropdownItem
+                        icon="RefreshCw"
+                        label="Try again"
+                        onClick={() => {
+                          handleRegenerate(threadId, message.id);
+                          setIsRegenerateDropdownOpen(false);
+                          setCustomInstruction('');
+                        }}
+                      />
+                      <DropdownItem
+                        icon="ArrowUpDown"
+                        label="Add details"
+                        onClick={() => {
+                          handleRegenerate(threadId, message.id, {
+                            instruction: 'Add more details and be more comprehensive.',
+                          });
+                          setIsRegenerateDropdownOpen(false);
+                          setCustomInstruction('');
+                        }}
+                      />
+                      <DropdownItem
+                        icon="Minimize2"
+                        label="More concise"
+                        onClick={() => {
+                          handleRegenerate(threadId, message.id, {
+                            instruction: 'Make the response more concise and brief.',
+                          });
+                          setIsRegenerateDropdownOpen(false);
+                          setCustomInstruction('');
+                        }}
+                      />
+                      <DropdownItem
+                        icon="Lightbulb"
+                        label="Think longer"
+                        onClick={() => {
+                          handleRegenerate(threadId, message.id, {
+                            instruction: 'Think longer and provide a more deeply reasoned response.',
+                          });
+                          setIsRegenerateDropdownOpen(false);
+                          setCustomInstruction('');
+                        }}
+                      />
+                    </div>
+                  </Dropdown>
+                </div>
 
                 <InputButton onClick={handleCopy} title="Copy">
                   <Icon name={copied ? 'Check' : 'Copy'} size={16} />

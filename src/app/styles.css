@@ -265,7 +265,7 @@
   }
 
   .dropdown-item {
-    @apply flex items-center gap-3 p-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
+    @apply flex w-[calc(100%-8px)] items-center gap-3 p-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
     &.active {
       @apply bg-highlight text-text-primary font-medium;
     }

@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { Icon } from './Icon';
@@ -33,28 +34,91 @@ export const DropdownItem: FC<DropdownItemProps> = ({ icon, iconClassName, label
 interface DropdownProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly position: { top: number; left: number };
+  readonly triggerRect: DOMRect | null;
   readonly children: ReactNode;
   readonly className?: string;
 }
 
-export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, position, children, className }) => {
+export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRect, children, className }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+
   useClickOutside(ref, onClose);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const preventDefault = (e: Event) => {
+      if (ref.current?.contains(e.target as Node)) return;
+      e.preventDefault();
+    };
+
+    window.addEventListener('wheel', preventDefault, { passive: false });
+    window.addEventListener('touchmove', preventDefault, { passive: false });
+
+    return () => {
+      window.removeEventListener('wheel', preventDefault);
+      window.removeEventListener('touchmove', preventDefault);
+    };
+  }, [isOpen]);
+
+  useLayoutEffect(() => {
+    if (isOpen && triggerRect && ref.current) {
+      const dropdownRect = ref.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+
+      // Default to opening downwards
+      let top = triggerRect.bottom + 4;
+      // Align dropdown left edge with trigger left edge to match icon vertical alignment
+      let left = triggerRect.left - 4;
+
+      const MARGIN = 12;
+      const spaceBelow = viewportHeight - triggerRect.bottom - MARGIN;
+      const spaceAbove = triggerRect.top - MARGIN;
+
+      // If opening downwards would clip AND opening upwards provides more space or fits
+      if (spaceBelow < dropdownRect.height && spaceAbove > spaceBelow) {
+        top = triggerRect.top - dropdownRect.height - 4;
+      }
+
+      // Ensure we don't bleed out of top/bottom regardless of choice
+      if (top < MARGIN) {
+        top = MARGIN;
+      } else if (top + dropdownRect.height > viewportHeight - MARGIN) {
+        top = viewportHeight - dropdownRect.height - MARGIN;
+      }
+
+      // Horizontal boundary check
+      if (left < 4) {
+        left = 4;
+      } else if (left + dropdownRect.width > viewportWidth - 4) {
+        left = viewportWidth - dropdownRect.width - 4;
+      }
+
+      setCoords({ top, left });
+    } else if (!isOpen) {
+      setCoords(null);
+    }
+  }, [isOpen, triggerRect]);
 
   if (!isOpen) return null;
 
-  return (
+  const content = (
     <div
       ref={ref}
-      className={clsx('dropdown-menu fixed w-44 py-1 origin-top-right', className)}
+      className={clsx('dropdown-menu fixed w-44 py-1 origin-top-left', className)}
       style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
+        top: coords ? `${coords.top}px` : '-9999px',
+        left: coords ? `${coords.left}px` : '-9999px',
+        opacity: coords ? 1 : 0,
+        pointerEvents: coords ? 'auto' : 'none',
       }}
       onClick={(e) => e.stopPropagation()}
     >
       {children}
     </div>
   );
+
+  return createPortal(content, document.body);
 };

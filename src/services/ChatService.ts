@@ -40,10 +40,14 @@ export interface ChatService {
   ) => Effect.Effect<void, ThreadNotFoundError>;
   readonly getThreadPath: (threadId: string, messageId: string) => Effect.Effect<ReadonlyArray<ThreadMessage>, ThreadNotFoundError>;
   readonly branchChat: (threadId: string, messageId: string) => Effect.Effect<ThreadMetadata, ThreadNotFoundError | MessageNotFoundError>;
-  readonly generate: (threadId: string, messagesToProcess: ReadonlyArray<ThreadMessage>) => Effect.Effect<void>;
+  readonly generate: (
+    threadId: string,
+    messagesToProcess: ReadonlyArray<ThreadMessage>,
+    options?: { readonly instruction?: string },
+  ) => Effect.Effect<void>;
   readonly stop: (threadId?: string) => Effect.Effect<void>;
   readonly sendMessage: (content: string, attachments?: ReadonlyArray<Attachment>) => Effect.Effect<void>;
-  readonly regenerateMessage: (threadId: string, messageId: string) => Effect.Effect<void>;
+  readonly regenerateMessage: (threadId: string, messageId: string, options?: { readonly instruction?: string }) => Effect.Effect<void>;
 }
 
 export const ChatService = Context.GenericTag<ChatService>('@services/ChatService');
@@ -116,7 +120,7 @@ export const ChatServiceLive = Layer.effect(
         }
       });
 
-    const generate = (threadId: string, messagesToProcess: ReadonlyArray<ThreadMessage>) =>
+    const generate = (threadId: string, messagesToProcess: ReadonlyArray<ThreadMessage>, options: { readonly instruction?: string } = {}) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
         const settings = state.settings;
@@ -146,7 +150,12 @@ export const ChatServiceLive = Layer.effect(
           const thread = yield* storage.getThread(threadId);
           if (!thread) return;
 
-          const systemPrompt = synthesizeSystemPrompt(settings, thread);
+          let systemPrompt = synthesizeSystemPrompt(settings, thread);
+
+          if (options.instruction) {
+            systemPrompt += `\n\n## Priority instruction for this response\n\n${options.instruction}`;
+          }
+
           const model = thread.general.model || settings.model;
 
           const stream = yield* llm.streamCompletion(
@@ -256,7 +265,7 @@ export const ChatServiceLive = Layer.effect(
           const history = yield* chatService.getThreadPath(targetThreadId, userMessage.id);
           yield* chatService.generate(targetThreadId, history);
         }).pipe(Effect.orDie),
-      regenerateMessage: (threadId, messageId) =>
+      regenerateMessage: (threadId, messageId, options) =>
         Effect.gen(function* () {
           const { activeThread } = yield* SubscriptionRef.get(store.state);
           if (!activeThread || activeThread.id !== threadId) return;
@@ -271,7 +280,7 @@ export const ChatServiceLive = Layer.effect(
                 : []
               : yield* chatService.getThreadPath(threadId, messageId);
 
-          yield* chatService.generate(threadId, history);
+          yield* chatService.generate(threadId, history, options);
         }).pipe(Effect.orDie),
       createThread: () =>
         Effect.gen(function* () {
