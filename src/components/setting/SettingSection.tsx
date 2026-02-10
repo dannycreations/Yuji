@@ -160,7 +160,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <InputButton className="badge-outline whitespace-nowrap" onClick={handleRefreshModels} title="Refresh Library">
+        <InputButton className="badge-outline" onClick={handleRefreshModels} title="Refresh Library">
           <Icon name="RefreshCw" size={14} />
           <span>Refresh</span>
         </InputButton>
@@ -183,9 +183,9 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
             );
           })
         ) : (
-          <div className="flex flex-col items-center justify-center py-3 text-text-tertiary bg-line rounded-xl border border-dashed border-separator">
-            <Icon name="Search" size={24} className="mb-2 opacity-50" />
-            <p className="text-sm">No models match "{modelSearch}"</p>
+          <div className="empty-state-base py-3">
+            <Icon name="Search" size={24} className="empty-state-icon" />
+            <p className="empty-state-text">No models match "{modelSearch}"</p>
           </div>
         )}
       </div>
@@ -275,7 +275,7 @@ export const SettingTable = <T,>({
               onChange={toggleSelectAll}
             />
           </div>
-          <div className="flex-1 label-caps text-text-primary">{headerLabel}</div>
+          <div className="flex-1 label-caps !text-text-primary">{headerLabel}</div>
           <div className="flex items-center gap-2">{headerActions?.(selectedIds, resetSelection)}</div>
         </div>
 
@@ -385,19 +385,16 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       headerActions={(selectedIds, resetSelection) => (
         <>
           {selectedIds.size > 0 && (
-            <InputButton
-              onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
-              className="badge-outline bg-danger/10! text-danger! border-danger/20"
-            >
+            <InputButton onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
               <Icon name="Trash2" size={12} />
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
-          <InputButton onClick={() => fileInputRef.current?.click()} className="badge-outline text-text-primary!">
+          <InputButton onClick={() => fileInputRef.current?.click()} className="badge-outline">
             <Icon name="Download" size={12} />
             Import
           </InputButton>
@@ -478,15 +475,12 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       headerActions={(selectedIds, resetSelection) => (
         <>
           {selectedIds.size > 0 && (
-            <InputButton
-              onClick={() => handleDeleteSelected(selectedIds, resetSelection)}
-              className="badge-outline bg-danger/10! text-danger! border-danger/20"
-            >
+            <InputButton onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
               <Icon name="Trash2" size={12} />
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline text-text-primary!">
+          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
@@ -504,11 +498,11 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
             <div className="text-xs text-text-tertiary mt-1">{timeAgo(thread.updatedAt)}</div>
           </div>
           <div className="flex items-center gap-2">
-            <InputButton onClick={() => toggleArchive(thread.id)} className="badge-outline text-text-primary!" title="Unarchive">
+            <InputButton onClick={() => toggleArchive(thread.id)} className="badge-outline" title="Unarchive">
               <Icon name="ArchiveRestore" size={12} />
               Restore
             </InputButton>
-            <InputButton onClick={() => handlePreview(thread.id)} className="badge-outline text-text-primary!" title="View Conversation">
+            <InputButton onClick={() => handlePreview(thread.id)} className="badge-outline" title="View Conversation">
               <Icon name="Maximize2" size={12} />
               View
             </InputButton>
@@ -528,7 +522,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
                 toggleArchive(previewThread.id);
                 setPreviewThread(null);
               }}
-              className="badge-outline text-text-primary!"
+              className="badge-outline"
             >
               <Icon name="ArchiveRestore" size={14} />
               Restore

@@ -100,7 +100,7 @@ export const Sidebar: FC = () => {
           <Icon name="PanelLeftClose" size={20} />
         </InputButton>
 
-        <div className="abs-center flex-center pointer-events-none">
+        <div className="abs-center pointer-events-none">
           <InputButton variant="logo" onClick={() => setActiveThread(null)}>
             <Icon name="Bot" size={20} className="text-primary" />
             <span className="header-title">Yuji</span>

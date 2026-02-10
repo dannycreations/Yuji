@@ -21,9 +21,9 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex flex-col items-center justify-center bg-background text-text-primary text-center">
+    <div className="fixed inset-0 flex-center flex-col bg-background text-text-primary text-center">
       <div className="max-w-md w-full space-y-2">
-        <div className="flex justify-center">
+        <div className="flex-center">
           <div className="p-3 bg-danger/10 rounded-full">
             <svg
               xmlns="http://www.w3.org/2000/svg"
