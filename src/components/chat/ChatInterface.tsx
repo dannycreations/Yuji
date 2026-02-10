@@ -169,7 +169,7 @@ export const ChatInterface: FC = () => {
   }, [isLoading, clearItemHeights]);
 
   return (
-    <div className="main-layout selection:bg-primary/20">
+    <div className="main-layout">
       <Header />
       <div
         className={clsx('chat-scroll-area', !containerHeight && 'opacity-0')}
@@ -185,7 +185,7 @@ export const ChatInterface: FC = () => {
         {isTransitioning ? null : isEmpty ? (
           <div className="chat-empty-container">
             <div className="mb-3 flex flex-col items-center w-full select-none">
-              <div className="header-icon-wrapper">
+              <div className="chat-empty-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
               <h1 className="chat-empty-title">{getGreeting(userName)}</h1>

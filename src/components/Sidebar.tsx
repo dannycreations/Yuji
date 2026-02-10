@@ -117,7 +117,7 @@ export const Sidebar: FC = () => {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search threads..."
-          className="py-2! bg-surface/50 border-transparent! focus:border-line/30! focus:bg-surface!"
+          className="input-sm bg-surface/50! border-transparent! focus:border-line/30! focus:bg-surface!"
         />
       </div>
 
@@ -152,7 +152,7 @@ export const Sidebar: FC = () => {
               return (
                 <div
                   key={thread.id}
-                  className={clsx('sidebar-thread-item group h-[40px] mb-1', activeThreadId === thread.id && 'sidebar-thread-item-active')}
+                  className={clsx('sidebar-thread-item group', activeThreadId === thread.id && 'sidebar-thread-item-active')}
                   onClick={() => setActiveThread(thread.id)}
                 >
                   <div className="sidebar-thread-title flex items-center gap-2">
@@ -178,7 +178,7 @@ export const Sidebar: FC = () => {
                     )}
                     <InputButton
                       className={clsx(
-                        '!p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
+                        'p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
                         menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                       )}
                       onClick={(e) => {

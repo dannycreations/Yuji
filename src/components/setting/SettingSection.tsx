@@ -57,7 +57,7 @@ export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) 
         <InputSelect
           value={settings.theme}
           onChange={(e) => onChange({ theme: e.target.value as 'dark' | 'light' })}
-          className="py-2! text-xs! min-w-[100px]"
+          className="py-2 text-xs min-w-[100px]"
         >
           <option value="dark">Dark</option>
           <option value="light">Light</option>
@@ -177,7 +177,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
                 availableModels={availableModels}
                 isEnabled={isEnabled}
                 isDefault={effectiveModelId === model.id}
-                className={clsx('settings-model-card !p-2 cursor-default', isEnabled ? 'enabled' : 'disabled')}
+                className={clsx('settings-model-card p-2 cursor-default', isEnabled ? 'enabled' : 'disabled')}
                 rightContent={<InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />}
               />
             );
@@ -306,7 +306,8 @@ export const SettingTable = <T,>({
             <InputButton
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
-              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              variant="secondary"
+              className="px-3! py-2! text-xs! font-medium!"
             >
               <Icon name="ChevronLeft" size={12} />
               Prev
@@ -314,7 +315,8 @@ export const SettingTable = <T,>({
             <InputButton
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
-              className="flex-center gap-1 px-3 py-1 rounded-lg bg-surface border border-separator text-xs font-medium text-text-tertiary hover:text-text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              variant="secondary"
+              className="px-3! py-2! text-xs! font-medium!"
             >
               Next
               <Icon name="ChevronRight" size={12} />

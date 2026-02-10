@@ -57,7 +57,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
       <div className="toast-progress-track">
         <div
           key={notification.timestamp}
-          className="toast-line !static h-full w-full origin-left"
+          className="toast-line static h-full w-full origin-left"
           style={{ animation: `progress ${duration}ms linear forwards` }}
         />
       </div>

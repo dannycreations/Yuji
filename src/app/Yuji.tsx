@@ -5,6 +5,7 @@ import { useContext, useEffect, useState } from 'react';
 
 import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
+import { InputButton } from '../components/shared/InputArea';
 import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
 import { NotificationToast } from '../components/shared/NotificationToast';
 import { Sidebar } from '../components/Sidebar';
@@ -21,7 +22,7 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex-center flex-col bg-background text-text-primary text-center">
+    <div className="fixed inset-0 flex-center flex-col bg-background text-text-primary text-center z-fullscreen">
       <div className="max-w-md w-full space-y-2">
         <div className="flex-center">
           <div className="p-3 bg-danger/10 rounded-full">
@@ -57,12 +58,9 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
         )}
 
         <div>
-          <button
-            onClick={handleClearDatabase}
-            className="w-full p-3 bg-primary text-background font-semibold rounded-lg hover:opacity-90 transition-opacity"
-          >
+          <InputButton onClick={handleClearDatabase} variant="primary" className="w-full p-3! rounded-lg!">
             Reset Database & Reload
-          </button>
+          </InputButton>
           <p className="mt-2 text-xs text-text-tertiary">Warning: This will permanently delete all your local chat history and settings.</p>
         </div>
       </div>

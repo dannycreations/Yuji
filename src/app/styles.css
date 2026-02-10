@@ -261,7 +261,7 @@
   }
 
   .dropdown-menu {
-    @apply dropdown-menu-base;
+    @apply dropdown-menu-base w-44 py-1;
   }
 
   .dropdown-item {
@@ -406,7 +406,7 @@
   }
 
   .sidebar-thread-item {
-    @apply relative flex items-center rounded-lg p-2 text-sm transition-colors cursor-pointer text-text-primary hover:bg-surface;
+    @apply relative flex items-center rounded-lg p-2 h-10 mb-1 text-sm transition-colors cursor-pointer text-text-primary hover:bg-surface;
   }
 
   .sidebar-thread-item-active {
@@ -647,7 +647,7 @@
   }
 
   .code-block-header {
-    @apply flex items-center justify-between p-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-chat-input backdrop-blur-md;
+    @apply flex-between p-2 bg-code-header border-b select-none transition-colors cursor-pointer sticky top-0 z-chat-input backdrop-blur-md;
     &.collapsed {
       @apply border-b-transparent;
     }

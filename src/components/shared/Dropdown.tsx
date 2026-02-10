@@ -107,7 +107,7 @@ export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRect, chil
   const content = (
     <div
       ref={ref}
-      className={clsx('dropdown-menu fixed w-44 py-1 origin-top-left', className)}
+      className={clsx('dropdown-menu fixed origin-top-left', className)}
       style={{
         top: coords ? `${coords.top}px` : '-9999px',
         left: coords ? `${coords.left}px` : '-9999px',

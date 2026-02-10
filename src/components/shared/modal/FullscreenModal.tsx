@@ -31,8 +31,8 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className={clsx('!p-0 !bg-background', className)}
-      containerClassName="!w-full !h-full !max-w-none !rounded-none flex flex-col overflow-hidden"
+      className={clsx('p-0 bg-background', className)}
+      containerClassName="w-full h-full max-w-none rounded-none flex flex-col overflow-hidden"
     >
       <div className="flex-between p-3 border-b border-separator/50 shrink-0" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex flex-col min-w-0">

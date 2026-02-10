@@ -155,7 +155,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <InputTextarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  className="chat-input-textarea overflow-hidden!"
+                  className="chat-input-textarea"
                   minRows={2}
                   debounceMs={0}
                   onKeyDown={(e) => {
@@ -236,13 +236,13 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                       setCustomInstruction('');
                     }}
                     triggerRect={triggerRect}
-                    className="w-55! p-0"
+                    className="w-55 p-0"
                   >
                     <div className="p-2 border-b border-separator/50">
                       <div className="relative flex items-center">
                         <input
                           type="text"
-                          className="w-full bg-surface-hover/50 text-text-primary text-sm rounded-lg pl-3 pr-9 py-2 outline-none border border-transparent focus:border-line/30 transition-all placeholder:text-text-tertiary"
+                          className="input-base input-sm pr-9"
                           placeholder="Ask to change response"
                           value={customInstruction}
                           onChange={(e) => setCustomInstruction(e.target.value)}
@@ -333,7 +333,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   <Icon name="Pencil" size={16} />
                 </InputButton>
 
-                <InputButton onClick={handleDelete} className="hover:text-danger!" title="Delete">
+                <InputButton
+                  onClick={handleDelete}
+                  variant="danger"
+                  className="bg-transparent! text-text-secondary! hover:text-danger!"
+                  title="Delete"
+                >
                   <Icon name="Trash2" size={16} />
                 </InputButton>
               </div>
