@@ -117,11 +117,13 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
 export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly Model[] }> = ({ settings, availableModels, onChange }) => {
   const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const [modelSearch, setModelSearch] = useState('');
+  const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success'>('idle');
 
   const setAvailableModels = (models: Model[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableModels: models }));
 
   const handleRefreshModels = useStoreEffect(() =>
     Effect.gen(function* () {
+      setRefreshState('loading');
       const llm = yield* LLMProvider;
       const result = yield* llm.fetchModels(settings);
 
@@ -138,7 +140,14 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
       }));
 
       setAvailableModels(apiModels);
-    }),
+      setRefreshState('success');
+      setTimeout(() => setRefreshState('idle'), 2000);
+    }).pipe(
+      Effect.catchAll((e) => {
+        setRefreshState('idle');
+        return Effect.fail(e);
+      }),
+    ),
   );
 
   const filteredModels = useMemo(
@@ -160,9 +169,18 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         <div className="flex-1">
           <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
         </div>
-        <InputButton className="badge-outline" onClick={handleRefreshModels} title="Refresh Library">
-          <Icon name="RefreshCw" size={14} />
-          <span>Refresh</span>
+        <InputButton
+          className={clsx('badge-outline', refreshState === 'success' && '!text-emerald-500')}
+          onClick={handleRefreshModels}
+          disabled={refreshState === 'loading'}
+          title="Refresh Library"
+        >
+          <Icon
+            name={refreshState === 'success' ? 'Check' : 'RefreshCw'}
+            size={14}
+            className={clsx(refreshState === 'loading' && 'animate-spin-once')}
+          />
+          <span>{refreshState === 'success' ? 'Updated' : 'Refresh'}</span>
         </InputButton>
       </div>
 

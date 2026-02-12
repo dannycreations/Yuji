@@ -104,6 +104,15 @@
       transform: scaleX(0);
     }
   }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 :root.light {
@@ -951,6 +960,10 @@
 
   .border-subtle {
     @apply border-separator/30;
+  }
+
+  .animate-spin-once {
+    animation: spin 0.6s linear infinite;
   }
 }
 
