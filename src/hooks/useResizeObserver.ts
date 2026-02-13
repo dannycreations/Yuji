@@ -7,7 +7,10 @@ export const useResizeObserver = (ref: RefObject<HTMLElement | null>) => {
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el) {
+      setDimensions({ width: 0, height: 0 });
+      return;
+    }
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -20,8 +23,10 @@ export const useResizeObserver = (ref: RefObject<HTMLElement | null>) => {
     });
 
     observer.observe(el);
-    return () => observer.disconnect();
-  }, [ref]);
+    return () => {
+      observer.disconnect();
+    };
+  }, [ref, ref.current]);
 
   return dimensions;
 };

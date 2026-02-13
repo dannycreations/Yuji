@@ -91,10 +91,8 @@ export const Sidebar: FC = () => {
 
   const menuThreadMetadata = menuOpenId ? threads[menuOpenId] : null;
 
-  if (!isSidebarOpen) return null;
-
   return (
-    <div className="sidebar-container">
+    <div className={clsx('sidebar-container', !isSidebarOpen && 'hidden')}>
       <div className="sidebar-header relative">
         <InputButton onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
           <Icon name="PanelLeftClose" size={20} />

@@ -105,7 +105,11 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
       if (totalCount === 0) return { startIndex: 0, endIndex: 0 };
 
       const startIdx = findIndex(scrollTop);
-      const endIdx = findIndex(scrollTop + containerHeight);
+      // Use a fallback height when containerHeight is 0 (e.g. initial render or hidden)
+      // to ensure a reasonable number of items are rendered to avoid a "flash" of empty list
+      // when the component first appears.
+      const effectiveHeight = containerHeight > 0 ? containerHeight : 1000;
+      const endIdx = findIndex(scrollTop + effectiveHeight);
 
       return {
         startIndex: Math.max(0, startIdx - overscan),
@@ -130,11 +134,16 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
 
   // Sync range when totalCount or heights change
   useMemo(() => {
-    const nextRange = computeRange(scrollTopRef.current);
+    // If containerHeight is 0, we might have been hidden.
+    // Resetting scroll top to 0 ensures we don't get stuck in a weird state when shown again.
+    const st = containerHeight === 0 ? 0 : scrollTopRef.current;
+    if (containerHeight === 0) scrollTopRef.current = 0;
+
+    const nextRange = computeRange(st);
     if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
       setRange(nextRange);
     }
-  }, [computeRange]);
+  }, [computeRange, containerHeight]);
 
   const { startIndex, endIndex, translateY, totalHeight } = useMemo(() => {
     return {
