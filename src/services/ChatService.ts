@@ -73,22 +73,20 @@ export const ChatServiceLive = Layer.effect(
         let finalMetadata: ThreadMetadata | undefined;
         let finalThread: Thread | undefined;
 
-        yield* store.update((s) => {
-          const isActuallyActive = s.activeThreadId === threadId && s.activeThread?.id === threadId;
-          const thread = isActuallyActive ? s.activeThread : null;
+        const s = yield* SubscriptionRef.get(store.state);
+        const isActuallyActive = s.activeThreadId === threadId && s.activeThread?.id === threadId;
 
-          if (!thread) return s;
-
-          const updated = f(thread, now);
+        if (isActuallyActive) {
+          const updated = f(s.activeThread!, now);
           finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-          finalMetadata = Schema.decodeSync(ThreadMetadata)(finalThread);
+          finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread);
 
-          return {
+          yield* store.update((s) => ({
             ...s,
-            threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata },
-            activeThread: isActuallyActive ? finalThread : s.activeThread,
-          };
-        });
+            threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata! },
+            activeThread: finalThread ?? null,
+          }));
+        }
 
         if (!finalThread) {
           const thread = yield* storage.getThread(threadId);

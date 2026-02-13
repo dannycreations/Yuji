@@ -15,27 +15,33 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
   const pendingHeightsRef = useRef<Map<number, number>>(new Map());
   const animationFrameRef = useRef<number | null>(null);
 
-  const setItemHeight = useCallback((index: number, height: number) => {
-    pendingHeightsRef.current.set(index, height);
+  const setItemHeight = useCallback(
+    (index: number, height: number) => {
+      // Don't update if height is effectively the same to avoid jitter and redundant renders
+      if (Math.abs((heights.get(index) ?? 0) - height) < 0.5) return;
 
-    if (animationFrameRef.current === null) {
-      animationFrameRef.current = requestAnimationFrame(() => {
-        setHeights((prev) => {
-          const next = new Map(prev);
-          let changed = false;
-          for (const [idx, h] of pendingHeightsRef.current) {
-            if (next.get(idx) !== h) {
-              next.set(idx, h);
-              changed = true;
+      pendingHeightsRef.current.set(index, height);
+
+      if (animationFrameRef.current === null) {
+        animationFrameRef.current = requestAnimationFrame(() => {
+          setHeights((prev) => {
+            const next = new Map(prev);
+            let changed = false;
+            for (const [idx, h] of pendingHeightsRef.current) {
+              if (Math.abs((next.get(idx) ?? 0) - h) >= 0.5) {
+                next.set(idx, h);
+                changed = true;
+              }
             }
-          }
-          pendingHeightsRef.current.clear();
-          animationFrameRef.current = null;
-          return changed ? next : prev;
+            pendingHeightsRef.current.clear();
+            animationFrameRef.current = null;
+            return changed ? next : prev;
+          });
         });
-      });
-    }
-  }, []);
+      }
+    },
+    [heights],
+  );
 
   const clearItemHeight = useCallback((index: number) => {
     setHeights((prev) => {
