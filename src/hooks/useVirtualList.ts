@@ -8,31 +8,28 @@ interface UseVirtualListOptions {
 }
 
 export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCount, overscan = 5 }: UseVirtualListOptions) => {
-  const [heights, setHeights] = useState<Record<number, number>>(Object.create(null));
+  const [heights, setHeights] = useState<Map<number, number>>(() => new Map());
   const [range, setRange] = useState({ startIndex: 0, endIndex: 0 });
 
   const scrollTopRef = useRef(0);
-  const pendingHeightsRef = useRef<Record<number, number>>({});
+  const pendingHeightsRef = useRef<Map<number, number>>(new Map());
   const animationFrameRef = useRef<number | null>(null);
 
   const setItemHeight = useCallback((index: number, height: number) => {
-    pendingHeightsRef.current[index] = height;
+    pendingHeightsRef.current.set(index, height);
 
     if (animationFrameRef.current === null) {
       animationFrameRef.current = requestAnimationFrame(() => {
         setHeights((prev) => {
-          const next = { ...prev };
+          const next = new Map(prev);
           let changed = false;
-          const entries = Object.entries(pendingHeightsRef.current);
-          for (let i = 0; i < entries.length; i++) {
-            const [idx, h] = entries[i];
-            const index = Number(idx);
-            if (next[index] !== h) {
-              next[index] = h;
+          for (const [idx, h] of pendingHeightsRef.current) {
+            if (next.get(idx) !== h) {
+              next.set(idx, h);
               changed = true;
             }
           }
-          pendingHeightsRef.current = {};
+          pendingHeightsRef.current.clear();
           animationFrameRef.current = null;
           return changed ? next : prev;
         });
@@ -42,43 +39,59 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
 
   const clearItemHeight = useCallback((index: number) => {
     setHeights((prev) => {
-      if (!(index in prev)) return prev;
-      const next = { ...prev };
-      delete next[index];
+      if (!prev.has(index)) return prev;
+      const next = new Map(prev);
+      next.delete(index);
       return next;
     });
   }, []);
 
   const clearItemHeights = useCallback(() => {
-    setHeights({});
-    pendingHeightsRef.current = {};
+    setHeights(new Map());
+    pendingHeightsRef.current.clear();
   }, []);
 
-  const prefixSums = useMemo(() => {
-    const sums = new Float64Array(totalCount + 1);
-    let currentSum = 0;
-    for (let i = 0; i < totalCount; i++) {
-      currentSum += heights[i] ?? estimatedItemHeight;
-      sums[i + 1] = currentSum;
+  const fenwick = useMemo(() => {
+    const tree = new Float64Array(totalCount + 1);
+    const getInitialValue = (i: number) => heights.get(i) ?? estimatedItemHeight;
+
+    for (let i = 1; i <= totalCount; i++) {
+      tree[i] += getInitialValue(i - 1);
+      const j = i + (i & -i);
+      if (j <= totalCount) tree[j] += tree[i];
     }
-    return sums;
+    return tree;
   }, [totalCount, heights, estimatedItemHeight]);
+
+  const getPrefixSum = useCallback(
+    (index: number) => {
+      let sum = 0;
+      let i = index;
+      while (i > 0) {
+        sum += fenwick[i];
+        i -= i & -i;
+      }
+      return sum;
+    },
+    [fenwick],
+  );
 
   const findIndex = useCallback(
     (target: number) => {
-      let low = 0;
-      let high = totalCount;
-      while (low < high) {
-        const mid = (low + high) >>> 1;
-        if (prefixSums[mid + 1] <= target) {
-          low = mid + 1;
-        } else {
-          high = mid;
+      let idx = 0;
+      let currentSum = 0;
+      const bitLength = Math.floor(Math.log2(totalCount)) + 1;
+
+      for (let i = 1 << (bitLength - 1); i > 0; i >>= 1) {
+        const nextIdx = idx + i;
+        if (nextIdx <= totalCount && currentSum + fenwick[nextIdx] <= target) {
+          idx = nextIdx;
+          currentSum += fenwick[idx];
         }
       }
-      return low;
+      return idx;
     },
-    [prefixSums, totalCount],
+    [fenwick, totalCount],
   );
 
   const computeRange = useCallback(
@@ -121,10 +134,10 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
     return {
       startIndex: range.startIndex,
       endIndex: range.endIndex,
-      translateY: prefixSums[range.startIndex] || 0,
-      totalHeight: prefixSums[totalCount] || 0,
+      translateY: getPrefixSum(range.startIndex),
+      totalHeight: getPrefixSum(totalCount),
     };
-  }, [range.startIndex, range.endIndex, prefixSums, totalCount]);
+  }, [range.startIndex, range.endIndex, getPrefixSum, totalCount]);
 
   return {
     startIndex,

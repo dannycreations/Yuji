@@ -56,11 +56,11 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
   while (currentId) {
     const msg: ThreadMessage | undefined = thread.messages[currentId];
     if (!msg) break;
-    path.unshift(msg);
+    path.push(msg);
     currentId = msg.parentId;
   }
 
-  return path;
+  return path.reverse();
 };
 
 export const branchThreadPath = (
@@ -111,37 +111,44 @@ export const groupThreads = (
   pinnedThreadIds: ReadonlyArray<string> = [],
 ): Record<string, ReadonlyArray<ThreadMetadata | Thread>> => {
   const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
+  const dayMs = 86400000; // 24 * 60 * 60 * 1000
 
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
   const yesterdayStart = todayStart - dayMs;
-  const last7DaysStart = todayStart - 7 * dayMs;
+  const last7DaysStart = todayStart - 604800000; // 7 * dayMs
 
-  const groups: Record<string, Array<ThreadMetadata | Thread>> = {
-    Pinned: [],
-    Today: [],
-    Yesterday: [],
-    'Last 7 Days': [],
-    'Last 30 Days': [],
-  };
+  const pinned: Array<ThreadMetadata | Thread> = [];
+  const today: Array<ThreadMetadata | Thread> = [];
+  const yesterday: Array<ThreadMetadata | Thread> = [];
+  const last7Days: Array<ThreadMetadata | Thread> = [];
+  const last30Days: Array<ThreadMetadata | Thread> = [];
 
-  threadsList.forEach((thread) => {
-    if (pinnedThreadIds.includes(thread.id)) {
-      groups['Pinned'].push(thread);
-      return;
+  const pinnedSet = new Set(pinnedThreadIds);
+
+  for (let i = 0; i < threadsList.length; i++) {
+    const thread = threadsList[i];
+    if (pinnedSet.has(thread.id)) {
+      pinned.push(thread);
+      continue;
     }
 
     const time = thread.updatedAt;
     if (time >= todayStart) {
-      groups['Today'].push(thread);
+      today.push(thread);
     } else if (time >= yesterdayStart) {
-      groups['Yesterday'].push(thread);
+      yesterday.push(thread);
     } else if (time >= last7DaysStart) {
-      groups['Last 7 Days'].push(thread);
+      last7Days.push(thread);
     } else {
-      groups['Last 30 Days'].push(thread);
+      last30Days.push(thread);
     }
-  });
+  }
 
-  return groups;
+  return {
+    Pinned: pinned,
+    Today: today,
+    Yesterday: yesterday,
+    'Last 7 Days': last7Days,
+    'Last 30 Days': last30Days,
+  };
 };

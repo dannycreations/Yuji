@@ -99,15 +99,25 @@ export const StoreServiceLive = Layer.effect(
 
       if (metadata) {
         const threadsMap: Record<string, ThreadMetadata> = {};
-        for (const header of threadHeaders) {
-          threadsMap[header.id] = header;
+        for (let i = 0; i < threadHeaders.length; i++) {
+          threadsMap[threadHeaders[i].id] = threadHeaders[i];
         }
 
         let activeThread: Thread | null = null;
-        let settings = metadata.settings;
+        const settings = metadata.settings;
 
         if (metadata.activeThreadId) {
           activeThread = yield* storage.getThread(metadata.activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
+        }
+
+        // Only keep pinned and most recent threads in initial memory
+        // Others will be loaded via loadMoreThreads or search
+        const pinnedSet = new Set(metadata.pinnedThreadIds);
+        const filteredThreadsMap: Record<string, ThreadMetadata> = {};
+        for (const id in threadsMap) {
+          if (pinnedSet.has(id) || threadHeaders.some((h) => h.id === id)) {
+            filteredThreadsMap[id] = threadsMap[id];
+          }
         }
 
         return {
@@ -119,7 +129,7 @@ export const StoreServiceLive = Layer.effect(
             model: activeThread?.general.model || settings.model,
           },
           activeThread,
-          threads: threadsMap,
+          threads: filteredThreadsMap,
           isHydrated: true,
         } as AppRuntimeState;
       }
@@ -290,16 +300,24 @@ export const StoreServiceLive = Layer.effect(
 
               const sortedByRecent = messageList.sort((a, b) => b.timestamp - a.timestamp);
               const result: Record<string, ThreadMessage> = {};
+              let count = 0;
 
               // 1. Always keep active path
-              activePathIds.forEach((id) => {
-                if (newMessages[id]) result[id] = newMessages[id];
-              });
+              for (const id of activePathIds) {
+                if (newMessages[id]) {
+                  result[id] = newMessages[id];
+                  count++;
+                }
+              }
 
               // 2. Fill remaining quota with most recent messages
-              for (const m of sortedByRecent) {
-                if (Object.keys(result).length >= MAX_MEM_MESSAGES) break;
-                result[m.id] = m;
+              for (let i = 0; i < sortedByRecent.length; i++) {
+                if (count >= MAX_MEM_MESSAGES) break;
+                const m = sortedByRecent[i];
+                if (!result[m.id]) {
+                  result[m.id] = m;
+                  count++;
+                }
               }
 
               finalMessages = result;
