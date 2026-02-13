@@ -11,7 +11,7 @@ import type { FC, KeyboardEvent } from 'react';
 import type { Attachment } from '../../app/Schema';
 
 interface ChatInputProps {
-  readonly onSend: (text: string, attachments: Attachment[]) => void;
+  readonly onSend: (text: string, attachments: Attachment[], options?: { readonly search?: boolean }) => void;
   readonly onStop: () => void;
   readonly isLoading: boolean;
 }
@@ -19,6 +19,7 @@ interface ChatInputProps {
 export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => {
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isSearchEnabled, setIsSearchEnabled] = useState(false);
 
   const settings = useStore((s) => s.settings);
 
@@ -38,9 +39,10 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
       return;
     }
     if (!input.trim() && attachments.length === 0) return;
-    onSend(input, attachments);
+    onSend(input, attachments, { search: isSearchEnabled });
     setInput('');
     setAttachments([]);
+    setIsSearchEnabled(false);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,7 +91,11 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
               <Icon name="Plus" size={22} />
             </InputButton>
 
-            <InputButton title="Search" className="p-1!">
+            <InputButton
+              onClick={() => setIsSearchEnabled(!isSearchEnabled)}
+              title="Search"
+              className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
+            >
               <Icon name="Globe" size={18} />
             </InputButton>
           </div>

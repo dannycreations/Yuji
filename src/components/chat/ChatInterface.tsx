@@ -29,8 +29,10 @@ export const ChatInterface: FC = () => {
     (a, b) => a === b,
   );
 
-  const handleSend = useStoreEffect((content: string, attachments?: ReadonlyArray<Attachment>) =>
-    Effect.flatMap(ChatService, (chat) => chat.sendMessage(content, attachments)),
+  const handleSend = useStoreEffect((content: string, attachments?: ReadonlyArray<Attachment>, options?: { readonly search?: boolean }) =>
+    Effect.flatMap(ChatService, (chat) =>
+      chat.sendMessage(content, attachments, options?.search ? { instruction: 'Search the web for the latest information.' } : undefined),
+    ),
   );
   const handleStop = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.stop(activeThreadId || undefined)));
 

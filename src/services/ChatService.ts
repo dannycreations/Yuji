@@ -46,7 +46,11 @@ export interface ChatService {
     options?: { readonly instruction?: string },
   ) => Effect.Effect<void>;
   readonly stop: (threadId?: string) => Effect.Effect<void>;
-  readonly sendMessage: (content: string, attachments?: ReadonlyArray<Attachment>) => Effect.Effect<void>;
+  readonly sendMessage: (
+    content: string,
+    attachments?: ReadonlyArray<Attachment>,
+    options?: { readonly instruction?: string },
+  ) => Effect.Effect<void>;
   readonly regenerateMessage: (threadId: string, messageId: string, options?: { readonly instruction?: string }) => Effect.Effect<void>;
 }
 
@@ -259,7 +263,7 @@ export const ChatServiceLive = Layer.effect(
       updateThread,
       generate,
       stop,
-      sendMessage: (content, attachments = []) =>
+      sendMessage: (content, attachments = [], options) =>
         Effect.gen(function* () {
           const { activeThreadId, activeThread } = yield* SubscriptionRef.get(store.state);
           let targetThreadId = activeThreadId;
@@ -280,7 +284,7 @@ export const ChatServiceLive = Layer.effect(
 
           yield* chatService.addMessage(targetThreadId, userMessage);
           const history = yield* chatService.getThreadPath(targetThreadId, userMessage.id);
-          yield* chatService.generate(targetThreadId, history);
+          yield* chatService.generate(targetThreadId, history, options);
         }).pipe(
           Effect.catchAll((err) => store.notify('error', `Failed to send message: ${formatError(err)}`)),
           Effect.orDie,
