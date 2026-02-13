@@ -387,7 +387,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: () => {
-        deleteThreads(selectedIds);
+        deleteThreads(new Set(selectedIds));
         resetSelection();
       },
     });
@@ -458,7 +458,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: () => {
-        deleteThreads(selectedIds);
+        deleteThreads(new Set(selectedIds));
         resetSelection();
       },
     });

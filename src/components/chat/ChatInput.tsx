@@ -1,8 +1,8 @@
 import clsx from 'clsx';
 import { useRef, useState } from 'react';
 
+import { useAttachment } from '../../hooks/useAttachment';
 import { useStore } from '../../hooks/useStore';
-import { handleFilesFromEvent, handleFilesFromPaste } from '../../utilities/FileUtil';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Icon } from '../shared/Icon';
 import { InputButton, InputTextarea } from '../shared/InputArea';
@@ -18,8 +18,8 @@ interface ChatInputProps {
 
 export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => {
   const [input, setInput] = useState('');
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
+  const { attachments, onFileSelect, onPaste, removeAttachment, clearAttachments } = useAttachment();
 
   const settings = useStore((s) => s.settings);
 
@@ -39,33 +39,19 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
       return;
     }
     if (!input.trim() && attachments.length === 0) return;
-    onSend(input, attachments, { search: isSearchEnabled });
+    onSend(input, [...attachments], { search: isSearchEnabled });
     setInput('');
-    setAttachments([]);
+    clearAttachments();
     setIsSearchEnabled(false);
-  };
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newAttachments = await handleFilesFromEvent(e);
-    setAttachments((prev) => [...prev, ...newAttachments]);
-  };
-
-  const handlePaste = async (e: React.ClipboardEvent) => {
-    const newAttachments = await handleFilesFromPaste(e);
-    setAttachments((prev) => [...prev, ...newAttachments]);
-  };
-
-  const removeAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
   return (
     <div className="chat-input-wrapper">
-      <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={handleFileSelect} />
+      <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={onFileSelect} />
 
       <div className="chat-input-container shadow-2xl">
         <AttachmentGrid
-          attachments={attachments}
+          attachments={[...attachments]}
           onRemove={removeAttachment}
           className="chat-input-attachments scrollbar-hide"
           itemClassName="chat-input-attachment-item"
@@ -78,7 +64,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
           onChange={(e) => setInput(e.target.value)}
           debounceMs={0}
           onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
+          onPaste={onPaste}
           placeholder="Type your message here..."
           className="chat-input-textarea"
           minRows={2}

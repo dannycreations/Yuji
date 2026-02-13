@@ -60,7 +60,7 @@ export const ChatInterface: FC = () => {
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
     onLoadMore: () => {
-      loadMoreMessages().catch(console.error);
+      loadMoreMessages();
     },
     direction: 'top',
     threshold: 50,

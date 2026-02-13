@@ -41,8 +41,13 @@ export const Sidebar: FC = () => {
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [deferredQuery, setDeferredQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
@@ -50,11 +55,6 @@ export const Sidebar: FC = () => {
   const scrollTimerRef = useRef<number | null>(null);
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads)).filter((t) => !t.archived), [threads]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   const flattenedThreads = useMemo(() => {
     const filtered = filterThreads(sortedThreads, deferredQuery);
@@ -83,7 +83,7 @@ export const Sidebar: FC = () => {
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
     onLoadMore: () => {
-      loadMoreThreads().catch(console.error);
+      loadMoreThreads();
     },
     direction: 'bottom',
     threshold: 20,

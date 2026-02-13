@@ -6,10 +6,10 @@ import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import { useAttachment } from '../../hooks/useAttachment';
 import { useCopy } from '../../hooks/useCopy';
 import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
-import { handleFilesFromEvent, handleFilesFromPaste } from '../../utilities/FileUtil';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
 import { Icon } from '../shared/Icon';
@@ -54,7 +54,13 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
-  const [editAttachments, setEditAttachments] = useState<readonly Attachment[]>([]);
+  const {
+    attachments: editAttachments,
+    setAttachments: setEditAttachments,
+    onFileSelect: handleFileSelect,
+    onPaste: handlePaste,
+    removeAttachment,
+  } = useAttachment(message.attachments || []);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
 
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +99,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     const attachmentsChanged = JSON.stringify(editAttachments) !== JSON.stringify(message.attachments || []);
 
     if (contentChanged || attachmentsChanged) {
-      handleEdit(threadId, message.id, editContent, editAttachments);
+      handleEdit(threadId, message.id, editContent, [...editAttachments]);
       onUpdateHeight?.();
     }
 
@@ -117,20 +123,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     saveAfterEditing,
     onUpdateHeight,
   ]);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newAttachments = await handleFilesFromEvent(e);
-    setEditAttachments((prev) => [...prev, ...newAttachments]);
-  };
-
-  const handlePaste = async (e: React.ClipboardEvent) => {
-    const newAttachments = await handleFilesFromPaste(e);
-    setEditAttachments((prev) => [...prev, ...newAttachments]);
-  };
-
-  const removeAttachment = (id: string) => {
-    setEditAttachments((prev) => prev.filter((a) => a.id !== id));
-  };
 
   const onConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
@@ -185,7 +177,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
         <div className={clsx('message-container', isUser ? 'user' : 'assistant', readOnly && 'no-actions')}>
           <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
-            <AttachmentGrid attachments={message.attachments || []} className="message-attachment-grid mb-2" />
+            {!isEditing && <AttachmentGrid attachments={message.attachments || []} className="message-attachment-grid mb-2" />}
 
             {isEditing ? (
               <div className="chat-input-edit-container">
@@ -193,7 +185,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <AttachmentGrid
                   attachments={editAttachments}
                   onRemove={removeAttachment}
-                  className="chat-input-attachments mb-2"
+                  className="chat-input-attachments"
                   itemClassName="chat-input-attachment-item"
                   imgClassName="chat-input-attachment-img"
                 />
