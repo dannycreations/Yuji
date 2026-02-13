@@ -321,7 +321,7 @@
 
   /* Inputs & Cards */
   .input-base {
-    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl p-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-all placeholder:text-text-tertiary;
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl p-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-colors placeholder:text-text-tertiary;
     &.input-sm {
       @apply px-3 py-2 text-xs;
     }
@@ -583,7 +583,7 @@
   }
 
   .chat-input-textarea {
-    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none outline-none ring-0!;
+    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none outline-none ring-0! overflow-hidden!;
     &::placeholder {
       @apply font-medium;
     }

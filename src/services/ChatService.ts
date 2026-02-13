@@ -18,6 +18,7 @@ export interface ChatService {
     messageId: string,
     content: string,
     options?: {
+      readonly attachments?: ReadonlyArray<Attachment>;
       readonly isError?: boolean;
       readonly skipUpdateTimestamp?: boolean;
       readonly uiOnly?: boolean;
@@ -51,7 +52,13 @@ export interface ChatService {
     attachments?: ReadonlyArray<Attachment>,
     options?: { readonly instruction?: string },
   ) => Effect.Effect<void>;
-  readonly regenerateMessage: (threadId: string, messageId: string, options?: { readonly instruction?: string }) => Effect.Effect<void>;
+  readonly regenerateMessage: (
+    threadId: string,
+    messageId: string,
+    options?: {
+      readonly instruction?: string;
+    },
+  ) => Effect.Effect<void>;
 }
 
 export const ChatService = Context.GenericTag<ChatService>('@services/ChatService');
@@ -418,7 +425,12 @@ export const ChatServiceLive = Layer.effect(
             (thread) => {
               const msg = thread.messages[messageId];
               if (!msg) return thread;
-              updatedMessage = { ...msg, content, isError: options.isError };
+              updatedMessage = {
+                ...msg,
+                content,
+                attachments: options.attachments ?? msg.attachments,
+                isError: options.isError,
+              };
               return {
                 ...thread,
                 messages: {

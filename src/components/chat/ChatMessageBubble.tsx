@@ -9,6 +9,7 @@ import remarkMath from 'remark-math';
 import { useCopy } from '../../hooks/useCopy';
 import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
 import { ChatService } from '../../services/ChatService';
+import { handleFilesFromEvent, handleFilesFromPaste } from '../../utilities/FileUtil';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
 import { Icon } from '../shared/Icon';
@@ -17,7 +18,7 @@ import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
 import type { Components } from 'react-markdown';
-import type { ConfirmOptions, ThreadMessage } from '../../app/Schema';
+import type { Attachment, ConfirmOptions, ThreadMessage } from '../../app/Schema';
 
 const Markdown = memo(
   ({ content, components }: { content: string; components: Components }) => (
@@ -53,6 +54,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+  const [editAttachments, setEditAttachments] = useState<readonly Attachment[]>([]);
+  const [isSearchEnabled, setIsSearchEnabled] = useState(false);
+
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const [isRegenerateDropdownOpen, setIsRegenerateDropdownOpen] = useState(false);
   const [customInstruction, setCustomInstruction] = useState('');
@@ -63,11 +68,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     Effect.flatMap(ChatService, (chat) => chat.updateActiveThread((t) => ({ ...t, activeMessageId: mid }))),
   );
   const handleDeleteMessage = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.deleteMessage(tid, mid)));
-  const handleRegenerate = useStoreEffect((tid: string, mid: string, options?: { instruction?: string }) =>
+  const handleRegenerate = useStoreEffect((tid: string, mid: string, options?: { instruction?: string; search?: boolean }) =>
     Effect.flatMap(ChatService, (chat) => chat.regenerateMessage(tid, mid, options)),
   );
-  const handleEdit = useStoreEffect((tid: string, mid: string, content: string) =>
-    Effect.flatMap(ChatService, (chat) => chat.updateMessage(tid, mid, content)),
+  const handleEdit = useStoreEffect((tid: string, mid: string, content: string, attachments?: readonly Attachment[]) =>
+    Effect.flatMap(ChatService, (chat) => chat.updateMessage(tid, mid, content, { attachments })),
   );
 
   // Logic to find siblings for navigation
@@ -84,17 +89,48 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const handleCopy = useCallback(() => setCopy(message.content), [message.content, setCopy]);
 
   const handleSaveEdit = useCallback(() => {
-    if (editContent.trim() !== message.content.trim()) {
-      handleEdit(threadId, message.id, editContent);
+    const contentChanged = editContent.trim() !== message.content.trim();
+    const attachmentsChanged = JSON.stringify(editAttachments) !== JSON.stringify(message.attachments || []);
+
+    if (contentChanged || attachmentsChanged) {
+      handleEdit(threadId, message.id, editContent, editAttachments);
       onUpdateHeight?.();
     }
 
     if (!saveAfterEditing) {
-      handleRegenerate(threadId, message.id);
+      handleRegenerate(threadId, message.id, isSearchEnabled ? { instruction: 'Search the web for the latest information.' } : undefined);
     }
 
     setIsEditing(false);
-  }, [editContent, message.content, message.role, threadId, message.id, handleEdit, handleRegenerate, saveAfterEditing, onUpdateHeight]);
+    setIsSearchEnabled(false);
+  }, [
+    editContent,
+    editAttachments,
+    isSearchEnabled,
+    message.content,
+    message.attachments,
+    message.role,
+    threadId,
+    message.id,
+    handleEdit,
+    handleRegenerate,
+    saveAfterEditing,
+    onUpdateHeight,
+  ]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newAttachments = await handleFilesFromEvent(e);
+    setEditAttachments((prev) => [...prev, ...newAttachments]);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const newAttachments = await handleFilesFromPaste(e);
+    setEditAttachments((prev) => [...prev, ...newAttachments]);
+  };
+
+  const removeAttachment = (id: string) => {
+    setEditAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
 
   const onConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
@@ -153,9 +189,18 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
             {isEditing ? (
               <div className="chat-input-edit-container">
+                <input type="file" multiple accept="image/*" className="hidden" ref={editFileInputRef} onChange={handleFileSelect} />
+                <AttachmentGrid
+                  attachments={editAttachments}
+                  onRemove={removeAttachment}
+                  className="chat-input-attachments mb-2"
+                  itemClassName="chat-input-attachment-item"
+                  imgClassName="chat-input-attachment-img"
+                />
                 <InputTextarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
+                  onPaste={handlePaste}
                   className="chat-input-textarea"
                   minRows={2}
                   debounceMs={0}
@@ -168,13 +213,27 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   }}
                   autoFocus
                 />
-                <div className="chat-input-edit-actions">
-                  <InputButton variant="secondary" onClick={() => setIsEditing(false)}>
-                    Cancel
-                  </InputButton>
-                  <InputButton variant="primary" onClick={handleSaveEdit}>
-                    {saveAfterEditing ? 'Save' : 'Regenerate'}
-                  </InputButton>
+                <div className="chat-input-edit-actions flex justify-between items-center">
+                  <div className="flex gap-1">
+                    <InputButton onClick={() => editFileInputRef.current?.click()} title="Attach Image" className="p-1!">
+                      <Icon name="Plus" size={22} />
+                    </InputButton>
+                    <InputButton
+                      onClick={() => setIsSearchEnabled(!isSearchEnabled)}
+                      title="Search"
+                      className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
+                    >
+                      <Icon name="Globe" size={18} />
+                    </InputButton>
+                  </div>
+                  <div className="flex gap-2">
+                    <InputButton variant="secondary" onClick={() => setIsEditing(false)}>
+                      Cancel
+                    </InputButton>
+                    <InputButton variant="primary" onClick={handleSaveEdit}>
+                      {saveAfterEditing ? 'Save' : 'Regenerate'}
+                    </InputButton>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -321,6 +380,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <InputButton
                   onClick={() => {
                     setEditContent(message.content);
+                    setEditAttachments(message.attachments || []);
                     setIsEditing(true);
                   }}
                   title="Edit"
