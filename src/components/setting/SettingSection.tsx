@@ -202,8 +202,10 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
           })
         ) : (
           <div className="empty-state-base py-3">
-            <Icon name="Search" size={24} className="empty-state-icon" />
-            <p className="empty-state-text">No models match "{modelSearch}"</p>
+            <Icon name={modelSearch ? 'Search' : 'Cpu'} size={24} className="empty-state-icon" />
+            <p className="empty-state-text">
+              {modelSearch ? `No models match "${modelSearch}"` : 'No models available. Click refresh to fetch models.'}
+            </p>
           </div>
         )}
       </div>
