@@ -287,9 +287,9 @@ export const StoreServiceLive = Layer.effect(
               newMessages[m.id] = m;
             });
 
-            // If we have more than 100 messages, trim the bottom
+            // If we have more than 20 messages, trim the bottom
             // Strategy: Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
-            const MAX_MEM_MESSAGES = 100;
+            const MAX_MEM_MESSAGES = 20;
             const messageList = Object.values(newMessages);
 
             let finalMessages = newMessages;
@@ -342,6 +342,44 @@ export const StoreServiceLive = Layer.effect(
             moreHeaders.forEach((h) => {
               newThreads[h.id] = h;
             });
+
+            // Strategy: Keep pinned threads + up to MAX_MEM_THREADS most recent/relevant threads
+            // This prevents the sidebar/global state from ballooning to thousands of objects.
+            const MAX_MEM_THREADS = 20;
+            const threadList = Object.values(newThreads);
+
+            if (threadList.length > MAX_MEM_THREADS) {
+              const sortedByRecent = threadList.sort((a, b) => b.updatedAt - a.updatedAt);
+              const result: Record<string, ThreadMetadata> = {};
+              let count = 0;
+
+              // 1. Always keep pinned threads
+              for (const id of s.pinnedThreadIds) {
+                if (newThreads[id]) {
+                  result[id] = newThreads[id];
+                  count++;
+                }
+              }
+
+              // 2. Always keep the active thread header if it exists
+              if (s.activeThreadId && newThreads[s.activeThreadId] && !result[s.activeThreadId]) {
+                result[s.activeThreadId] = newThreads[s.activeThreadId];
+                count++;
+              }
+
+              // 3. Fill remaining quota with most recent threads
+              for (let i = 0; i < sortedByRecent.length; i++) {
+                if (count >= MAX_MEM_THREADS) break;
+                const t = sortedByRecent[i];
+                if (!result[t.id]) {
+                  result[t.id] = t;
+                  count++;
+                }
+              }
+
+              return { ...s, threads: result };
+            }
+
             return { ...s, threads: newThreads };
           });
         }),

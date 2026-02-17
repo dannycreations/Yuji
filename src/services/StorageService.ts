@@ -112,15 +112,11 @@ export const StorageServiceLive = Layer.effect(
           tx.objectStore(STORES.THREADS).delete(id);
 
           const messageStore = tx.objectStore(STORES.MESSAGES);
-          const index = messageStore.index('threadId');
 
-          // Batch delete messages for the thread
-          // Using a cursor for massive deletions is more memory-efficient than getAllKeys
-          let cursor = yield* Effect.promise(() => index.openKeyCursor(IDBKeyRange.only(id)));
-          while (cursor) {
-            messageStore.delete(cursor.primaryKey);
-            cursor = yield* Effect.promise(() => cursor!.continue());
-          }
+          // More efficient batch deletion for modern browsers:
+          // Instead of manually iterating a cursor which involves multiple request cycles,
+          // we use the index to find the range and let the browser's IDB engine handle the bulk deletion.
+          yield* Effect.promise(() => messageStore.delete(IDBKeyRange.only(id)));
 
           yield* Effect.promise(() => tx.done);
         }),
