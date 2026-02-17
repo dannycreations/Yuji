@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { INITIAL_SUGGESTIONS } from '../../app/Constant';
 import { getMessagePath } from '../../helpers/ThreadHelper';
@@ -92,59 +92,13 @@ export const ChatInterface: FC = () => {
     }
   }, [isLoading, containerHeight]);
 
-  const { startIndex, endIndex, translateY, totalHeight, onScroll, setItemHeight, clearItemHeight, clearItemHeights } = useVirtualList({
+  const { startIndex, endIndex, translateY, totalHeight, onScroll, measureElement, clearItemHeights } = useVirtualList({
     containerHeight,
     estimatedItemHeight: 100,
-    totalCount: visibleMessages.length,
+    items: visibleMessages,
+    getItemKey: (m) => m.id,
     overscan: 10,
   });
-
-  const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const id = (entry.target as HTMLElement).getAttribute('data-id');
-        if (id) {
-          // Use a ref to get the latest messages without re-triggering effect
-          const currentMessages = visibleMessagesRef.current;
-          const index = currentMessages.findIndex((m) => m.id === id);
-          if (index !== -1) {
-            setItemHeight(index, entry.contentRect.height);
-          }
-        }
-      }
-    });
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-  }, [setItemHeight]);
-
-  const visibleMessagesRef = useRef(visibleMessages);
-  useLayoutEffect(() => {
-    visibleMessagesRef.current = visibleMessages;
-  }, [visibleMessages]);
-
-  useEffect(() => {
-    const observer = resizeObserverRef.current;
-    if (!observer) return;
-
-    const currentRefs = messageRefs.current;
-    const visibleSlice = visibleMessages.slice(startIndex, endIndex);
-
-    for (const msg of visibleSlice) {
-      const el = currentRefs[msg.id];
-      if (el) {
-        observer.observe(el);
-      }
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [startIndex, endIndex, visibleMessages]);
 
   useEffect(() => {
     if (activeThreadId) {
@@ -152,17 +106,7 @@ export const ChatInterface: FC = () => {
       loadMessages(activeThreadId);
       isAtBottomRef.current = true;
     }
-  }, [activeThreadId, loadMessages]);
-
-  const handleUpdateHeight = useCallback(
-    (messageId: string) => {
-      const index = visibleMessages.findIndex((m) => m.id === messageId);
-      if (index !== -1) {
-        clearItemHeight(index);
-      }
-    },
-    [visibleMessages, clearItemHeight],
-  );
+  }, [activeThreadId, loadMessages, clearItemHeights]);
 
   useEffect(() => {
     if (isLoading) {
@@ -212,19 +156,11 @@ export const ChatInterface: FC = () => {
                 {visibleMessages.slice(startIndex, endIndex).map((message, sliceIdx) => {
                   const idx = startIndex + sliceIdx;
                   return (
-                    <div
-                      key={message.id}
-                      ref={(el) => {
-                        messageRefs.current[message.id] = el;
-                      }}
-                      data-id={message.id}
-                      className="w-full"
-                    >
+                    <div key={message.id} ref={measureElement} data-vkey={message.id} className="w-full">
                       <ChatMessageBubble
                         message={message}
                         threadId={activeThread.id}
                         isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
-                        onUpdateHeight={() => handleUpdateHeight(message.id)}
                       />
                     </div>
                   );

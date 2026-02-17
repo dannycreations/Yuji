@@ -75,10 +75,11 @@ export const Sidebar: FC = () => {
     return result;
   }, [sortedThreads, deferredQuery, pinnedThreadIds]);
 
-  const { startIndex, endIndex, translateY, totalHeight, onScroll } = useVirtualList({
+  const { startIndex, endIndex, translateY, totalHeight, onScroll, measureElement } = useVirtualList({
     containerHeight,
     estimatedItemHeight: 44, // 40px item + 4px gap
-    totalCount: flattenedThreads.length,
+    items: flattenedThreads,
+    getItemKey: (item) => (item.type === 'label' ? `label-${item.label}` : item.thread.id),
   });
 
   const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
@@ -141,7 +142,7 @@ export const Sidebar: FC = () => {
             {flattenedThreads.slice(startIndex, endIndex).map((item) => {
               if (item.type === 'label') {
                 return (
-                  <h3 key={`label-${item.label}`} className="label-caps p-2 h-[40px]">
+                  <h3 key={`label-${item.label}`} ref={measureElement} data-vkey={`label-${item.label}`} className="label-caps p-2 h-[40px]">
                     {item.label}
                   </h3>
                 );
@@ -150,6 +151,8 @@ export const Sidebar: FC = () => {
               return (
                 <div
                   key={thread.id}
+                  ref={measureElement}
+                  data-vkey={thread.id}
                   className={clsx('sidebar-thread-item group', activeThreadId === thread.id && 'sidebar-thread-item-active')}
                   onClick={() => setActiveThread(thread.id)}
                 >

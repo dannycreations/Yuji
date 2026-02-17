@@ -33,11 +33,10 @@ interface ChatMessageBubbleProps {
   readonly message: ThreadMessage;
   readonly threadId: string;
   readonly isThinking?: boolean;
-  readonly onUpdateHeight?: () => void;
   readonly readOnly?: boolean;
 }
 
-export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, onUpdateHeight, readOnly }) => {
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, readOnly }) => {
   const isUser = message.role === 'user';
   const saveAfterEditing = useStore((s) => s.settings.saveAfterEditing);
   const childrenIds = useStore(
@@ -100,7 +99,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
     if (contentChanged || attachmentsChanged) {
       handleEdit(threadId, message.id, editContent, [...editAttachments]);
-      onUpdateHeight?.();
     }
 
     if (!saveAfterEditing) {
@@ -115,13 +113,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     isSearchEnabled,
     message.content,
     message.attachments,
-    message.role,
     threadId,
     message.id,
     handleEdit,
     handleRegenerate,
     saveAfterEditing,
-    onUpdateHeight,
   ]);
 
   const onConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));

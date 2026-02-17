@@ -1,65 +1,123 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-interface UseVirtualListOptions {
+interface UseVirtualListOptions<T> {
   readonly containerHeight: number;
   readonly estimatedItemHeight: number;
-  readonly totalCount: number;
+  readonly items: ReadonlyArray<T>;
+  readonly getItemKey: (item: T) => string;
   readonly overscan?: number;
 }
 
-export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCount, overscan = 5 }: UseVirtualListOptions) => {
-  const [heights, setHeights] = useState<Map<number, number>>(() => new Map());
+export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items, getItemKey, overscan = 5 }: UseVirtualListOptions<T>) => {
+  const [heights, setHeights] = useState<Map<string, number>>(() => new Map());
   const [range, setRange] = useState({ startIndex: 0, endIndex: 0 });
 
   const scrollTopRef = useRef(0);
-  const pendingHeightsRef = useRef<Map<number, number>>(new Map());
+  const pendingHeightsRef = useRef<Map<string, number>>(new Map());
   const animationFrameRef = useRef<number | null>(null);
 
-  const setItemHeight = useCallback(
-    (index: number, height: number) => {
-      // Don't update if height is effectively the same to avoid jitter and redundant renders
-      if (Math.abs((heights.get(index) ?? 0) - height) < 0.5) return;
+  const totalCount = items.length;
 
-      pendingHeightsRef.current.set(index, height);
+  const setItemHeight = useCallback((key: string, height: number) => {
+    // Check if the height actually changed before scheduling an update
+    // This optimization prevents redundant RAFs and re-renders
+    const currentHeight = pendingHeightsRef.current.get(key);
+    if (currentHeight !== undefined && Math.abs(currentHeight - height) < 0.5) return;
 
-      if (animationFrameRef.current === null) {
-        animationFrameRef.current = requestAnimationFrame(() => {
-          setHeights((prev) => {
-            const next = new Map(prev);
-            let changed = false;
-            for (const [idx, h] of pendingHeightsRef.current) {
-              if (Math.abs((next.get(idx) ?? 0) - h) >= 0.5) {
-                next.set(idx, h);
-                changed = true;
-              }
+    pendingHeightsRef.current.set(key, height);
+
+    if (animationFrameRef.current === null) {
+      animationFrameRef.current = requestAnimationFrame(() => {
+        setHeights((prev) => {
+          const next = new Map(prev);
+          let changed = false;
+          for (const [k, h] of pendingHeightsRef.current) {
+            if (Math.abs((next.get(k) ?? 0) - h) >= 0.5) {
+              next.set(k, h);
+              changed = true;
             }
-            pendingHeightsRef.current.clear();
-            animationFrameRef.current = null;
-            return changed ? next : prev;
-          });
+          }
+          pendingHeightsRef.current.clear();
+          animationFrameRef.current = null;
+          return changed ? next : prev;
         });
-      }
-    },
-    [heights],
-  );
-
-  const clearItemHeight = useCallback((index: number) => {
-    setHeights((prev) => {
-      if (!prev.has(index)) return prev;
-      const next = new Map(prev);
-      next.delete(index);
-      return next;
-    });
+      });
+    }
   }, []);
 
   const clearItemHeights = useCallback(() => {
     setHeights(new Map());
     pendingHeightsRef.current.clear();
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+  }, []);
+
+  // Use ResizeObserver for smart, reactive height tracking
+  const observerRef = useRef<ResizeObserver | null>(null);
+
+  // Keep track of observed elements to handle unmounting/cleanup
+  const observedElementsRef = useRef<Set<HTMLElement>>(new Set());
+
+  const measureElement = useCallback(
+    (el: HTMLElement | null) => {
+      if (!el) return;
+
+      if (!observerRef.current) {
+        observerRef.current = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const key = (entry.target as HTMLElement).getAttribute('data-vkey');
+            if (key) {
+              const height = entry.contentRect.height;
+              setItemHeight(key, height);
+            }
+          }
+        });
+      }
+
+      if (!observedElementsRef.current.has(el)) {
+        observerRef.current.observe(el);
+        observedElementsRef.current.add(el);
+      }
+    },
+    [setItemHeight],
+  );
+
+  // Cleanup Map to prevent memory leaks as items are deleted or the thread is switched
+  useEffect(() => {
+    const itemKeys = new Set(items.map(getItemKey));
+    setHeights((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const key of next.keys()) {
+        if (!itemKeys.has(key)) {
+          next.delete(key);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items, getItemKey]);
+
+  useEffect(() => {
+    return () => {
+      observerRef.current?.disconnect();
+      observedElementsRef.current.clear();
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   const fenwick = useMemo(() => {
     const tree = new Float64Array(totalCount + 1);
-    const getInitialValue = (i: number) => heights.get(i) ?? estimatedItemHeight;
+    const getInitialValue = (i: number) => {
+      const item = items[i];
+      if (!item) return estimatedItemHeight;
+      const key = getItemKey(item);
+      return heights.get(key) ?? estimatedItemHeight;
+    };
 
     for (let i = 1; i <= totalCount; i++) {
       tree[i] += getInitialValue(i - 1);
@@ -67,7 +125,7 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
       if (j <= totalCount) tree[j] += tree[i];
     }
     return tree;
-  }, [totalCount, heights, estimatedItemHeight]);
+  }, [totalCount, items, getItemKey, heights, estimatedItemHeight]);
 
   const getPrefixSum = useCallback(
     (index: number) => {
@@ -160,8 +218,7 @@ export const useVirtualList = ({ containerHeight, estimatedItemHeight, totalCoun
     translateY,
     totalHeight,
     onScroll,
-    setItemHeight,
-    clearItemHeight,
+    measureElement,
     clearItemHeights,
   };
 };
