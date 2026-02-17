@@ -99,7 +99,8 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
   const setItemHeight = useCallback(
     (key: string, height: number) => {
       const currentHeight = heightsRef.current.get(key) ?? estimatedItemHeight;
-      if (Math.abs(currentHeight - height) < 0.5) return;
+      // Only update if change is significant (> 1px) to reduce thrashing during stream
+      if (Math.abs(currentHeight - height) < 1) return;
 
       pendingUpdatesRef.current.set(key, height);
 
@@ -111,7 +112,7 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
             const oldH = heightsRef.current.get(k) ?? estimatedItemHeight;
             const delta = h - oldH;
 
-            if (Math.abs(delta) >= 0.5) {
+            if (Math.abs(delta) >= 1) {
               heightsRef.current.set(k, h);
               const idx = keyToIndexMapRef.current.get(k);
               if (idx !== undefined) {

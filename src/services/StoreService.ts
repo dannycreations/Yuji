@@ -146,7 +146,7 @@ export const StoreServiceLive = Layer.effect(
       };
     };
 
-    // Persistence Loop: Metadata (Debounced & Differential)
+    // Metadata (Debounced & Differential)
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
@@ -219,7 +219,7 @@ export const StoreServiceLive = Layer.effect(
             },
           }));
 
-          // Persistence: Update the thread in StorageService
+          // Update the thread in StorageService
           yield* storage.saveThread({ ...thread, archived });
 
           if (archived && s.activeThreadId === threadId) {
@@ -274,10 +274,10 @@ export const StoreServiceLive = Layer.effect(
           if (!s.activeThread) return;
 
           const threadId = s.activeThread.id;
-          const currentMessages = Object.values(s.activeThread.messages);
-          const offset = currentMessages.length;
+          const currentMessages = Object.values(s.activeThread.messages).sort((a, b) => a.timestamp - b.timestamp);
+          const lastKey = currentMessages[0]?.id;
 
-          const moreMessages = yield* storage.getMessages(threadId, { offset, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+          const moreMessages = yield* storage.getMessages(threadId, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (moreMessages.length === 0) return;
 
           yield* update((s) => {
@@ -287,9 +287,9 @@ export const StoreServiceLive = Layer.effect(
               newMessages[m.id] = m;
             });
 
-            // If we have more than 20 messages, trim the bottom
-            // Strategy: Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
-            const MAX_MEM_MESSAGES = 20;
+            // If we have more than 50 messages, trim the bottom
+            // Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
+            const MAX_MEM_MESSAGES = 50;
             const messageList = Object.values(newMessages);
 
             let finalMessages = newMessages;
@@ -332,8 +332,10 @@ export const StoreServiceLive = Layer.effect(
       loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          const currentCount = Object.keys(s.threads).length;
-          const moreHeaders = yield* storage.getThreadsMetadata({ offset: currentCount, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+          const threadList = Object.values(s.threads).sort((a, b) => a.updatedAt - b.updatedAt);
+          const lastKey = threadList[0]?.id;
+
+          const moreHeaders = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
 
           if (moreHeaders.length === 0) return;
 
@@ -343,9 +345,9 @@ export const StoreServiceLive = Layer.effect(
               newThreads[h.id] = h;
             });
 
-            // Strategy: Keep pinned threads + up to MAX_MEM_THREADS most recent/relevant threads
+            // Keep pinned threads + up to MAX_MEM_THREADS most recent/relevant threads
             // This prevents the sidebar/global state from ballooning to thousands of objects.
-            const MAX_MEM_THREADS = 20;
+            const MAX_MEM_THREADS = 100;
             const threadList = Object.values(newThreads);
 
             if (threadList.length > MAX_MEM_THREADS) {

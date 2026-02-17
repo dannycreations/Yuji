@@ -26,7 +26,7 @@ const Markdown = memo(
       {content}
     </ReactMarkdown>
   ),
-  (prev, next) => prev.content === next.content && prev.components === next.components,
+  (prev, next) => prev.content === next.content,
 );
 
 interface ChatMessageBubbleProps {
@@ -46,8 +46,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       if (!thread || thread.id !== threadId) return undefined;
       return thread.messages[message.parentId!]?.childrenIds;
     },
-    // Deep equality for childrenIds to prevent re-renders when children array contents are identical
-    (a, b) => JSON.stringify(a) === JSON.stringify(b),
+    // Use identity check for childrenIds array since we immutable-update them in ChatService
+    Object.is,
   );
 
   const [copied, setCopy] = useCopy();

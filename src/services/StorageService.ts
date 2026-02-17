@@ -7,15 +7,15 @@ export interface StorageService {
   readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
-  readonly getThreadsMetadata: (options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
+  readonly getThreadsMetadata: (options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
   readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null>;
   readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void>;
   readonly deleteThread: (id: string) => Effect.Effect<void>;
 
-  readonly getMessages: (threadId: string, options?: { offset?: number; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>>;
+  readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>>;
   readonly paginate: <T>(
     storeName: string,
-    options: { offset?: number; limit?: number; indexName?: string; indexValue?: IDBValidKey },
+    options: { lastKey?: IDBValidKey; limit?: number; indexName?: string; indexValue?: IDBValidKey },
   ) => Effect.Effect<ReadonlyArray<T>>;
   readonly saveMessages: (threadId: string, messages: ThreadMessage | ThreadMessage[]) => Effect.Effect<void>;
   readonly deleteMessage: (id: string) => Effect.Effect<void>;
@@ -76,7 +76,7 @@ export const StorageServiceLive = Layer.effect(
             return threads as ThreadMetadata[];
           }
 
-          const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, options);
+          const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, { ...options });
           return threads as ThreadMetadata[];
         }),
 
@@ -121,24 +121,36 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => tx.done);
         }),
 
-      paginate: <T>(storeName: string, options: { offset?: number; limit?: number; indexName?: string; indexValue?: IDBValidKey }) =>
+      paginate: <T>(storeName: string, options: { lastKey?: IDBValidKey; limit?: number; indexName?: string; indexValue?: IDBValidKey }) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const { offset = 0, limit = 20, indexName, indexValue } = options;
+          const { lastKey, limit = 20, indexName, indexValue } = options;
           const results: T[] = [];
           const tx = db.transaction(storeName, 'readonly');
           const source = indexName ? tx.store.index(indexName) : tx.store;
-          const range = indexValue ? IDBKeyRange.only(indexValue) : null;
+
+          let range: IDBKeyRange | null = null;
+          if (indexValue !== undefined && lastKey !== undefined) {
+            // In IDB, compound ranges for index + primary key require manual filtering or specific key structures.
+            // Since we use threadId index, we bound by the index value and start after the lastKey.
+            range = IDBKeyRange.only(indexValue);
+          } else if (indexValue !== undefined) {
+            range = IDBKeyRange.only(indexValue);
+          } else if (lastKey !== undefined) {
+            // O(log N) lookup instead of O(N) advance()
+            range = IDBKeyRange.upperBound(lastKey, true);
+          }
 
           let cursor = yield* Effect.promise(() => source.openCursor(range, 'prev'));
 
-          let advanced = false;
-          while (cursor && results.length < limit) {
-            if (!advanced && offset > 0) {
-              cursor = yield* Effect.promise(() => cursor!.advance(offset));
-              advanced = true;
-              continue;
+          // Handle manual secondary key skip if using indexValue + lastKey
+          if (cursor && indexValue !== undefined && lastKey !== undefined) {
+            while (cursor && cursor.primaryKey >= (lastKey as string)) {
+              cursor = yield* Effect.promise(() => cursor!.continue());
             }
+          }
+
+          while (cursor && results.length < limit) {
             results.push(cursor.value);
             cursor = yield* Effect.promise(() => cursor!.continue());
           }

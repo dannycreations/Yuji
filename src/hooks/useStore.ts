@@ -19,13 +19,13 @@ export const useStoreService = (): StoreService => {
 
 export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T => {
   const storeService = useStoreService();
-  const lastSelectedState = useRef<T | null>(null);
+  const lastSelectedState = useRef<T>(null as unknown as T);
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
       return storeService.subscribe(() => {
         const nextSelectedState = selector(storeService.getSnapshot());
-        const changed = isEqual ? !isEqual(lastSelectedState.current as T, nextSelectedState) : nextSelectedState !== lastSelectedState.current;
+        const changed = !isEqual(lastSelectedState.current, nextSelectedState);
 
         if (changed) {
           callback();
