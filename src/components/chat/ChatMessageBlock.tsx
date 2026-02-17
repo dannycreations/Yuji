@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import mermaid from 'mermaid';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -69,6 +69,10 @@ const CodeBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
   const theme = useStore((s) => s.settings.theme);
   const handleDownload = useCallback(() => downloadFile(value, `code-${randomId(6)}.txt`), [value]);
 
+  // Use deferred value for the code content to prioritize UI responsiveness (scrolling, typing)
+  // over heavy syntax highlighting, especially during high-frequency streaming updates.
+  const deferredValue = useDeferredValue(value);
+
   return (
     <BaseMessageBlock label={language || 'code'} value={value} onDownload={handleDownload}>
       <SyntaxHighlighter
@@ -92,7 +96,7 @@ const CodeBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
         }}
         wrapLongLines={true}
       >
-        {value}
+        {deferredValue}
       </SyntaxHighlighter>
     </BaseMessageBlock>
   );
@@ -110,6 +114,10 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   useEffect(() => {
     let isMounted = true;
     const render = async () => {
+      // Small debounce/delay to prevent rapid re-renders of Mermaid diagrams during streaming
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      if (!isMounted) return;
+
       try {
         mermaid.initialize(mermaidConfig);
         const id = `mermaid-${randomId(8)}`;

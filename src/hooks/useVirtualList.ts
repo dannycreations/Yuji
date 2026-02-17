@@ -9,50 +9,151 @@ interface UseVirtualListOptions<T> {
 }
 
 export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items, getItemKey, overscan = 5 }: UseVirtualListOptions<T>) => {
-  const [heights, setHeights] = useState<Map<string, number>>(() => new Map());
   const [range, setRange] = useState({ startIndex: 0, endIndex: 0 });
 
   const scrollTopRef = useRef(0);
-  const pendingHeightsRef = useRef<Map<string, number>>(new Map());
   const animationFrameRef = useRef<number | null>(null);
 
   const totalCount = items.length;
 
-  const setItemHeight = useCallback((key: string, height: number) => {
-    // Check if the height actually changed before scheduling an update
-    // This optimization prevents redundant RAFs and re-renders
-    const currentHeight = pendingHeightsRef.current.get(key);
-    if (currentHeight !== undefined && Math.abs(currentHeight - height) < 0.5) return;
+  // We maintain the Fenwick tree and individual heights in refs to allow O(log N) updates
+  // without re-rendering the entire component until the scroll range actually changes.
+  const fenwickRef = useRef<Float64Array>(new Float64Array(0));
+  const heightsRef = useRef<Map<string, number>>(new Map());
+  const itemKeysRef = useRef<string[]>([]);
+  const keyToIndexMapRef = useRef<Map<string, number>>(new Map());
+  const pendingUpdatesRef = useRef<Map<string, number>>(new Map());
 
-    pendingHeightsRef.current.set(key, height);
+  // Initialize/Rebuild tree when items change
+  useMemo(() => {
+    const newKeys = items.map(getItemKey);
+    const newCount = newKeys.length;
+    const tree = new Float64Array(newCount + 1);
+    const newKeyToIndexMap = new Map<string, number>();
 
-    if (animationFrameRef.current === null) {
-      animationFrameRef.current = requestAnimationFrame(() => {
-        setHeights((prev) => {
-          const next = new Map(prev);
-          let changed = false;
-          for (const [k, h] of pendingHeightsRef.current) {
-            if (Math.abs((next.get(k) ?? 0) - h) >= 0.5) {
-              next.set(k, h);
-              changed = true;
-            }
-          }
-          pendingHeightsRef.current.clear();
-          animationFrameRef.current = null;
-          return changed ? next : prev;
-        });
-      });
+    const getInitialValue = (i: number) => {
+      const key = newKeys[i];
+      newKeyToIndexMap.set(key, i);
+      return heightsRef.current.get(key) ?? estimatedItemHeight;
+    };
+
+    for (let i = 1; i <= newCount; i++) {
+      tree[i] += getInitialValue(i - 1);
+      const j = i + (i & -i);
+      if (j <= newCount) tree[j] += tree[i];
+    }
+
+    fenwickRef.current = tree;
+    itemKeysRef.current = newKeys;
+    keyToIndexMapRef.current = newKeyToIndexMap;
+
+    // Cleanup heights map to prevent memory leaks
+    const keySet = new Set(newKeys);
+    for (const key of heightsRef.current.keys()) {
+      if (!keySet.has(key)) {
+        heightsRef.current.delete(key);
+      }
+    }
+  }, [items, getItemKey, estimatedItemHeight]);
+
+  const getPrefixSum = useCallback((index: number) => {
+    let sum = 0;
+    let i = index;
+    const tree = fenwickRef.current;
+    while (i > 0) {
+      sum += tree[i];
+      i -= i & -i;
+    }
+    return sum;
+  }, []);
+
+  const findIndex = useCallback((target: number) => {
+    let idx = 0;
+    let currentSum = 0;
+    const tree = fenwickRef.current;
+    const n = tree.length - 1;
+    if (n <= 0) return 0;
+
+    const bitLength = Math.floor(Math.log2(n)) + 1;
+
+    for (let i = 1 << (bitLength - 1); i > 0; i >>= 1) {
+      const nextIdx = idx + i;
+      if (nextIdx <= n && currentSum + tree[nextIdx] <= target) {
+        idx = nextIdx;
+        currentSum += tree[idx];
+      }
+    }
+    return idx;
+  }, []);
+
+  const updateFenwick = useCallback((index: number, delta: number) => {
+    let i = index + 1;
+    const tree = fenwickRef.current;
+    const n = tree.length - 1;
+    while (i <= n) {
+      tree[i] += delta;
+      i += i & -i;
     }
   }, []);
 
+  const setItemHeight = useCallback(
+    (key: string, height: number) => {
+      const currentHeight = heightsRef.current.get(key) ?? estimatedItemHeight;
+      if (Math.abs(currentHeight - height) < 0.5) return;
+
+      pendingUpdatesRef.current.set(key, height);
+
+      if (animationFrameRef.current === null) {
+        animationFrameRef.current = requestAnimationFrame(() => {
+          let needsRangeUpdate = false;
+
+          for (const [k, h] of pendingUpdatesRef.current) {
+            const oldH = heightsRef.current.get(k) ?? estimatedItemHeight;
+            const delta = h - oldH;
+
+            if (Math.abs(delta) >= 0.5) {
+              heightsRef.current.set(k, h);
+              const idx = keyToIndexMapRef.current.get(k);
+              if (idx !== undefined) {
+                updateFenwick(idx, delta);
+                needsRangeUpdate = true;
+              }
+            }
+          }
+
+          pendingUpdatesRef.current.clear();
+          animationFrameRef.current = null;
+
+          if (needsRangeUpdate) {
+            const nextRange = computeRange(scrollTopRef.current);
+            if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+              setRange(nextRange);
+            }
+          }
+        });
+      }
+    },
+    [estimatedItemHeight, updateFenwick, range.startIndex, range.endIndex],
+  );
+
   const clearItemHeights = useCallback(() => {
-    setHeights(new Map());
-    pendingHeightsRef.current.clear();
+    heightsRef.current.clear();
+    pendingUpdatesRef.current.clear();
+    // Resetting the tree to estimated heights
+    const n = itemKeysRef.current.length;
+    const tree = new Float64Array(n + 1);
+    for (let i = 1; i <= n; i++) {
+      tree[i] += estimatedItemHeight;
+      const j = i + (i & -i);
+      if (j <= n) tree[j] += tree[i];
+    }
+    fenwickRef.current = tree;
+
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-  }, []);
+  }, [estimatedItemHeight]);
 
   // Use ResizeObserver for smart, reactive height tracking
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -84,22 +185,6 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     [setItemHeight],
   );
 
-  // Cleanup Map to prevent memory leaks as items are deleted or the thread is switched
-  useEffect(() => {
-    const itemKeys = new Set(items.map(getItemKey));
-    setHeights((prev) => {
-      let changed = false;
-      const next = new Map(prev);
-      for (const key of next.keys()) {
-        if (!itemKeys.has(key)) {
-          next.delete(key);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [items, getItemKey]);
-
   useEffect(() => {
     return () => {
       observerRef.current?.disconnect();
@@ -109,54 +194,6 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
       }
     };
   }, []);
-
-  const fenwick = useMemo(() => {
-    const tree = new Float64Array(totalCount + 1);
-    const getInitialValue = (i: number) => {
-      const item = items[i];
-      if (!item) return estimatedItemHeight;
-      const key = getItemKey(item);
-      return heights.get(key) ?? estimatedItemHeight;
-    };
-
-    for (let i = 1; i <= totalCount; i++) {
-      tree[i] += getInitialValue(i - 1);
-      const j = i + (i & -i);
-      if (j <= totalCount) tree[j] += tree[i];
-    }
-    return tree;
-  }, [totalCount, items, getItemKey, heights, estimatedItemHeight]);
-
-  const getPrefixSum = useCallback(
-    (index: number) => {
-      let sum = 0;
-      let i = index;
-      while (i > 0) {
-        sum += fenwick[i];
-        i -= i & -i;
-      }
-      return sum;
-    },
-    [fenwick],
-  );
-
-  const findIndex = useCallback(
-    (target: number) => {
-      let idx = 0;
-      let currentSum = 0;
-      const bitLength = Math.floor(Math.log2(totalCount)) + 1;
-
-      for (let i = 1 << (bitLength - 1); i > 0; i >>= 1) {
-        const nextIdx = idx + i;
-        if (nextIdx <= totalCount && currentSum + fenwick[nextIdx] <= target) {
-          idx = nextIdx;
-          currentSum += fenwick[idx];
-        }
-      }
-      return idx;
-    },
-    [fenwick, totalCount],
-  );
 
   const computeRange = useCallback(
     (scrollTop: number) => {
