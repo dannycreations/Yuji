@@ -84,16 +84,20 @@ export const StoreServiceLive = Layer.effect(
       const result = yield* Effect.all({
         metadata: storage.getMetadata(),
         threadHeaders: storage.getThreadsMetadata({ limit: 30 }),
-      }).pipe(Effect.either);
+      }).pipe(
+        Effect.timeout('10 seconds'),
+        Effect.catchAll(() => Effect.fail(new Error('Database initialization timed out. This may happen if another tab is blocking the database.'))),
+        Effect.either,
+      );
 
       if (Either.isLeft(result)) {
         const err = result.left;
-        console.error('[StoreService] Database initialization failed:', err);
+        console.error('Database initialization failed:', err);
         return {
           ...INITIAL_STATE,
           isHydrated: true,
           initializationError: formatError(err),
-        };
+        } as AppRuntimeState;
       }
 
       const { metadata, threadHeaders } = result.right;

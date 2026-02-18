@@ -39,7 +39,7 @@ export const StorageServiceLive = Layer.effect(
   StorageService,
   Effect.gen(function* () {
     const dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, _oldVersion, _newVersion, transaction) {
         if (!db.objectStoreNames.contains(STORES.METADATA)) {
           db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
         }
@@ -48,8 +48,7 @@ export const StorageServiceLive = Layer.effect(
           threadStore.createIndex('title', 'title');
           threadStore.createIndex('updatedAt', 'updatedAt');
         } else {
-          const tx = db.transaction(STORES.THREADS, 'versionchange');
-          const store = tx.objectStore(STORES.THREADS);
+          const store = transaction.objectStore(STORES.THREADS);
           if (!store.indexNames.contains('title')) {
             store.createIndex('title', 'title');
           }
@@ -62,6 +61,19 @@ export const StorageServiceLive = Layer.effect(
           messageStore.createIndex('threadId', 'threadId');
         }
       },
+      blocked() {
+        console.warn('Database opening blocked. Please close other Yuji tabs.');
+      },
+    }).catch((err) => {
+      const name = (err as DOMException)?.name || (err as Error)?.name;
+      if (name === 'VersionError') {
+        return Promise.reject(
+          new Error(
+            'Database version conflict: Your saved data is from a newer version of Yuji. Please reset your database or use the newer version.',
+          ),
+        );
+      }
+      return Promise.reject(err);
     });
 
     const getDB = Effect.promise(() => dbPromise);
