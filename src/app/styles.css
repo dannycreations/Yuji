@@ -191,6 +191,14 @@
   textarea::placeholder {
     @apply select-none;
   }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  button:disabled {
+    @apply cursor-not-allowed;
+  }
 }
 
 @layer components {
@@ -698,7 +706,7 @@
 
   /* Model Picker */
   .header-model-button {
-    @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors;
+    @apply flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-surface transition-colors cursor-pointer;
   }
 
   .header-icon-wrapper {
@@ -763,7 +771,7 @@
   }
 
   .settings-appearance-btn {
-    @apply flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors;
+    @apply flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer;
   }
 
   .settings-info-box {
@@ -771,7 +779,7 @@
   }
 
   .settings-model-card {
-    @apply flex items-center gap-2 p-2 rounded-xl border border-transparent transition-all;
+    @apply flex items-center gap-2 p-2 rounded-xl border border-transparent transition-all cursor-pointer;
     &.enabled {
       @apply bg-line border-separator;
     }
