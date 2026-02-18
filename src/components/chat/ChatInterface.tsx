@@ -134,7 +134,7 @@ export const ChatInterface: FC = () => {
               <div className="chat-empty-icon-wrapper">
                 <Icon name="Bot" size={24} className="text-background" />
               </div>
-              <h1 className="chat-empty-title">{getGreeting(userName)}</h1>
+              <div className="chat-empty-title">{getGreeting(userName)}</div>
             </div>
 
             {showSuggestions && (

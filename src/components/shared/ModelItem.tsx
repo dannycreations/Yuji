@@ -24,7 +24,6 @@ export const ModelItem: FC<ModelItemProps> = ({
   isActive,
   isEnabled = true,
   isDefault,
-  showDescription = true,
   onClick,
   className,
   rightContent,
@@ -42,7 +41,6 @@ export const ModelItem: FC<ModelItemProps> = ({
           {isDefault && isEnabled && <div className="badge-primary">Default</div>}
         </div>
         <div className="model-picker-item-id">{model.id}</div>
-        {showDescription && model.description && <p className="text-xs text-text-tertiary line-clamp-1 mt-1">{model.description}</p>}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">{rightContent}</div>
     </Component>

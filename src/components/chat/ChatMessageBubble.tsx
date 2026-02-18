@@ -201,7 +201,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   }}
                   autoFocus
                 />
-                <div className="chat-input-edit-actions flex justify-between items-center">
+                <div className="chat-input-edit-actions flex-between">
                   <div className="flex gap-1">
                     <InputButton onClick={() => editFileInputRef.current?.click()} title="Attach Image" className="p-1!">
                       <Icon name="Plus" size={22} />
@@ -247,11 +247,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                     <InputButton disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} title="Previous Version">
                       <Icon name="ChevronLeft" size={16} />
                     </InputButton>
-                    <span className="message-branch-indicator">
+                    <div className="message-branch-indicator">
                       {currentIndex + 1}
                       <span className="message-branch-indicator-slash">/</span>
                       {siblings.length}
-                    </span>
+                    </div>
                     <InputButton
                       disabled={currentIndex === siblings.length - 1}
                       onClick={() => handleSwitch(siblings[currentIndex + 1])}

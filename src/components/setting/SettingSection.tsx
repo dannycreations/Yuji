@@ -127,17 +127,15 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
       const llm = yield* LLMProvider;
       const result = yield* llm.fetchModels(settings);
 
-      const apiModels: Model[] = result.data.map((m) => ({
-        id: m.id,
-        name: m.id,
-        description: `Fetched from ${settings.baseUrl}`,
-        provider: 'OpenAI Compatible',
-        icon: 'Cpu',
-        color: 'text-text-tertiary',
-        tags: ['API'],
-        isNew: false,
-        premium: false,
-      }));
+      const apiModels = result.data.map(
+        (m) =>
+          ({
+            id: m.id,
+            name: m.id,
+            icon: 'Cpu',
+            color: 'text-text-tertiary',
+          }) satisfies Model,
+      );
 
       setAvailableModels(apiModels);
       setRefreshState('success');

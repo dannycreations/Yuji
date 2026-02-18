@@ -3,7 +3,6 @@ import { Schema } from 'effect';
 export const Model = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
-  description: Schema.String,
   icon: Schema.String,
   color: Schema.String,
 });

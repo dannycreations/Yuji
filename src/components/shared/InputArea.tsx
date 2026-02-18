@@ -110,7 +110,7 @@ export const InputTag: FC<InputTagProps> = ({ tags, onChange, placeholder, maxLe
         </div>
       ))}
       <input
-        className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px]"
+        className="input-tag"
         placeholder={tags.length === 0 ? placeholder : ''}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === 'Tab') {

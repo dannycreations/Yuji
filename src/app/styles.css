@@ -393,6 +393,10 @@
     @apply flex flex-wrap gap-1 p-2 bg-surface-hover/40 border border-separator/30 rounded-xl focus-within:border-line/50 focus-within:bg-surface transition-all min-h-[46px];
   }
 
+  .input-tag {
+    @apply flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px];
+  }
+
   .tag-item {
     @apply flex items-center gap-1 px-2 py-1 bg-line text-text-primary text-xs rounded-lg animate-fade-in border border-separator;
     & .tag-remove {

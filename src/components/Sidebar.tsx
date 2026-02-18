@@ -102,7 +102,7 @@ export const Sidebar: FC = () => {
         <div className="abs-center pointer-events-none">
           <InputButton variant="logo" onClick={() => setActiveThread(null)}>
             <Icon name="Bot" size={20} className="text-primary" />
-            <span className="header-title">Yuji</span>
+            <div className="header-title">Yuji</div>
           </InputButton>
         </div>
 
