@@ -604,7 +604,7 @@
   }
 
   .chat-input-textarea {
-    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none outline-none ring-0! overflow-hidden!;
+    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none outline-none ring-0!;
     &::placeholder {
       @apply font-medium;
     }

@@ -119,8 +119,11 @@ export const StoreServiceLive = Layer.effect(
         // Others will be loaded via loadMoreThreads or search
         const pinnedSet = new Set(metadata.pinnedThreadIds);
         const filteredThreadsMap: Record<string, ThreadMetadata> = {};
+
+        // Use a more memory-efficient inclusion check
+        const headerIds = new Set(threadHeaders.map((h) => h.id));
         for (const id in threadsMap) {
-          if (pinnedSet.has(id) || threadHeaders.some((h) => h.id === id)) {
+          if (pinnedSet.has(id) || headerIds.has(id)) {
             filteredThreadsMap[id] = threadsMap[id];
           }
         }

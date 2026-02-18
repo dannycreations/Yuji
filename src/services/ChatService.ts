@@ -77,6 +77,7 @@ export const ChatServiceLive = Layer.effect(
       options: {
         readonly skipUpdateTimestamp?: boolean;
         readonly metadataOnly?: boolean;
+        readonly uiOnly?: boolean;
       } = {},
     ) =>
       Effect.gen(function* () {
@@ -114,9 +115,12 @@ export const ChatServiceLive = Layer.effect(
           }));
         }
 
-        if (options.metadataOnly) {
-          yield* storage.patchThread(threadId, finalMetadata!);
-        } else {
+        // Always patch metadata for immediate O(1) visibility of state changes.
+        yield* storage.patchThread(threadId, finalMetadata!);
+
+        // Only perform a full thread save if we are not in a metadata-only update
+        // AND not in a high-frequency UI-only pulse (streaming).
+        if (!options.metadataOnly && (!options.skipUpdateTimestamp || !options.uiOnly)) {
           yield* storage.saveThread(finalThread!);
         }
       }).pipe(

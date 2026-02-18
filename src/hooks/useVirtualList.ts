@@ -96,45 +96,91 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     }
   }, []);
 
+  const computeRange = useCallback(
+    (scrollTop: number) => {
+      if (totalCount === 0) return { startIndex: 0, endIndex: 0 };
+
+      const startIdx = findIndex(scrollTop);
+      // Use a fallback height when containerHeight is 0 (e.g. initial render or hidden)
+      // to ensure a reasonable number of items are rendered to avoid a "flash" of empty list
+      // when the component first appears.
+      const effectiveHeight = containerHeight > 0 ? containerHeight : 1000;
+      const endIdx = findIndex(scrollTop + effectiveHeight);
+
+      return {
+        startIndex: Math.max(0, startIdx - overscan),
+        endIndex: Math.min(totalCount, endIdx + overscan),
+      };
+    },
+    [containerHeight, findIndex, overscan, totalCount],
+  );
+
+  const onScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      // Clamp to non-negative values, preventing issues during "elastic" scrolling or momentum overscroll
+      const nextScrollTop = Math.max(0, e.currentTarget.scrollTop);
+      scrollTopRef.current = nextScrollTop;
+
+      const nextRange = computeRange(nextScrollTop);
+      if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+        setRange(nextRange);
+      }
+    },
+    [computeRange, range.endIndex, range.startIndex],
+  );
+
+  const lastUpdateRef = useRef(0);
   const setItemHeight = useCallback(
     (key: string, height: number) => {
       const currentHeight = heightsRef.current.get(key) ?? estimatedItemHeight;
-      // Only update if change is significant (> 1px) to reduce thrashing during stream
       if (Math.abs(currentHeight - height) < 1) return;
 
       pendingUpdatesRef.current.set(key, height);
 
       if (animationFrameRef.current === null) {
-        animationFrameRef.current = requestAnimationFrame(() => {
-          let needsRangeUpdate = false;
+        const now = performance.now();
+        // Wait at least 16ms (1 frame) or more if we are thrashing
+        const delay = Math.max(0, 16 - (now - lastUpdateRef.current));
 
-          for (const [k, h] of pendingUpdatesRef.current) {
-            const oldH = heightsRef.current.get(k) ?? estimatedItemHeight;
-            const delta = h - oldH;
+        const update = () => {
+          animationFrameRef.current = requestAnimationFrame(() => {
+            let needsRangeUpdate = false;
+            lastUpdateRef.current = performance.now();
 
-            if (Math.abs(delta) >= 1) {
-              heightsRef.current.set(k, h);
-              const idx = keyToIndexMapRef.current.get(k);
-              if (idx !== undefined) {
-                updateFenwick(idx, delta);
-                needsRangeUpdate = true;
+            for (const [k, h] of pendingUpdatesRef.current) {
+              const oldH = heightsRef.current.get(k) ?? estimatedItemHeight;
+              const delta = h - oldH;
+
+              if (Math.abs(delta) >= 1) {
+                heightsRef.current.set(k, h);
+                const idx = keyToIndexMapRef.current.get(k);
+                if (idx !== undefined) {
+                  updateFenwick(idx, delta);
+                  needsRangeUpdate = true;
+                }
               }
             }
-          }
 
-          pendingUpdatesRef.current.clear();
-          animationFrameRef.current = null;
+            pendingUpdatesRef.current.clear();
+            animationFrameRef.current = null;
 
-          if (needsRangeUpdate) {
-            const nextRange = computeRange(scrollTopRef.current);
-            if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
-              setRange(nextRange);
+            if (needsRangeUpdate) {
+              const nextRange = computeRange(scrollTopRef.current);
+              if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+                setRange(nextRange);
+              }
             }
-          }
-        });
+          });
+        };
+
+        if (delay > 0) {
+          setTimeout(update, delay);
+        } else {
+          update();
+        }
       }
     },
-    [estimatedItemHeight, updateFenwick, range.startIndex, range.endIndex],
+    [estimatedItemHeight, updateFenwick, range.startIndex, range.endIndex, computeRange],
   );
 
   const clearItemHeights = useCallback(() => {
@@ -195,39 +241,6 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
       }
     };
   }, []);
-
-  const computeRange = useCallback(
-    (scrollTop: number) => {
-      if (totalCount === 0) return { startIndex: 0, endIndex: 0 };
-
-      const startIdx = findIndex(scrollTop);
-      // Use a fallback height when containerHeight is 0 (e.g. initial render or hidden)
-      // to ensure a reasonable number of items are rendered to avoid a "flash" of empty list
-      // when the component first appears.
-      const effectiveHeight = containerHeight > 0 ? containerHeight : 1000;
-      const endIdx = findIndex(scrollTop + effectiveHeight);
-
-      return {
-        startIndex: Math.max(0, startIdx - overscan),
-        endIndex: Math.min(totalCount, endIdx + overscan),
-      };
-    },
-    [containerHeight, findIndex, overscan, totalCount],
-  );
-
-  const onScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      // Clamp to non-negative values, preventing issues during "elastic" scrolling or momentum overscroll
-      const nextScrollTop = Math.max(0, e.currentTarget.scrollTop);
-      scrollTopRef.current = nextScrollTop;
-
-      const nextRange = computeRange(nextScrollTop);
-      if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
-        setRange(nextRange);
-      }
-    },
-    [computeRange, range.endIndex, range.startIndex],
-  );
 
   // Sync range when totalCount or heights change
   useMemo(() => {
