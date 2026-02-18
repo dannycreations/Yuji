@@ -292,7 +292,6 @@ export const StoreServiceLive = Layer.effect(
               newMessages[m.id] = m;
             });
 
-            // If we have more than 50 messages, trim the bottom
             // Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
             const MAX_MEM_MESSAGES = 50;
             const messageList = Object.values(newMessages);

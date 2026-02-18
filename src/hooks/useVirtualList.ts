@@ -217,7 +217,8 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
 
   const onScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
-      const nextScrollTop = e.currentTarget.scrollTop;
+      // Clamp to non-negative values, preventing issues during "elastic" scrolling or momentum overscroll
+      const nextScrollTop = Math.max(0, e.currentTarget.scrollTop);
       scrollTopRef.current = nextScrollTop;
 
       const nextRange = computeRange(nextScrollTop);

@@ -408,6 +408,7 @@
 
   .sidebar-content {
     @apply flex-1 overflow-y-auto overflow-x-hidden px-2;
+    overflow-anchor: none;
   }
 
   .sidebar-thread-list {
