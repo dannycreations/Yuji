@@ -39,12 +39,13 @@ export const getFilteredModels = (
 
 export const getModelId = (settings: GlobalSetting, availableModels: readonly Model[]): string => {
   const active = getActiveModels(availableModels, settings.disabledModels);
-  return active.find((m) => m.id === settings.model)?.id || active[0]?.id || 'yuji';
+  return active.find((m) => m.id === settings.model)?.id || active[0]?.id || '';
 };
 
 export const getCurrentModelId = (activeThread: Thread | null, settings: GlobalSetting, availableModels: readonly Model[]): string => {
   const threadModelId = activeThread?.general?.model;
-  return threadModelId && !settings.disabledModels.includes(threadModelId) ? threadModelId : getModelId(settings, availableModels);
+  const hasModelId = threadModelId && !settings.disabledModels.includes(threadModelId);
+  return hasModelId ? threadModelId : getModelId(settings, availableModels);
 };
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
