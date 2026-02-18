@@ -44,9 +44,9 @@ export const Sidebar: FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => searchThreads(searchQuery), 150);
-    return () => clearTimeout(timer);
+    searchThreads(searchQuery);
   }, [searchQuery, searchThreads]);
+
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
@@ -114,6 +114,7 @@ export const Sidebar: FC = () => {
         <InputSearch
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          debounceMs={150}
           placeholder="Search threads..."
           className="input-sm bg-surface/50! border-transparent! focus:border-line/30! focus:bg-surface!"
         />

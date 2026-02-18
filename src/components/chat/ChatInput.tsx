@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { useAttachment } from '../../hooks/useAttachment';
 import { useStore } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
+import { FilePicker } from '../shared/FilePicker';
 import { Icon } from '../shared/Icon';
 import { InputButton, InputTextarea } from '../shared/InputArea';
 
@@ -24,7 +25,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
   const settings = useStore((s) => s.settings);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && settings.enterToSend) {
@@ -47,8 +47,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
   return (
     <div className="chat-input-wrapper">
-      <input type="file" multiple accept="image/*" className="chat-input-file-input" ref={fileInputRef} onChange={onFileSelect} />
-
       <div className="chat-input-container shadow-2xl">
         <AttachmentGrid
           attachments={[...attachments]}
@@ -73,9 +71,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
 
         <div className="chat-input-actions">
           <div className="chat-input-action-group">
-            <InputButton onClick={() => fileInputRef.current?.click()} title="Attach Image" className="p-1!">
-              <Icon name="Plus" size={22} />
-            </InputButton>
+            <FilePicker multiple accept="image/*" onFileSelect={onFileSelect} title="Attach Image" />
 
             <InputButton
               onClick={() => setIsSearchEnabled(!isSearchEnabled)}

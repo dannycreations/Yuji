@@ -11,6 +11,7 @@ import { useCopy } from '../../hooks/useCopy';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
+import { FilePicker } from '../shared/FilePicker';
 import { Icon } from '../shared/Icon';
 import { InputButton, InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
@@ -52,16 +53,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
-  const {
-    attachments: editAttachments,
-    setAttachments: setEditAttachments,
-    onFileSelect: handleFileSelect,
-    onPaste: handlePaste,
-    removeAttachment,
-  } = useAttachment(message.attachments || []);
+  const { attachments, setAttachments, onFileSelect, onPaste, removeAttachment } = useAttachment(message.attachments || []);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
-
-  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const [isRegenerateDropdownOpen, setIsRegenerateDropdownOpen] = useState(false);
   const [customInstruction, setCustomInstruction] = useState('');
@@ -92,10 +85,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   const handleSaveEdit = useCallback(() => {
     const contentChanged = editContent.trim() !== message.content.trim();
-    const attachmentsChanged = JSON.stringify(editAttachments) !== JSON.stringify(message.attachments || []);
+    const attachmentsChanged = JSON.stringify(attachments) !== JSON.stringify(message.attachments || []);
 
     if (contentChanged || attachmentsChanged) {
-      onUpdateMessage(threadId, message.id, editContent, [...editAttachments]);
+      onUpdateMessage(threadId, message.id, editContent, [...attachments]);
     }
 
     if (!saveAfterEditing) {
@@ -106,7 +99,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     setIsSearchEnabled(false);
   }, [
     editContent,
-    editAttachments,
+    attachments,
     isSearchEnabled,
     message.content,
     message.attachments,
@@ -174,9 +167,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
             {isEditing ? (
               <div className="chat-input-edit-container">
-                <input type="file" multiple accept="image/*" className="hidden" ref={editFileInputRef} onChange={handleFileSelect} />
                 <AttachmentGrid
-                  attachments={editAttachments}
+                  attachments={attachments}
                   onRemove={removeAttachment}
                   className="chat-input-attachments"
                   itemClassName="chat-input-attachment-item"
@@ -185,7 +177,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <InputTextarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  onPaste={handlePaste}
+                  onPaste={onPaste}
                   className="chat-input-textarea overflow-hidden"
                   minRows={2}
                   debounceMs={0}
@@ -200,9 +192,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 />
                 <div className="chat-input-edit-actions flex-between">
                   <div className="flex gap-1">
-                    <InputButton onClick={() => editFileInputRef.current?.click()} title="Attach Image" className="p-1!">
-                      <Icon name="Plus" size={22} />
-                    </InputButton>
+                    <FilePicker multiple accept="image/*" onFileSelect={onFileSelect} title="Attach Image" />
                     <InputButton
                       onClick={() => setIsSearchEnabled(!isSearchEnabled)}
                       title="Search"
@@ -365,7 +355,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <InputButton
                   onClick={() => {
                     setEditContent(message.content);
-                    setEditAttachments(message.attachments || []);
+                    setAttachments(message.attachments || []);
                     setIsEditing(true);
                   }}
                   title="Edit"

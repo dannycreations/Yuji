@@ -54,7 +54,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <InstructionSection
             instruction={settings.instruction}
-            onChange={(updates) => updateSetting((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
+            onChange={(instruction) => updateSetting({ instruction: { ...settings.instruction, ...instruction } })}
             footer="This instruction will be sent as the system prompt to the AI."
           />
         );
@@ -62,7 +62,7 @@ export const GlobalSettingModal: FC = () => {
         return (
           <PersonalisationSection
             personalisation={settings.personalisation}
-            onChange={(updates) => updateSetting((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
+            onChange={(personalisation) => updateSetting({ personalisation: { ...settings.personalisation, ...personalisation } })}
           />
         );
       case 'history':

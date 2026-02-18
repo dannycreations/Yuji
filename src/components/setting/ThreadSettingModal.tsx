@@ -91,7 +91,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
               description="Instruction is following global settings."
               checked={!!thread.general.overrideInstruction}
               onChange={(checked) => handleGeneral({ overrideInstruction: checked })}
-              onDataChange={(updates) => patchThread((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }))}
+              onDataChange={(instruction) => patchThread((s) => ({ ...s, instruction: { ...s.instruction, ...instruction } }))}
             >
               {({ onChange }) => (
                 <InstructionSection
@@ -111,7 +111,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
               description="Personalization is following global settings."
               checked={!!thread.general.overridePersonalisation}
               onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
-              onDataChange={(updates) => patchThread((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }))}
+              onDataChange={(personalisation) => patchThread((s) => ({ ...s, personalisation: { ...s.personalisation, ...personalisation } }))}
             >
               {({ onChange }) => <PersonalisationSection personalisation={thread.personalisation} onChange={onChange} />}
             </OverrideSection>
