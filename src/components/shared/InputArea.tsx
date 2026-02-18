@@ -74,7 +74,7 @@ interface InputTextareaProps extends TextareaAutosizeProps {
   readonly debounceMs?: number;
 }
 
-export const InputTextarea = forwardRef<HTMLTextAreaElement, InputTextareaProps>(({ className, value, onChange, debounceMs, ...props }, ref) => {
+export const InputTextarea = forwardRef<HTMLTextAreaElement, InputTextareaProps>(({ className, value, onChange, debounceMs = 0, ...props }, ref) => {
   const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
   return <TextareaAutosize ref={ref} className={clsx('input-base resize-none', className)} value={localValue} onChange={handleChange} {...props} />;

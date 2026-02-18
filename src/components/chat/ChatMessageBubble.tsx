@@ -180,7 +180,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   onPaste={onPaste}
                   className="chat-input-textarea overflow-hidden"
                   minRows={2}
-                  debounceMs={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                       handleSaveEdit();

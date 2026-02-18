@@ -578,7 +578,6 @@ export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, o
       placeholder="Enter system instructions..."
       minRows={8}
       maxRows={8}
-      debounceMs={0}
     />
     {footer && <p className="settings-footer-note">{footer}</p>}
   </div>
@@ -620,7 +619,6 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
         placeholder="Interests, values, or preferences to keep in mind..."
         minRows={5}
         maxRows={5}
-        debounceMs={0}
       />
     </SettingField>
   </div>
