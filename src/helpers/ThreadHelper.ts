@@ -63,6 +63,14 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
   return path.reverse();
 };
 
+export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage> => {
+  const { activeMessageId, messages } = thread;
+  if (activeMessageId) {
+    return getMessagePath(thread, activeMessageId);
+  }
+  return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+};
+
 export const branchThreadPath = (
   sourceThread: Thread,
   messageId: string,

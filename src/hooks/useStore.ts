@@ -1,15 +1,15 @@
-import { Effect } from 'effect';
-import { createContext, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
+import { Effect, ManagedRuntime } from 'effect';
+import { createContext, useCallback, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Runtime';
+import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
-import { formatError } from '../utilities/CommonUtil';
 
 import type { AppRuntimeState } from '../app/Schema';
 
 export const StoreContext = createContext<StoreService | null>(null);
 
-export const useStoreService = (): StoreService => {
+const useStoreService = (): StoreService => {
   const service = useContext(StoreContext);
   if (!service) {
     throw new Error('StoreContext not found');
@@ -18,13 +18,13 @@ export const useStoreService = (): StoreService => {
 };
 
 export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T => {
-  const storeService = useStoreService();
+  const store = useStoreService();
   const lastSelectedState = useRef<T>(null as unknown as T);
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
-      return storeService.subscribe(() => {
-        const nextSelectedState = selector(storeService.getSnapshot());
+      return store.subscribe(() => {
+        const nextSelectedState = selector(store.getSnapshot());
         const changed = !isEqual(lastSelectedState.current, nextSelectedState);
 
         if (changed) {
@@ -32,10 +32,10 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a
         }
       });
     };
-  }, [storeService, selector, isEqual]);
+  }, [store, selector, isEqual]);
 
   const getSnapshot = () => {
-    const nextSelectedState = selector(storeService.getSnapshot());
+    const nextSelectedState = selector(store.getSnapshot());
     lastSelectedState.current = nextSelectedState;
     return nextSelectedState;
   };
@@ -43,25 +43,15 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };
 
-export const useStoreEffect = <A extends unknown[], R, E, I>(effectFn: (...args: A) => Effect.Effect<R, E, I>) => {
-  const effectFnRef = useRef(effectFn);
-  effectFnRef.current = effectFn;
-
-  return useMemo(
-    () =>
-      (...args: A): Promise<R | null> =>
-        YujiRuntime.runPromise(
-          Effect.flatMap(StoreService, (store) =>
-            effectFnRef.current(...args).pipe(
-              Effect.catchAll((err) => store.notify('error', formatError(err)).pipe(Effect.as(null))),
-              Effect.orDie,
-            ),
-          ) as unknown as Effect.Effect<R | null, never, never>,
-        ),
-    [],
-  );
+export const useStoreAction = <A extends unknown[], R, E, I extends ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>>(
+  action: (s: StoreService, ...args: A) => Effect.Effect<R, E, I>,
+) => {
+  const store = useStoreService();
+  return useCallback((...args: A) => YujiRuntime.runPromise(action(store, ...args)), [store, action]);
 };
 
-export const useStoreAction = <A extends unknown[], R, E, I>(effectFn: (service: StoreService, ...args: A) => Effect.Effect<R, E, I>) => {
-  return useStoreEffect((...args: A) => Effect.flatMap(StoreService, (s) => effectFn(s, ...args)));
+export const useChatAction = <A extends unknown[], R, E, I extends ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>>(
+  action: (c: ChatService, ...args: A) => Effect.Effect<R, E, I>,
+) => {
+  return useCallback((...args: A) => YujiRuntime.runPromise(Effect.flatMap(ChatService, (c) => action(c, ...args))), [action]);
 };

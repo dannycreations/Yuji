@@ -1,10 +1,8 @@
-import { Effect } from 'effect';
 import { useMemo, useRef, useState } from 'react';
 
 import { getCurrentModelId, getFilteredModels, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useStore, useStoreAction } from '../hooks/useStore';
-import { ChatService } from '../services/ChatService';
+import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
 import { Icon } from './shared/Icon';
 import { InputButton, InputSearch } from './shared/InputArea';
 import { ModelItem } from './shared/ModelItem';
@@ -70,13 +68,11 @@ export const Header: FC = () => {
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
   const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
 
-  const setThreadModel = useStoreAction((_, model: string) =>
-    Effect.flatMap(ChatService, (chat) =>
-      chat.updateActiveThread((s) => ({
-        ...s,
-        general: { ...s.general, model },
-      })),
-    ),
+  const updateThreadModel = useChatAction((c, model: string) =>
+    c.updateActiveThread((s) => ({
+      ...s,
+      general: { ...s.general, model },
+    })),
   );
 
   const currentModelId = useMemo(() => getCurrentModelId(activeThread, settings, availableModels), [settings, availableModels, activeThread]);
@@ -95,7 +91,7 @@ export const Header: FC = () => {
     setTimeout(() => {
       updateSetting({ model: modelId });
       if (activeThreadId) {
-        setThreadModel(modelId);
+        updateThreadModel(modelId);
       }
     }, 0);
   };

@@ -1,9 +1,6 @@
-import { Effect } from 'effect';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
-import { ChatService } from '../../services/ChatService';
-import { StoreService } from '../../services/StoreService';
+import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { InputSwitch, InputText } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
@@ -27,27 +24,22 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
   const activeThread = useStore((s) => s.activeThread);
   const [localThread, setLocalThread] = useState<Thread | null>(null);
 
-  const updateThread = useStoreAction(
-    (
-      _s,
-      threadId: string,
-      f: (thread: Thread, now: number) => Thread,
-      options?: {
-        readonly skipUpdateTimestamp?: boolean;
-        readonly metadataOnly?: boolean;
-      },
-    ) => Effect.flatMap(ChatService, (chat) => chat.updateThread(threadId, f, options)),
+  const onUpdateThread = useChatAction((c, tid: string, f: (thread: Thread, now: number) => Thread, options?: { metadataOnly?: boolean }) =>
+    c.updateThread(tid, f, options),
   );
-  const getThread = useStoreEffect((id: string) => Effect.flatMap(StoreService, (s) => s.getThread(id)));
+  const getThread = useStoreAction((s, id: string) => s.getThread(id));
 
-  const updateTargetThread = (targetId: string, f: (s: Thread, now: number) => Thread, metadataOnly = false) => {
-    updateThread(targetId, f, { metadataOnly });
-    if (!metadataOnly) {
-      getThread(targetId).then((thread) => {
-        if (thread) setLocalThread(thread);
-      });
-    }
-  };
+  const updateTargetThread = useCallback(
+    (targetId: string, f: (s: Thread, now: number) => Thread, metadataOnly = false) => {
+      onUpdateThread(targetId, f, { metadataOnly });
+      if (!metadataOnly) {
+        getThread(targetId).then((thread) => {
+          if (thread) setLocalThread(thread);
+        });
+      }
+    },
+    [onUpdateThread, getThread],
+  );
 
   const [activeTab, setActiveTab] = useState('general');
 

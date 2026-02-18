@@ -1,15 +1,14 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import { SEARCH_INSTRUCTION } from '../../app/Constant';
 import { useAttachment } from '../../hooks/useAttachment';
 import { useCopy } from '../../hooks/useCopy';
-import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
-import { ChatService } from '../../services/ChatService';
+import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
 import { Icon } from '../shared/Icon';
@@ -68,16 +67,14 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const [customInstruction, setCustomInstruction] = useState('');
   const regenerateTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const handleBranch = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.branchChat(tid, mid)));
-  const handleSwitchBranch = useStoreEffect((_tid: string, mid: string) =>
-    Effect.flatMap(ChatService, (chat) => chat.updateActiveThread((t) => ({ ...t, activeMessageId: mid }))),
+  const onBranch = useChatAction((c, tid: string, mid: string) => c.branchChat(tid, mid));
+  const onSwitchVersion = useChatAction((c, _tid: string, mid: string) => c.updateActiveThread((t) => ({ ...t, activeMessageId: mid })));
+  const onDeleteMessage = useChatAction((c, tid: string, mid: string) => c.deleteMessage(tid, mid));
+  const onRegenerate = useChatAction((c, tid: string, mid: string, options?: { instruction?: string; search?: boolean }) =>
+    c.regenerateMessage(tid, mid, options),
   );
-  const handleDeleteMessage = useStoreEffect((tid: string, mid: string) => Effect.flatMap(ChatService, (chat) => chat.deleteMessage(tid, mid)));
-  const handleRegenerate = useStoreEffect((tid: string, mid: string, options?: { instruction?: string; search?: boolean }) =>
-    Effect.flatMap(ChatService, (chat) => chat.regenerateMessage(tid, mid, options)),
-  );
-  const handleEdit = useStoreEffect((tid: string, mid: string, content: string, attachments?: readonly Attachment[]) =>
-    Effect.flatMap(ChatService, (chat) => chat.updateMessage(tid, mid, content, { attachments })),
+  const onUpdateMessage = useChatAction((c, tid: string, mid: string, content: string, attachments?: readonly Attachment[]) =>
+    c.updateMessage(tid, mid, content, { attachments }),
   );
 
   // Logic to find siblings for navigation
@@ -86,9 +83,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   const handleSwitch = useCallback(
     (newId: string) => {
-      handleSwitchBranch(threadId, newId);
+      onSwitchVersion(threadId, newId);
     },
-    [handleSwitchBranch, threadId],
+    [onSwitchVersion, threadId],
   );
 
   const handleCopy = useCallback(() => setCopy(message.content), [message.content, setCopy]);
@@ -98,11 +95,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     const attachmentsChanged = JSON.stringify(editAttachments) !== JSON.stringify(message.attachments || []);
 
     if (contentChanged || attachmentsChanged) {
-      handleEdit(threadId, message.id, editContent, [...editAttachments]);
+      onUpdateMessage(threadId, message.id, editContent, [...editAttachments]);
     }
 
     if (!saveAfterEditing) {
-      handleRegenerate(threadId, message.id, isSearchEnabled ? { instruction: 'Search the web for the latest information.' } : undefined);
+      onRegenerate(threadId, message.id, isSearchEnabled ? { instruction: SEARCH_INSTRUCTION } : undefined);
     }
 
     setIsEditing(false);
@@ -115,8 +112,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     message.attachments,
     threadId,
     message.id,
-    handleEdit,
-    handleRegenerate,
+    onUpdateMessage,
+    onRegenerate,
     saveAfterEditing,
   ]);
 
@@ -127,7 +124,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       title: 'Delete Message',
       message: 'Are you sure you want to delete this message?',
       confirmLabel: 'Delete',
-      onConfirm: () => handleDeleteMessage(threadId, message.id),
+      onConfirm: () => onDeleteMessage(threadId, message.id),
     });
 
   const markdownComponents = useMemo<Components>(
@@ -262,7 +259,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   </div>
                 )}
 
-                <InputButton onClick={() => handleBranch(threadId, message.id)} title="Branch">
+                <InputButton onClick={() => onBranch(threadId, message.id)} title="Branch">
                   <Icon name="GitFork" size={16} />
                 </InputButton>
 
@@ -290,7 +287,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                           onChange={(e) => setCustomInstruction(e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && customInstruction.trim()) {
-                              handleRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
+                              onRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
                               setIsRegenerateDropdownOpen(false);
                               setCustomInstruction('');
                             }
@@ -304,7 +301,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                           )}
                           onClick={() => {
                             if (customInstruction.trim()) {
-                              handleRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
+                              onRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
                               setIsRegenerateDropdownOpen(false);
                               setCustomInstruction('');
                             }
@@ -319,7 +316,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         icon="RefreshCw"
                         label="Try again"
                         onClick={() => {
-                          handleRegenerate(threadId, message.id);
+                          onRegenerate(threadId, message.id);
                           setIsRegenerateDropdownOpen(false);
                           setCustomInstruction('');
                         }}
@@ -328,7 +325,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         icon="ArrowUpDown"
                         label="Add details"
                         onClick={() => {
-                          handleRegenerate(threadId, message.id, {
+                          onRegenerate(threadId, message.id, {
                             instruction: 'Add more details and be more comprehensive.',
                           });
                           setIsRegenerateDropdownOpen(false);
@@ -339,7 +336,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         icon="Minimize2"
                         label="More concise"
                         onClick={() => {
-                          handleRegenerate(threadId, message.id, {
+                          onRegenerate(threadId, message.id, {
                             instruction: 'Make the response more concise and brief.',
                           });
                           setIsRegenerateDropdownOpen(false);
@@ -350,7 +347,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         icon="Lightbulb"
                         label="Think longer"
                         onClick={() => {
-                          handleRegenerate(threadId, message.id, {
+                          onRegenerate(threadId, message.id, {
                             instruction: 'Think longer and provide a more deeply reasoned response.',
                           });
                           setIsRegenerateDropdownOpen(false);

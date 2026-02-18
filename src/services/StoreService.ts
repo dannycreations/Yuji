@@ -73,6 +73,9 @@ const INITIAL_STATE: AppRuntimeState = {
   initializationError: undefined,
 };
 
+export const MAX_MEM_MESSAGES = 50;
+export const MAX_MEM_THREADS = 100;
+
 const OnConfirmStore = new Map<string, () => void>();
 
 export const StoreServiceLive = Layer.effect(
@@ -296,38 +299,39 @@ export const StoreServiceLive = Layer.effect(
             });
 
             // Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
-            const MAX_MEM_MESSAGES = 50;
             const messageList = Object.values(newMessages);
 
-            let finalMessages = newMessages;
-            if (messageList.length > MAX_MEM_MESSAGES) {
-              const activePathIds = new Set(
-                s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId).map((m) => m.id) : [],
-              );
+            if (messageList.length <= MAX_MEM_MESSAGES) {
+              return {
+                ...s,
+                activeThread: { ...s.activeThread, messages: newMessages },
+              };
+            }
 
-              const sortedByRecent = messageList.sort((a, b) => b.timestamp - a.timestamp);
-              const result: Record<string, ThreadMessage> = {};
-              let count = 0;
+            const activePathIds = new Set(
+              s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId).map((m) => m.id) : [],
+            );
 
-              // 1. Always keep active path
-              for (const id of activePathIds) {
-                if (newMessages[id]) {
-                  result[id] = newMessages[id];
-                  count++;
-                }
+            const sortedByRecent = messageList.sort((a, b) => b.timestamp - a.timestamp);
+            const finalMessages: Record<string, ThreadMessage> = {};
+            let count = 0;
+
+            // 1. Always keep active path
+            for (const id of activePathIds) {
+              if (newMessages[id]) {
+                finalMessages[id] = newMessages[id];
+                count++;
               }
+            }
 
-              // 2. Fill remaining quota with most recent messages
-              for (let i = 0; i < sortedByRecent.length; i++) {
-                if (count >= MAX_MEM_MESSAGES) break;
-                const m = sortedByRecent[i];
-                if (!result[m.id]) {
-                  result[m.id] = m;
-                  count++;
-                }
+            // 2. Fill remaining quota with most recent messages
+            for (let i = 0; i < sortedByRecent.length; i++) {
+              if (count >= MAX_MEM_MESSAGES) break;
+              const m = sortedByRecent[i];
+              if (!finalMessages[m.id]) {
+                finalMessages[m.id] = m;
+                count++;
               }
-
-              finalMessages = result;
             }
 
             return {
@@ -353,42 +357,41 @@ export const StoreServiceLive = Layer.effect(
             });
 
             // Keep pinned threads + up to MAX_MEM_THREADS most recent/relevant threads
-            const MAX_MEM_THREADS = 100;
             const threadList = Object.values(newThreads);
 
-            if (threadList.length > MAX_MEM_THREADS) {
-              const sortedByRecent = threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-              const result: Record<string, ThreadMetadata> = {};
-              let count = 0;
-
-              // 1. Always keep pinned threads
-              for (const id of s.pinnedThreadIds) {
-                if (newThreads[id]) {
-                  result[id] = newThreads[id];
-                  count++;
-                }
-              }
-
-              // 2. Always keep the active thread header
-              if (s.activeThreadId && newThreads[s.activeThreadId] && !result[s.activeThreadId]) {
-                result[s.activeThreadId] = newThreads[s.activeThreadId];
-                count++;
-              }
-
-              // 3. Fill remaining quota with most recent threads
-              for (let i = 0; i < sortedByRecent.length; i++) {
-                if (count >= MAX_MEM_THREADS) break;
-                const t = sortedByRecent[i];
-                if (!result[t.id]) {
-                  result[t.id] = t;
-                  count++;
-                }
-              }
-
-              return { ...s, threads: result };
+            if (threadList.length <= MAX_MEM_THREADS) {
+              return { ...s, threads: newThreads };
             }
 
-            return { ...s, threads: newThreads };
+            const sortedByRecent = threadList.sort((a, b) => b.updatedAt - a.updatedAt);
+            const result: Record<string, ThreadMetadata> = {};
+            let count = 0;
+
+            // 1. Always keep pinned threads
+            for (const id of s.pinnedThreadIds) {
+              if (newThreads[id]) {
+                result[id] = newThreads[id];
+                count++;
+              }
+            }
+
+            // 2. Always keep the active thread header
+            if (s.activeThreadId && newThreads[s.activeThreadId] && !result[s.activeThreadId]) {
+              result[s.activeThreadId] = newThreads[s.activeThreadId];
+              count++;
+            }
+
+            // 3. Fill remaining quota with most recent threads
+            for (let i = 0; i < sortedByRecent.length; i++) {
+              if (count >= MAX_MEM_THREADS) break;
+              const t = sortedByRecent[i];
+              if (!result[t.id]) {
+                result[t.id] = t;
+                count++;
+              }
+            }
+
+            return { ...s, threads: result };
           });
         }),
       searchThreads: (query) =>

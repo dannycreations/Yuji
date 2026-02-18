@@ -1,12 +1,12 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { YujiRuntime } from '../../app/Runtime';
 import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
-import { getMessagePath, sortThreadsByDate } from '../../helpers/ThreadHelper';
-import { useStoreAction, useStoreEffect } from '../../hooks/useStore';
+import { getVisibleMessages, sortThreadsByDate } from '../../helpers/ThreadHelper';
+import { useChatAction, useStoreAction } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
-import { ChatService } from '../../services/ChatService';
 import { downloadFile } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { ChatMessageBubble } from '../chat/ChatMessageBubble';
@@ -121,32 +121,34 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
 
   const setAvailableModels = (models: Model[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableModels: models }));
 
-  const handleRefreshModels = useStoreEffect(() =>
-    Effect.gen(function* () {
-      setRefreshState('loading');
-      const llm = yield* LLMProvider;
-      const result = yield* llm.fetchModels(settings);
+  const handleRefreshModels = useCallback(() => {
+    YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        setRefreshState('loading');
+        const llm = yield* LLMProvider;
+        const result = yield* llm.fetchModels(settings);
 
-      const apiModels = result.data.map(
-        (m) =>
-          ({
-            id: m.id,
-            name: m.id,
-            icon: 'Cpu',
-            color: 'text-text-tertiary',
-          }) satisfies Model,
-      );
+        const apiModels = result.data.map(
+          (m) =>
+            ({
+              id: m.id,
+              name: m.id,
+              icon: 'Cpu',
+              color: 'text-text-tertiary',
+            }) satisfies Model,
+        );
 
-      setAvailableModels(apiModels);
-      setRefreshState('success');
-      setTimeout(() => setRefreshState('idle'), 2000);
-    }).pipe(
-      Effect.catchAll((e) => {
-        setRefreshState('idle');
-        return Effect.fail(e);
-      }),
-    ),
-  );
+        setAvailableModels(apiModels);
+        setRefreshState('success');
+        setTimeout(() => setRefreshState('idle'), 2000);
+      }).pipe(
+        Effect.catchAll((e) => {
+          setRefreshState('idle');
+          return Effect.fail(e);
+        }),
+      ),
+    ).catch(() => {});
+  }, [settings]);
 
   const filteredModels = useMemo(
     () => getFilteredModels(availableModels, settings.disabledModels, modelSearch, { includeDisabled: true, sort: true }),
@@ -320,7 +322,7 @@ export const SettingTable = <T,>({
             })
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2 min-h-[200px]">
-              <Icon name={emptyIcon as any} size={32} className="opacity-20" />
+              <Icon name={emptyIcon} size={32} className="opacity-20" />
               <p className="text-sm">{emptyLabel}</p>
             </div>
           )}
@@ -358,20 +360,20 @@ export const SettingTable = <T,>({
   );
 };
 
+const exportThreads = (threads: Record<string, ThreadMetadata>, selectedIds: Set<string>, prefix: string) => {
+  let dataToExport = threads;
+  if (selectedIds.size > 0) {
+    dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedIds.has(id)));
+  }
+  downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+};
+
 export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
-  const importThreads = useStoreEffect((newThreads: Record<string, Thread>) => Effect.flatMap(ChatService, (chat) => chat.importThreads(newThreads)));
-  const deleteThreads = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(ids)));
-
-  const handleExport = (selectedIds: Set<string>) => {
-    let dataToExport = threads;
-    if (selectedIds.size > 0) {
-      dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedIds.has(id)));
-    }
-    downloadFile(JSON.stringify(dataToExport), `yuji-history-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-  };
+  const onImportThreads = useChatAction((c, newThreads: Record<string, Thread>) => c.importThreads(newThreads));
+  const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -381,7 +383,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       try {
         const json = JSON.parse(event.target?.result as string);
         if (typeof json === 'object' && json !== null) {
-          importThreads(json);
+          onImportThreads(json);
         }
       } catch (err) {
         console.error('Failed to parse history file', err);
@@ -399,7 +401,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: () => {
-        deleteThreads(new Set(selectedIds));
+        onDeleteThreads(new Set(selectedIds));
         resetSelection();
       },
     });
@@ -422,7 +424,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline">
+          <InputButton onClick={() => exportThreads(threads, selectedIds, 'history')} className="badge-outline">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
@@ -456,7 +458,8 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
   const toggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
   const getThread = useStoreAction((s, id: string) => s.getThread(id));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
-  const deleteThreads = useStoreEffect((ids: Set<string>) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(ids)));
+
+  const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => t.archived)), [threads]);
 
@@ -470,7 +473,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       confirmLabel: 'Delete',
       variant: 'danger',
       onConfirm: () => {
-        deleteThreads(new Set(selectedIds));
+        onDeleteThreads(new Set(selectedIds));
         resetSelection();
       },
     });
@@ -482,20 +485,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
     });
   };
 
-  const previewMessages = useMemo(() => {
-    if (!previewThread) return [];
-    const { activeMessageId, messages } = previewThread;
-    if (activeMessageId) return getMessagePath(previewThread, activeMessageId);
-    return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
-  }, [previewThread]);
-
-  const handleExport = (selectedIds: Set<string>) => {
-    let dataToExport = threads;
-    if (selectedIds.size > 0) {
-      dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedIds.has(id)));
-    }
-    downloadFile(JSON.stringify(dataToExport), `yuji-archive-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-  };
+  const previewMessages = useMemo(() => (previewThread ? getVisibleMessages(previewThread) : []), [previewThread]);
 
   return (
     <SettingTable
@@ -512,7 +502,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => handleExport(selectedIds)} className="badge-outline">
+          <InputButton onClick={() => exportThreads(threads, selectedIds, 'archive')} className="badge-outline">
             <Icon name="Upload" size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>

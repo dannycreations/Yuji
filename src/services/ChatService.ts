@@ -82,46 +82,29 @@ export const ChatServiceLive = Layer.effect(
     ) =>
       Effect.gen(function* () {
         const now = Date.now();
-        let finalMetadata: ThreadMetadata | undefined;
-        let finalThread: Thread | undefined;
-
         const s = yield* SubscriptionRef.get(store.state);
-        const isActuallyActive = s.activeThreadId === threadId && s.activeThread?.id === threadId;
 
-        if (isActuallyActive) {
-          const updated = f(s.activeThread!, now);
-          finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-          finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread);
+        const thread = s.activeThreadId === threadId && s.activeThread?.id === threadId ? s.activeThread : yield* storage.getThread(threadId);
 
-          yield* store.update((s) => ({
-            ...s,
-            threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata! },
-            activeThread: finalThread ?? null,
-          }));
-        }
+        if (!thread) return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
 
-        if (!finalThread) {
-          const thread = yield* storage.getThread(threadId);
-          if (!thread) return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
+        const updated = f(thread, now);
+        const finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
+        const finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread).pipe(Effect.orDie);
 
-          const updated = f(thread, now);
-          finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-          finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread);
-
-          yield* store.update((s) => ({
-            ...s,
-            threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata! },
-            activeThread: s.activeThreadId === threadId ? finalThread! : s.activeThread,
-          }));
-        }
+        yield* store.update((s) => ({
+          ...s,
+          threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata },
+          activeThread: s.activeThreadId === threadId ? finalThread : s.activeThread,
+        }));
 
         // Always patch metadata for immediate O(1) visibility of state changes.
-        yield* storage.patchThread(threadId, finalMetadata!);
+        yield* storage.patchThread(threadId, finalMetadata);
 
         // Only perform a full thread save if we are not in a metadata-only update
         // AND not in a high-frequency UI-only pulse (streaming).
         if (!options.metadataOnly && (!options.skipUpdateTimestamp || !options.uiOnly)) {
-          yield* storage.saveThread(finalThread!);
+          yield* storage.saveThread(finalThread);
         }
       }).pipe(
         Effect.catchAll((err) => {

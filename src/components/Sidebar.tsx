@@ -1,13 +1,11 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { filterThreads, groupThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../hooks/useResizeObserver';
-import { useStore, useStoreAction, useStoreEffect } from '../hooks/useStore';
+import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
 import { useVirtualList } from '../hooks/useVirtualList';
-import { ChatService } from '../services/ChatService';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
@@ -35,8 +33,9 @@ export const Sidebar: FC = () => {
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
-  const handleCreateThread = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.createThread()));
-  const handleDeleteThread = useStoreEffect((id: string) => Effect.flatMap(ChatService, (chat) => chat.deleteThreads(id)));
+  const onCreateThread = useChatAction((c) => c.createThread());
+  const onDeleteThreads = useChatAction((c, id: string) => c.deleteThreads(id));
+
   const handleTogglePin = useStoreAction((s, id: string) => s.togglePin(id));
   const handleToggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
 
@@ -106,7 +105,7 @@ export const Sidebar: FC = () => {
           </InputButton>
         </div>
 
-        <InputButton onClick={handleCreateThread} className="z-chat-input" title="New Chat">
+        <InputButton onClick={onCreateThread} className="z-chat-input" title="New Chat">
           <Icon name="SquarePen" size={20} />
         </InputButton>
       </div>
@@ -248,7 +247,7 @@ export const Sidebar: FC = () => {
                 title: 'Delete chat?',
                 message: `This will delete **${menuThreadMetadata?.title}** permanently.`,
                 confirmLabel: 'Delete',
-                onConfirm: () => handleDeleteThread(menuOpenId),
+                onConfirm: () => onDeleteThreads(menuOpenId),
                 variant: 'danger',
               });
             }}

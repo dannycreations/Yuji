@@ -11,10 +11,12 @@ export const DEFAULT_GUIDE_PROMPT = `
 - Use LaTeX formulas and Mermaid diagrams only when explicitly requested or technically essential for clarity.
 `.trim();
 
+export const SEARCH_INSTRUCTION = 'Search the web for the latest information.';
+
 export const DEFAULT_SETTINGS: GlobalSetting = {
   apiKey: '',
   baseUrl: 'http://localhost:11434/v1',
-  model: 'gpt-4o',
+  model: '',
   theme: 'dark',
   enterToSend: true,
   expandCodeblock: true,

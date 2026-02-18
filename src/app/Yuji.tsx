@@ -1,7 +1,7 @@
 import './styles.css';
 
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
@@ -9,17 +9,12 @@ import { InputButton } from '../components/shared/InputArea';
 import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
 import { NotificationToast } from '../components/shared/NotificationToast';
 import { Sidebar } from '../components/Sidebar';
-import { StoreContext, useStore } from '../hooks/useStore';
+import { StoreContext, useStore, useStoreAction } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { YujiRuntime } from './Runtime';
 
 const DatabaseErrorScreen = ({ error }: { error: string }) => {
-  const storeService = useContext(StoreContext);
-  const handleClearDatabase = () => {
-    if (storeService) {
-      YujiRuntime.runFork(storeService.clearDatabase());
-    }
-  };
+  const handleClearDatabase = useStoreAction((s) => s.clearDatabase());
 
   return (
     <div className="fixed inset-0 flex-center flex-col bg-background text-text-primary text-center z-fullscreen">

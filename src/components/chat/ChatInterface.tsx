@@ -1,15 +1,13 @@
 import clsx from 'clsx';
-import { Effect } from 'effect';
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
-import { INITIAL_SUGGESTIONS } from '../../app/Constant';
-import { getMessagePath } from '../../helpers/ThreadHelper';
+import { INITIAL_SUGGESTIONS, SEARCH_INSTRUCTION } from '../../app/Constant';
+import { getVisibleMessages } from '../../helpers/ThreadHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
-import { useStore, useStoreAction, useStoreEffect } from '../../hooks/useStore';
+import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { useVirtualList } from '../../hooks/useVirtualList';
-import { ChatService } from '../../services/ChatService';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
@@ -29,12 +27,10 @@ export const ChatInterface: FC = () => {
     (a, b) => a === b,
   );
 
-  const handleSend = useStoreEffect((content: string, attachments?: ReadonlyArray<Attachment>, options?: { readonly search?: boolean }) =>
-    Effect.flatMap(ChatService, (chat) =>
-      chat.sendMessage(content, attachments, options?.search ? { instruction: 'Search the web for the latest information.' } : undefined),
-    ),
+  const onSend = useChatAction((c, content: string, attachments?: ReadonlyArray<Attachment>, options?: { readonly search?: boolean }) =>
+    c.sendMessage(content, attachments, options?.search ? { instruction: SEARCH_INSTRUCTION } : undefined),
   );
-  const handleStop = useStoreEffect(() => Effect.flatMap(ChatService, (chat) => chat.stop(activeThreadId || undefined)));
+  const onStop = useChatAction((c) => c.stop(activeThreadId || undefined));
 
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
   const loadMoreMessages = useStoreAction((s) => s.loadMoreMessages());
@@ -42,16 +38,7 @@ export const ChatInterface: FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollAreaRef);
 
-  const visibleMessages = useMemo(() => {
-    if (!activeThread) return [];
-    const { activeMessageId, messages } = activeThread;
-
-    if (activeMessageId) {
-      return getMessagePath(activeThread, activeMessageId);
-    }
-
-    return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
-  }, [activeThread?.activeMessageId, activeThread?.messages]);
+  const visibleMessages = useMemo(() => (activeThread ? getVisibleMessages(activeThread) : []), [activeThread]);
 
   const isAtBottomRef = useRef(true);
 
@@ -140,7 +127,7 @@ export const ChatInterface: FC = () => {
             {showSuggestions && (
               <div className="suggestion-grid">
                 {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
-                  <button key={idx} onClick={() => handleSend(suggestion.prompt)} className="suggestion-item">
+                  <button key={idx} onClick={() => onSend(suggestion.prompt)} className="suggestion-item">
                     <Icon name={suggestion.icon} size={20} className="suggestion-item-icon text-text-tertiary" />
                     <div className="suggestion-item-label">{suggestion.label}</div>
                     <div className="suggestion-item-prompt">{suggestion.prompt}</div>
@@ -171,7 +158,7 @@ export const ChatInterface: FC = () => {
         )}
       </div>
 
-      <ChatInput onSend={handleSend} onStop={handleStop} isLoading={isLoading} />
+      <ChatInput onSend={onSend} onStop={onStop} isLoading={isLoading} />
     </div>
   );
 };
