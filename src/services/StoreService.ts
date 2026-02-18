@@ -163,12 +163,20 @@ export const StoreServiceLive = Layer.effect(
         Stream.drop(1),
         Stream.mapEffect((s) => Schema.decode(AppStoreState)(s).pipe(Effect.orDie)),
         Stream.changes,
+        Stream.debounce('100 millis'),
         Stream.runForEach((meta) => storage.saveMetadata(meta)),
         Effect.orDie,
       ),
     );
 
     const update = (f: (state: AppRuntimeState) => AppRuntimeState) => SubscriptionRef.update(state, f);
+    const persist = (f: (state: AppRuntimeState) => AppRuntimeState) =>
+      Effect.gen(function* () {
+        yield* update(f);
+        const s = yield* SubscriptionRef.get(state);
+        const meta = yield* Schema.decode(AppStoreState)(s).pipe(Effect.orDie);
+        yield* storage.saveMetadata(meta);
+      });
 
     return StoreService.of({
       state,
@@ -204,13 +212,13 @@ export const StoreServiceLive = Layer.effect(
           };
         }),
       updateSetting: (updates) =>
-        update((s) => ({
+        persist((s) => ({
           ...s,
           settings: typeof updates === 'function' ? updates(s.settings) : { ...s.settings, ...updates },
         })),
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
       togglePin: (threadId) =>
-        update((s) => {
+        persist((s) => {
           const isPinned = s.pinnedThreadIds.includes(threadId);
           const pinnedThreadIds = isPinned ? s.pinnedThreadIds.filter((id) => id !== threadId) : [...s.pinnedThreadIds, threadId];
           return { ...s, pinnedThreadIds };
