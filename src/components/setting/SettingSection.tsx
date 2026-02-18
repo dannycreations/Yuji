@@ -20,7 +20,7 @@ import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { AppRuntimeState, ConfirmOptions, GlobalSetting, Instruction, Model, Personalisation, Thread, ThreadMetadata } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={clsx('animate-fade-in flex flex-col scrollable-section', className)}>{children}</div>
+  <div className={clsx('animate-fade-in flex flex-col min-h-0 h-full', className)}>{children}</div>
 );
 
 export const SettingItem: FC<{ label: string; description?: string; children: ReactNode; className?: string }> = ({
@@ -52,7 +52,7 @@ interface SettingSectionProps {
 
 export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) => {
   return (
-    <SectionWrapper>
+    <SectionWrapper className="scrollable-section">
       <SettingItem label="Appearance">
         <InputSelect
           value={settings.theme}
@@ -85,7 +85,7 @@ export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) 
 
 export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange }) => {
   return (
-    <SectionWrapper className="space-y-3">
+    <SectionWrapper className="space-y-3 scrollable-section">
       <SettingField label="API Provider">
         <InputSelect value="openai" disabled>
           <option value="openai">OpenAI Compatible</option>
@@ -164,11 +164,22 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
   const effectiveModelId = getModelId(settings, availableModels);
 
   return (
-    <SectionWrapper className="space-y-3">
-      <div className="flex-shrink-0 flex gap-2">
-        <div className="flex-1">
-          <InputSearch value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." />
-        </div>
+    <SettingTable
+      emptyIcon="Cpu"
+      emptyLabel={modelSearch ? `No models match "${modelSearch}"` : 'No models available. Click refresh to fetch models.'}
+      items={filteredModels}
+      getId={(m) => m.id}
+      size={10}
+      hideCheckbox
+      headerLabel={
+        <InputSearch
+          value={modelSearch}
+          onChange={(e) => setModelSearch(e.target.value)}
+          placeholder="Search models..."
+          className="input-sm bg-primary/10 hover:bg-surface focus:bg-surface mr-2"
+        />
+      }
+      headerActions={() => (
         <InputButton
           className={clsx('badge-outline', refreshState === 'success' && '!text-emerald-500')}
           onClick={handleRefreshModels}
@@ -182,47 +193,37 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
           />
           <span>{refreshState === 'success' ? 'Updated' : 'Refresh'}</span>
         </InputButton>
-      </div>
-
-      <div className="flex-1 min-h-0 space-y-2">
-        {filteredModels.length > 0 ? (
-          filteredModels.map((model) => {
-            const isEnabled = !settings.disabledModels.includes(model.id);
-            return (
-              <ModelItem
-                key={model.id}
-                model={model}
-                availableModels={availableModels}
-                isEnabled={isEnabled}
-                isDefault={effectiveModelId === model.id}
-                className={clsx('settings-model-card p-2 cursor-default', isEnabled ? 'enabled' : 'disabled')}
-                rightContent={<InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />}
-              />
-            );
-          })
-        ) : (
-          <div className="empty-state-base py-3">
-            <Icon name={modelSearch ? 'Search' : 'Cpu'} size={24} className="empty-state-icon" />
-            <p className="empty-state-text">
-              {modelSearch ? `No models match "${modelSearch}"` : 'No models available. Click refresh to fetch models.'}
-            </p>
+      )}
+      renderRow={(model) => {
+        const isEnabled = !settings.disabledModels.includes(model.id);
+        return (
+          <div key={model.id} className={clsx('settings-history-row', !isEnabled && 'opacity-60')}>
+            <ModelItem
+              model={model}
+              availableModels={availableModels}
+              isEnabled={isEnabled}
+              isDefault={effectiveModelId === model.id}
+              className="flex-1 p-1 cursor-default border-none! bg-transparent!"
+              rightContent={<InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />}
+            />
           </div>
-        )}
-      </div>
-    </SectionWrapper>
+        );
+      }}
+    />
   );
 };
 
 interface SettingTableProps<T> {
-  readonly info: string;
+  readonly info?: string;
   readonly emptyIcon: string;
   readonly emptyLabel: string;
   readonly items: T[];
   readonly size?: number;
   readonly getId: (item: T) => string;
-  readonly headerLabel?: string;
+  readonly headerLabel?: ReactNode;
   readonly headerActions?: (selectedIds: Set<string>, resetSelection: () => void) => ReactNode;
   readonly renderRow: (item: T, index: number, selectionProps?: { checked: boolean; onChange: () => void }) => ReactNode;
+  readonly hideCheckbox?: boolean;
   readonly children?: ReactNode;
 }
 
@@ -236,6 +237,7 @@ export const SettingTable = <T,>({
   headerLabel = 'Title',
   headerActions,
   renderRow,
+  hideCheckbox,
   children,
 }: SettingTableProps<T>) => {
   const [currentPage, setCurrentPage] = useState(0);
@@ -278,23 +280,27 @@ export const SettingTable = <T,>({
   return (
     <SectionWrapper className="space-y-3">
       {children}
-      <div className="flex flex-col gap-3 flex-shrink-0">
-        <p className="settings-info-box">{info}</p>
-      </div>
+      {info && (
+        <div className="flex flex-col gap-3 flex-shrink-0">
+          <p className="settings-info-box">{info}</p>
+        </div>
+      )}
 
       <div className="settings-history-table">
         <div className="settings-history-header">
-          <div className="settings-history-checkbox-col">
-            <Checkbox
-              checked={currentItems.length > 0 && currentItems.every((s) => selectedIds.has(getId(s)))}
-              indeterminate={
-                currentItems.length > 0 &&
-                !currentItems.every((s) => selectedIds.has(getId(s))) &&
-                currentItems.some((s) => selectedIds.has(getId(s)))
-              }
-              onChange={toggleSelectAll}
-            />
-          </div>
+          {!hideCheckbox && (
+            <div className="settings-history-checkbox-col">
+              <Checkbox
+                checked={currentItems.length > 0 && currentItems.every((s) => selectedIds.has(getId(s)))}
+                indeterminate={
+                  currentItems.length > 0 &&
+                  !currentItems.every((s) => selectedIds.has(getId(s))) &&
+                  currentItems.some((s) => selectedIds.has(getId(s)))
+                }
+                onChange={toggleSelectAll}
+              />
+            </div>
+          )}
           <div className="flex-1 label-caps !text-text-primary">{headerLabel}</div>
           <div className="flex items-center gap-2">{headerActions?.(selectedIds, resetSelection)}</div>
         </div>
@@ -303,10 +309,16 @@ export const SettingTable = <T,>({
           {currentItems.length > 0 ? (
             currentItems.map((item, index) => {
               const id = getId(item);
-              return renderRow(item, index, {
-                checked: selectedIds.has(id),
-                onChange: () => toggleSelectItem(id),
-              });
+              return renderRow(
+                item,
+                index,
+                hideCheckbox
+                  ? undefined
+                  : {
+                      checked: selectedIds.has(id),
+                      onChange: () => toggleSelectItem(id),
+                    },
+              );
             })
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2 min-h-[200px]">
