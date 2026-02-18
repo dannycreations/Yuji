@@ -30,6 +30,7 @@ export const Sidebar: FC = () => {
 
   const setActiveThread = useStoreAction((s, id: string | null) => s.setActiveThread(id));
   const loadMoreThreads = useStoreAction((s) => s.loadMoreThreads());
+  const searchThreads = useStoreAction((s, query: string) => s.searchThreads(query));
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
@@ -41,13 +42,12 @@ export const Sidebar: FC = () => {
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
-  const [deferredQuery, setDeferredQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => setDeferredQuery(searchQuery), 150);
+    const timer = setTimeout(() => searchThreads(searchQuery), 150);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, searchThreads]);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollContainerRef);
@@ -57,7 +57,7 @@ export const Sidebar: FC = () => {
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads)).filter((t) => !t.archived), [threads]);
 
   const flattenedThreads = useMemo(() => {
-    const filtered = filterThreads(sortedThreads, deferredQuery);
+    const filtered = filterThreads(sortedThreads, searchQuery);
     const grouped = groupThreads(filtered, pinnedThreadIds);
 
     const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: Thread }> = [];
@@ -73,7 +73,7 @@ export const Sidebar: FC = () => {
       }
     }
     return result;
-  }, [sortedThreads, deferredQuery, pinnedThreadIds]);
+  }, [sortedThreads, searchQuery, pinnedThreadIds]);
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll, measureElement } = useVirtualList({
     containerHeight,

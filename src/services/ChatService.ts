@@ -114,7 +114,11 @@ export const ChatServiceLive = Layer.effect(
           }));
         }
 
-        yield* storage.saveThread(options.metadataOnly ? finalMetadata! : finalThread!);
+        if (options.metadataOnly) {
+          yield* storage.patchThread(threadId, finalMetadata!);
+        } else {
+          yield* storage.saveThread(finalThread!);
+        }
       }).pipe(
         Effect.catchAll((err) => {
           if (err instanceof ThreadNotFoundError) return Effect.fail(err);

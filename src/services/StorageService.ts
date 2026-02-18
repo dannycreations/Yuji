@@ -8,8 +8,10 @@ export interface StorageService {
   readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
 
   readonly getThreadsMetadata: (options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
+  readonly searchThreads: (query: string, options?: { limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
   readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null>;
   readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void>;
+  readonly patchThread: (id: string, patch: Partial<ThreadMetadata>) => Effect.Effect<void>;
   readonly deleteThread: (id: string) => Effect.Effect<void>;
 
   readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>>;
@@ -42,7 +44,18 @@ export const StorageServiceLive = Layer.effect(
           db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
         }
         if (!db.objectStoreNames.contains(STORES.THREADS)) {
-          db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
+          const threadStore = db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
+          threadStore.createIndex('title', 'title');
+          threadStore.createIndex('updatedAt', 'updatedAt');
+        } else {
+          const tx = db.transaction(STORES.THREADS, 'versionchange');
+          const store = tx.objectStore(STORES.THREADS);
+          if (!store.indexNames.contains('title')) {
+            store.createIndex('title', 'title');
+          }
+          if (!store.indexNames.contains('updatedAt')) {
+            store.createIndex('updatedAt', 'updatedAt');
+          }
         }
         if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
           const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
@@ -72,12 +85,36 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           if (!options) {
             const db = yield* getDB;
-            const threads = yield* Effect.promise(() => db.getAll(STORES.THREADS));
-            return threads as ThreadMetadata[];
+            const threads = yield* Effect.promise(() => db.getAllFromIndex(STORES.THREADS, 'updatedAt'));
+            return (threads as ThreadMetadata[]).reverse();
           }
 
-          const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, { ...options });
+          const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, {
+            ...options,
+            indexName: 'updatedAt',
+          });
           return threads as ThreadMetadata[];
+        }),
+
+      searchThreads: (query, options) =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          const limit = options?.limit ?? 50;
+          const results: ThreadMetadata[] = [];
+          const normalizedQuery = query.toLowerCase();
+
+          const tx = db.transaction(STORES.THREADS, 'readonly');
+          let cursor = yield* Effect.promise(() => tx.store.index('updatedAt').openCursor(null, 'prev'));
+
+          while (cursor && results.length < limit) {
+            const thread = cursor.value as ThreadMetadata;
+            if (thread.title.toLowerCase().includes(normalizedQuery)) {
+              results.push(thread);
+            }
+            cursor = yield* Effect.promise(() => cursor!.continue());
+          }
+
+          return results;
         }),
 
       getThread: (id, options) =>
@@ -98,11 +135,21 @@ export const StorageServiceLive = Layer.effect(
           const existing = yield* Effect.promise(() => db.get(STORES.THREADS, thread.id));
 
           // Strip messages before saving to THREADS store to prevent bloat
-          // Messages are stored separately in STORES.MESSAGES
           const { messages: _, ...metadata } = thread as Thread;
 
           const toSave = existing ? { ...existing, ...metadata } : metadata;
           yield* Effect.promise(() => db.put(STORES.THREADS, toSave));
+        }),
+
+      patchThread: (id, patch) =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          const tx = db.transaction(STORES.THREADS, 'readwrite');
+          const existing = yield* Effect.promise(() => tx.store.get(id));
+          if (existing) {
+            yield* Effect.promise(() => tx.store.put({ ...existing, ...patch }));
+          }
+          yield* Effect.promise(() => tx.done);
         }),
 
       deleteThread: (id) =>

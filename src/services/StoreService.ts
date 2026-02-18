@@ -26,6 +26,7 @@ export interface StoreService {
   readonly loadMessages: (threadId: string) => Effect.Effect<void>;
   readonly loadMoreMessages: () => Effect.Effect<void>;
   readonly loadMoreThreads: () => Effect.Effect<void>;
+  readonly searchThreads: (query: string) => Effect.Effect<void>;
   readonly clearDatabase: () => Effect.Effect<void>;
   readonly subscribe: (onStoreChange: () => void) => () => void;
   readonly getThread: (id: string) => Effect.Effect<Thread | null>;
@@ -333,7 +334,7 @@ export const StoreServiceLive = Layer.effect(
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
           const threadList = Object.values(s.threads).sort((a, b) => a.updatedAt - b.updatedAt);
-          const lastKey = threadList[0]?.id;
+          const lastKey = threadList[0]?.updatedAt;
 
           const moreHeaders = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
 
@@ -346,7 +347,6 @@ export const StoreServiceLive = Layer.effect(
             });
 
             // Keep pinned threads + up to MAX_MEM_THREADS most recent/relevant threads
-            // This prevents the sidebar/global state from ballooning to thousands of objects.
             const MAX_MEM_THREADS = 100;
             const threadList = Object.values(newThreads);
 
@@ -363,7 +363,7 @@ export const StoreServiceLive = Layer.effect(
                 }
               }
 
-              // 2. Always keep the active thread header if it exists
+              // 2. Always keep the active thread header
               if (s.activeThreadId && newThreads[s.activeThreadId] && !result[s.activeThreadId]) {
                 result[s.activeThreadId] = newThreads[s.activeThreadId];
                 count++;
@@ -383,6 +383,34 @@ export const StoreServiceLive = Layer.effect(
             }
 
             return { ...s, threads: newThreads };
+          });
+        }),
+      searchThreads: (query) =>
+        Effect.gen(function* () {
+          if (!query.trim()) {
+            yield* storage.getThreadsMetadata({ limit: 30 }).pipe(
+              Effect.flatMap((headers) =>
+                update((s) => {
+                  const newThreads = { ...s.threads };
+                  headers.forEach((h) => {
+                    newThreads[h.id] = h;
+                  });
+                  return { ...s, threads: newThreads };
+                }),
+              ),
+              Effect.catchAll(() => Effect.void),
+            );
+            return;
+          }
+
+          const results = yield* storage.searchThreads(query, { limit: 50 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+
+          yield* update((s) => {
+            const nextThreads = { ...s.threads };
+            results.forEach((r) => {
+              nextThreads[r.id] = r;
+            });
+            return { ...s, threads: nextThreads };
           });
         }),
       clearDatabase: () => storage.clearDatabase(),
