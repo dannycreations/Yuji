@@ -13,8 +13,8 @@ import { StoreContext, useStore, useStoreAction } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
 import { YujiRuntime } from './Runtime';
 
-const DatabaseErrorScreen = ({ error }: { error: string }) => {
-  const handleClearDatabase = useStoreAction((s) => s.clearDatabase());
+const DatabaseErrorView = ({ error }: { error: string }) => {
+  const handleDeleteDatabase = useStoreAction((s) => s.deleteDatabase());
 
   return (
     <div className="fixed inset-0 flex-center flex-col bg-background text-text-primary text-center z-fullscreen">
@@ -53,8 +53,8 @@ const DatabaseErrorScreen = ({ error }: { error: string }) => {
         )}
 
         <div>
-          <InputButton onClick={handleClearDatabase} variant="primary" className="w-full p-3! rounded-lg!">
-            Reset Database & Reload
+          <InputButton onClick={handleDeleteDatabase} variant="primary" className="w-full p-3! rounded-lg!">
+            Delete Database & Reload
           </InputButton>
           <p className="mt-2 text-xs text-text-tertiary">Warning: This will permanently delete all your local chat history and settings.</p>
         </div>
@@ -76,7 +76,7 @@ const YujiLayout = () => {
   return (
     <div className="app-container">
       {initializationError ? (
-        <DatabaseErrorScreen error={initializationError} />
+        <DatabaseErrorView error={initializationError} />
       ) : (
         <>
           <Sidebar />

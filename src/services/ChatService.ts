@@ -9,10 +9,10 @@ import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
 
 export interface ChatService {
-  readonly createThread: () => Effect.Effect<ThreadMetadata>;
-  readonly deleteThreads: (ids: string | Iterable<string>) => Effect.Effect<void>;
-  readonly importThreads: (threads: Record<string, Thread>) => Effect.Effect<void>;
-  readonly addMessage: (threadId: string, message: ThreadMessage) => Effect.Effect<void, ThreadNotFoundError>;
+  readonly createThread: () => Effect.Effect<ThreadMetadata, Error>;
+  readonly deleteThreads: (ids: string | Iterable<string>) => Effect.Effect<void, Error>;
+  readonly importThreads: (threads: Record<string, Thread>) => Effect.Effect<void, Error>;
+  readonly addMessage: (threadId: string, message: ThreadMessage) => Effect.Effect<void, ThreadNotFoundError | Error>;
   readonly updateMessage: (
     threadId: string,
     messageId: string,
@@ -24,9 +24,9 @@ export interface ChatService {
       readonly uiOnly?: boolean;
       readonly metadataOnly?: boolean;
     },
-  ) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError>;
-  readonly deleteMessage: (threadId: string, messageId: string) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError>;
-  readonly renameThread: (threadId: string, title: string) => Effect.Effect<void, ThreadNotFoundError>;
+  ) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError | Error>;
+  readonly deleteMessage: (threadId: string, messageId: string) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError | Error>;
+  readonly renameThread: (threadId: string, title: string) => Effect.Effect<void, ThreadNotFoundError | Error>;
   readonly updateThread: (
     threadId: string,
     f: (thread: Thread, now: number) => Thread,
@@ -34,13 +34,13 @@ export interface ChatService {
       readonly skipUpdateTimestamp?: boolean;
       readonly metadataOnly?: boolean;
     },
-  ) => Effect.Effect<void, ThreadNotFoundError>;
+  ) => Effect.Effect<void, ThreadNotFoundError | Error>;
   readonly updateActiveThread: (
     f: (thread: Thread, now: number) => Thread,
     skipUpdateTimestamp?: boolean,
-  ) => Effect.Effect<void, ThreadNotFoundError>;
-  readonly getThreadPath: (threadId: string, messageId: string) => Effect.Effect<ReadonlyArray<ThreadMessage>, ThreadNotFoundError>;
-  readonly branchChat: (threadId: string, messageId: string) => Effect.Effect<ThreadMetadata, ThreadNotFoundError | MessageNotFoundError>;
+  ) => Effect.Effect<void, ThreadNotFoundError | Error>;
+  readonly getThreadPath: (threadId: string, messageId: string) => Effect.Effect<ReadonlyArray<ThreadMessage>, ThreadNotFoundError | Error>;
+  readonly branchChat: (threadId: string, messageId: string) => Effect.Effect<ThreadMetadata, ThreadNotFoundError | MessageNotFoundError | Error>;
   readonly generate: (
     threadId: string,
     messagesToProcess: ReadonlyArray<ThreadMessage>,
@@ -69,7 +69,7 @@ export const ChatServiceLive = Layer.effect(
     const store = yield* StoreService;
     const storage = yield* StorageService;
     const llm = yield* LLMProvider;
-    const fibers = new Map<string, Fiber.Fiber<void, ThreadNotFoundError | MessageNotFoundError>>();
+    const fibers = new Map<string, Fiber.Fiber<void, ThreadNotFoundError | MessageNotFoundError | Error>>();
 
     const updateThread = (
       threadId: string,
@@ -106,12 +106,7 @@ export const ChatServiceLive = Layer.effect(
         if (!options.metadataOnly && (!options.skipUpdateTimestamp || !options.uiOnly)) {
           yield* storage.saveThread(finalThread);
         }
-      }).pipe(
-        Effect.catchAll((err) => {
-          if (err instanceof ThreadNotFoundError) return Effect.fail(err);
-          return store.notify('error', formatError(err)).pipe(Effect.flatMap(() => Effect.die(err)));
-        }),
-      );
+      });
 
     const updateActiveThread = (f: (thread: Thread, now: number) => Thread, skipUpdateTimestamp = false) =>
       Effect.gen(function* () {
@@ -357,7 +352,7 @@ export const ChatServiceLive = Layer.effect(
       importThreads: (threads) =>
         Effect.gen(function* () {
           const metadatas: Record<string, ThreadMetadata> = {};
-          const saveEffects: Effect.Effect<void>[] = [];
+          const saveEffects: Effect.Effect<void, Error>[] = [];
 
           for (const [id, thread] of Object.entries(threads)) {
             metadatas[id] = yield* Schema.decode(ThreadMetadata)(thread).pipe(Effect.orDie);
@@ -495,12 +490,7 @@ export const ChatServiceLive = Layer.effect(
               yield* storage.saveMessages(threadId, [updatedParent]);
             }
           }
-        }).pipe(
-          Effect.catchAll((err) => {
-            if (err instanceof ThreadNotFoundError) return Effect.fail(err);
-            return store.notify('error', `Failed to delete message: ${formatError(err)}`).pipe(Effect.flatMap(() => Effect.fail(err)));
-          }),
-        ),
+        }),
 
       renameThread: (threadId, title) => updateThread(threadId, (thread) => ({ ...thread, title }), { metadataOnly: true }),
 

@@ -4,17 +4,17 @@ import { openDB } from 'idb';
 import { AppStoreState, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 
 export interface StorageService {
-  readonly getMetadata: () => Effect.Effect<AppStoreState | null>;
-  readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void>;
+  readonly getMetadata: () => Effect.Effect<AppStoreState | null, Error>;
+  readonly saveMetadata: (metadata: AppStoreState) => Effect.Effect<void, Error>;
 
-  readonly getThreadsMetadata: (options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
-  readonly searchThreads: (query: string, options?: { limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>>;
-  readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null>;
-  readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void>;
-  readonly patchThread: (id: string, patch: Partial<ThreadMetadata>) => Effect.Effect<void>;
-  readonly deleteThreads: (ids: Iterable<string>) => Effect.Effect<void>;
+  readonly getThreadsMetadata: (options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>, Error>;
+  readonly searchThreads: (query: string, options?: { limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>, Error>;
+  readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null, Error>;
+  readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void, Error>;
+  readonly patchThread: (id: string, patch: Partial<ThreadMetadata>) => Effect.Effect<void, Error>;
+  readonly deleteThreads: (ids: Iterable<string>) => Effect.Effect<void, Error>;
 
-  readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>>;
+  readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>, Error>;
   readonly paginate: <T>(
     storeName: string,
     options: {
@@ -24,10 +24,10 @@ export interface StorageService {
       indexValue?: IDBValidKey;
       direction?: IDBCursorDirection;
     },
-  ) => Effect.Effect<ReadonlyArray<T>>;
-  readonly saveMessages: (threadId: string, messages: Iterable<ThreadMessage>) => Effect.Effect<void>;
-  readonly deleteMessages: (ids: Iterable<string>) => Effect.Effect<void>;
-  readonly clearDatabase: () => Effect.Effect<void>;
+  ) => Effect.Effect<ReadonlyArray<T>, Error>;
+  readonly saveMessages: (threadId: string, messages: Iterable<ThreadMessage>) => Effect.Effect<void, Error>;
+  readonly deleteMessages: (ids: Iterable<string>) => Effect.Effect<void, Error>;
+  readonly deleteDatabase: () => Effect.Effect<void, Error>;
 }
 
 export const StorageService = Context.GenericTag<StorageService>('@services/StorageService');
@@ -41,54 +41,43 @@ const STORES = {
   MESSAGES: 'messages',
 } as const;
 
+const connectDB = Effect.promise(() =>
+  openDB(DB_NAME, DB_VERSION, {
+    upgrade(db, _oldVersion, _newVersion, transaction) {
+      if (!db.objectStoreNames.contains(STORES.METADATA)) {
+        db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORES.THREADS)) {
+        const threadStore = db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
+        threadStore.createIndex('title', 'title');
+        threadStore.createIndex('updatedAt', 'updatedAt');
+      } else {
+        const store = transaction.objectStore(STORES.THREADS);
+        if (!store.indexNames.contains('title')) {
+          store.createIndex('title', 'title');
+        }
+        if (!store.indexNames.contains('updatedAt')) {
+          store.createIndex('updatedAt', 'updatedAt');
+        }
+      }
+      if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
+        const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
+        messageStore.createIndex('threadId', 'threadId');
+        messageStore.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
+      } else {
+        const store = transaction.objectStore(STORES.MESSAGES);
+        if (!store.indexNames.contains('threadId_timestamp')) {
+          store.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
+        }
+      }
+    },
+  }),
+).pipe(Effect.cached);
+
 export const StorageServiceLive = Layer.effect(
   StorageService,
   Effect.gen(function* () {
-    const dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, _oldVersion, _newVersion, transaction) {
-        if (!db.objectStoreNames.contains(STORES.METADATA)) {
-          db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains(STORES.THREADS)) {
-          const threadStore = db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
-          threadStore.createIndex('title', 'title');
-          threadStore.createIndex('updatedAt', 'updatedAt');
-        } else {
-          const store = transaction.objectStore(STORES.THREADS);
-          if (!store.indexNames.contains('title')) {
-            store.createIndex('title', 'title');
-          }
-          if (!store.indexNames.contains('updatedAt')) {
-            store.createIndex('updatedAt', 'updatedAt');
-          }
-        }
-        if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
-          const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
-          messageStore.createIndex('threadId', 'threadId');
-          messageStore.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
-        } else {
-          const store = transaction.objectStore(STORES.MESSAGES);
-          if (!store.indexNames.contains('threadId_timestamp')) {
-            store.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
-          }
-        }
-      },
-      blocked() {
-        console.warn('Database opening blocked. Please close other Yuji tabs.');
-      },
-    }).catch((err) => {
-      const name = (err as DOMException)?.name || (err as Error)?.name;
-      if (name === 'VersionError') {
-        return Promise.reject(
-          new Error(
-            'Database version conflict: Your saved data is from a newer version of Yuji. Please reset your database or use the newer version.',
-          ),
-        );
-      }
-      return Promise.reject(err);
-    });
-
-    const getDB = Effect.promise(() => dbPromise);
+    const getDB = yield* connectDB;
 
     const storage: StorageService = StorageService.of({
       getMetadata: () =>
@@ -292,24 +281,24 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => tx.done);
         }),
 
-      clearDatabase: () =>
-        Effect.gen(function* () {
-          const db = yield* getDB;
-          db.close();
-          yield* Effect.promise(
-            () =>
-              new Promise((resolve, reject) => {
-                const request = indexedDB.deleteDatabase(DB_NAME);
-                request.onsuccess = () => resolve(undefined);
-                request.onerror = () => reject(request.error);
-                request.onblocked = () => {
-                  // If blocked, we still reload to try and clear things up
-                  resolve(undefined);
-                };
-              }),
-          );
-          window.location.reload();
-        }),
+      deleteDatabase: () =>
+        Effect.async<void>((resume) => {
+          const request = indexedDB.deleteDatabase(DB_NAME);
+          const timeout = setTimeout(() => resume(Effect.void), 2000);
+
+          request.onsuccess = () => {
+            clearTimeout(timeout);
+            resume(Effect.void);
+          };
+          request.onerror = () => {
+            clearTimeout(timeout);
+            resume(Effect.void);
+          };
+          request.onblocked = () => {
+            clearTimeout(timeout);
+            resume(Effect.void);
+          };
+        }).pipe(Effect.tap(() => Effect.sync(() => window.location.reload()))),
     });
 
     return storage;

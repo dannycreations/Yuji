@@ -10,26 +10,26 @@ import { StorageService } from './StorageService';
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
   readonly getSnapshot: () => AppRuntimeState;
-  readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void>;
-  readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void>;
-  readonly setActiveThread: (threadOrId: Thread | string | null) => Effect.Effect<void>;
+  readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void, never>;
+  readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void, never>;
+  readonly setActiveThread: (threadOrId: Thread | string | null) => Effect.Effect<void, never>;
   readonly updateSetting: (
     updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings']),
-  ) => Effect.Effect<void>;
-  readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void>;
-  readonly togglePin: (threadId: string) => Effect.Effect<void>;
-  readonly toggleArchive: (threadId: string) => Effect.Effect<void>;
-  readonly setConfirm: (options: ConfirmOptions) => Effect.Effect<void>;
-  readonly executeConfirm: (id: string) => Effect.Effect<void>;
-  readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void>;
-  readonly clearNotification: (id: string) => Effect.Effect<void>;
-  readonly loadMessages: (threadId: string) => Effect.Effect<void>;
-  readonly loadMoreMessages: () => Effect.Effect<void>;
-  readonly loadMoreThreads: () => Effect.Effect<void>;
-  readonly searchThreads: (query: string) => Effect.Effect<void>;
-  readonly clearDatabase: () => Effect.Effect<void>;
+  ) => Effect.Effect<void, never>;
+  readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void, never>;
+  readonly togglePin: (threadId: string) => Effect.Effect<void, never>;
+  readonly toggleArchive: (threadId: string) => Effect.Effect<void, Error>;
+  readonly setConfirm: (options: ConfirmOptions) => Effect.Effect<void, never>;
+  readonly executeConfirm: (id: string) => Effect.Effect<void, never>;
+  readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void, never>;
+  readonly clearNotification: (id: string) => Effect.Effect<void, never>;
+  readonly loadMessages: (threadId: string) => Effect.Effect<void, never>;
+  readonly loadMoreMessages: () => Effect.Effect<void, never>;
+  readonly loadMoreThreads: () => Effect.Effect<void, never>;
+  readonly searchThreads: (query: string) => Effect.Effect<void, never>;
+  readonly deleteDatabase: () => Effect.Effect<void, Error>;
   readonly subscribe: (onStoreChange: () => void) => () => void;
-  readonly getThread: (id: string) => Effect.Effect<Thread | null>;
+  readonly getThread: (id: string) => Effect.Effect<Thread | null, Error>;
 }
 
 export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
@@ -87,19 +87,15 @@ export const StoreServiceLive = Layer.effect(
       const result = yield* Effect.all({
         metadata: storage.getMetadata(),
         threadHeaders: storage.getThreadsMetadata({ limit: 30 }),
-      }).pipe(
-        Effect.timeout('10 seconds'),
-        Effect.catchAll(() => Effect.fail(new Error('Database initialization timed out. This may happen if another tab is blocking the database.'))),
-        Effect.either,
-      );
+      }).pipe(Effect.timeout('5 seconds'), Effect.sandbox, Effect.either);
 
       if (Either.isLeft(result)) {
-        const err = result.left;
-        console.error('Database initialization failed:', err);
+        const err = formatError(result.left);
+        yield* Effect.logError('Database initialization failed:', err);
         return {
           ...INITIAL_STATE,
           isHydrated: true,
-          initializationError: formatError(err),
+          initializationError: err,
         } as AppRuntimeState;
       }
 
@@ -446,7 +442,7 @@ export const StoreServiceLive = Layer.effect(
             return { ...s, threads: nextThreads };
           });
         }),
-      clearDatabase: () => storage.clearDatabase(),
+      deleteDatabase: () => storage.deleteDatabase(),
     });
   }),
 );

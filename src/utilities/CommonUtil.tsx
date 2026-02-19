@@ -1,6 +1,9 @@
+import { Cause } from 'effect';
+
 import type { ReactNode } from 'react';
 
 export const formatError = (err: unknown): string => {
+  if (Cause.isCause(err)) return Cause.pretty(err);
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
   return (err as { readonly message?: string })?.message ?? JSON.stringify(err);
