@@ -115,10 +115,10 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
 };
 
 export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly Model[] }> = ({ settings, availableModels, onChange }) => {
-  const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const [modelSearch, setModelSearch] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success'>('idle');
 
+  const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const setAvailableModels = (models: Model[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableModels: models }));
 
   const handleRefreshModels = useCallback(() => {

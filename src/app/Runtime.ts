@@ -1,5 +1,5 @@
 import { FetchHttpClient } from '@effect/platform';
-import { Layer, ManagedRuntime } from 'effect';
+import { Layer, Logger, LogLevel, ManagedRuntime } from 'effect';
 
 import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
@@ -11,6 +11,7 @@ const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(StoreServiceLive),
   Layer.provideMerge(StorageServiceLive),
   Layer.provide(FetchHttpClient.layer),
+  Layer.provide(Logger.minimumLogLevel(import.meta.env.PROD ? LogLevel.Info : LogLevel.Debug)),
 ).pipe(Layer.orDie);
 
 export const YujiRuntime = ManagedRuntime.make(MainLayer);

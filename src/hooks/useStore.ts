@@ -47,11 +47,15 @@ export const useStoreAction = <A extends unknown[], R, E, I extends ManagedRunti
   action: (s: StoreService, ...args: A) => Effect.Effect<R, E, I>,
 ) => {
   const store = useStoreService();
-  return useCallback((...args: A) => YujiRuntime.runPromise(action(store, ...args)), [store, action]);
+  const actionRef = useRef(action);
+  actionRef.current = action;
+  return useCallback((...args: A) => YujiRuntime.runPromise(actionRef.current(store, ...args)), [store]);
 };
 
 export const useChatAction = <A extends unknown[], R, E, I extends ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>>(
   action: (c: ChatService, ...args: A) => Effect.Effect<R, E, I>,
 ) => {
-  return useCallback((...args: A) => YujiRuntime.runPromise(Effect.flatMap(ChatService, (c) => action(c, ...args))), [action]);
+  const actionRef = useRef(action);
+  actionRef.current = action;
+  return useCallback((...args: A) => YujiRuntime.runPromise(Effect.flatMap(ChatService, (c) => actionRef.current(c, ...args))), []);
 };
