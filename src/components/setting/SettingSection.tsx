@@ -20,7 +20,7 @@ import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { AppRuntimeState, ConfirmOptions, GlobalSetting, Instruction, Model, Personalisation, Thread, ThreadMetadata } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={clsx('animate-fade-in flex flex-col min-h-0 h-full', className)}>{children}</div>
+  <div className={clsx('flex flex-col min-h-0 h-full', className)}>{children}</div>
 );
 
 export const SettingItem: FC<{ label: string; description?: string; children: ReactNode; className?: string }> = ({

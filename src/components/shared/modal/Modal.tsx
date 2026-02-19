@@ -3,7 +3,6 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
-import { useModalAnimation } from '../../../hooks/useModalAnimation';
 import { Icon } from '../Icon';
 import { InputButton } from '../InputArea';
 
@@ -34,28 +33,23 @@ interface ModalProps {
 
 export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, className, containerClassName }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { isClosing, handleClose } = useModalAnimation(onClose);
 
-  useClickOutside(containerRef, handleClose);
+  useClickOutside(containerRef, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleClose]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={clsx('modal-overlay', isClosing ? 'animate-fade-out' : 'animate-fade-in', className)} onClick={(e) => e.stopPropagation()}>
-      <div
-        ref={containerRef}
-        className={clsx('modal-container', isClosing ? 'animate-slide-down' : 'animate-slide-up', containerClassName)}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className={clsx('modal-overlay', className)} onClick={(e) => e.stopPropagation()}>
+      <div ref={containerRef} className={clsx('modal-container', containerClassName)} onClick={(e) => e.stopPropagation()}>
         {children}
       </div>
     </div>,

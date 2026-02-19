@@ -1,7 +1,6 @@
 import clsx from 'clsx';
 import { useEffect } from 'react';
 
-import { useModalAnimation } from '../../hooks/useModalAnimation';
 import { useStore, useStoreAction } from '../../hooks/useStore';
 import { Icon } from './Icon';
 
@@ -29,7 +28,7 @@ const TOAST_VARIANTS = {
 const ToastItem = ({ notification, onDismiss }: { notification: Notification; onDismiss: (id: string) => void }) => {
   const duration = 5000;
   const { icon, variantClass } = TOAST_VARIANTS[notification.type];
-  const { isClosing, handleClose } = useModalAnimation(() => onDismiss(notification.id));
+  const handleClose = () => onDismiss(notification.id);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -38,10 +37,10 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
     return () => {
       clearTimeout(timer);
     };
-  }, [notification.id, notification.timestamp, handleClose]);
+  }, [notification.id, notification.timestamp]);
 
   return (
-    <div className={clsx('toast-container', isClosing ? 'animate-slide-down' : 'animate-slide-up', variantClass)}>
+    <div className={clsx('toast-container', variantClass)}>
       <div className="toast-line" />
 
       <div className="toast-icon-wrapper">

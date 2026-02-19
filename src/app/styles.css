@@ -54,48 +54,6 @@
   --z-index-fullscreen: 60;
   --z-index-notification: 70;
 
-  /* Animations */
-  --animate-fade-in: fadeIn 0.2s ease-out;
-  --animate-fade-out: fadeOut 0.2s ease-out;
-  --animate-slide-up: slideUp 0.2s ease-out;
-  --animate-slide-down: slideDown 0.2s ease-out;
-
-  @keyframes fadeIn {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-    }
-  }
-  @keyframes fadeOut {
-    0% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-  @keyframes slideUp {
-    0% {
-      transform: translateY(10px);
-      opacity: 0;
-    }
-    100% {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  }
-  @keyframes slideDown {
-    0% {
-      transform: translateY(0);
-      opacity: 1;
-    }
-    100% {
-      transform: translateY(10px);
-      opacity: 0;
-    }
-  }
   @keyframes progress {
     from {
       transform: scaleX(1);
@@ -398,7 +356,7 @@
   }
 
   .tag-item {
-    @apply flex items-center gap-1 px-2 py-1 bg-line text-text-primary text-xs rounded-lg animate-fade-in border border-separator;
+    @apply flex items-center gap-1 px-2 py-1 bg-line text-text-primary text-xs rounded-lg border border-separator;
     & .tag-remove {
       @apply text-text-tertiary hover:text-text-primary transition-colors;
     }
@@ -476,7 +434,7 @@
   }
 
   .chat-empty-container {
-    @apply flex-center flex-col p-3 min-h-full animate-fade-in layout-chat-container;
+    @apply flex-center flex-col p-3 min-h-full layout-chat-container;
   }
 
   .chat-empty-icon-wrapper {
@@ -656,7 +614,7 @@
   }
 
   .chat-input-edit-container {
-    @apply w-full bg-surface border border-line rounded-xl overflow-hidden animate-fade-in my-2;
+    @apply w-full bg-surface border border-line rounded-xl overflow-hidden my-2;
   }
 
   .chat-input-edit-actions {
@@ -1040,11 +998,11 @@
 }
 
 @utility dropdown-menu-base {
-  @apply absolute bg-surface border border-separator/50 rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown animate-fade-in select-none;
+  @apply absolute bg-surface border border-separator/50 rounded-xl shadow-xl flex flex-col overflow-hidden z-dropdown select-none;
 }
 
 @utility empty-state-base {
-  @apply flex-center flex-col text-text-tertiary bg-line rounded-xl border border-dashed border-separator animate-fade-in;
+  @apply flex-center flex-col text-text-tertiary bg-line rounded-xl border border-dashed border-separator;
 }
 
 @utility empty-state-icon {
