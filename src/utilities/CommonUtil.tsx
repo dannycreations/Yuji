@@ -1,7 +1,5 @@
 import type { ReactNode } from 'react';
 
-const uuid = () => crypto.randomUUID();
-
 export const formatError = (err: unknown): string => {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -9,8 +7,16 @@ export const formatError = (err: unknown): string => {
   return msg || JSON.stringify(err);
 };
 
+const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
 export const randomId = (size: number = 8): string => {
-  return uuid().replace(/-/g, '').slice(0, size);
+  const values = new Uint8Array(size);
+  crypto.getRandomValues(values);
+  let result = '';
+  for (let i = 0; i < size; i++) {
+    result += ID_CHARS[values[i] % 36];
+  }
+  return result;
 };
 
 export const getFirstChar = (str: string): string => {

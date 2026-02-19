@@ -112,12 +112,13 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const limit = options?.limit ?? 50;
-          const results: ThreadMetadata[] = [];
           const normalizedQuery = query.toLowerCase();
 
           const tx = db.transaction(STORES.THREADS, 'readonly');
-          let cursor = yield* Effect.promise(() => tx.store.index('updatedAt').openCursor(null, 'prev'));
+          const index = tx.store.index('updatedAt');
+          let cursor = yield* Effect.promise(() => index.openCursor(null, 'prev'));
 
+          const results: ThreadMetadata[] = [];
           while (cursor && results.length < limit) {
             const thread = cursor.value as ThreadMetadata;
             if (thread.title.toLowerCase().includes(normalizedQuery)) {
@@ -136,7 +137,11 @@ export const StorageServiceLive = Layer.effect(
           if (!thread) return null;
 
           const messages = yield* storage.getMessages(id, options);
-          const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
+          const messagesRecord: Record<string, ThreadMessage> = {};
+          for (let i = 0, len = messages.length; i < len; i++) {
+            const m = messages[i];
+            messagesRecord[m.id] = m;
+          }
 
           return { ...thread, messages: messagesRecord } as Thread;
         }),
@@ -203,8 +208,10 @@ export const StorageServiceLive = Layer.effect(
           let cursor = yield* Effect.promise(() => source.openCursor(range, 'prev'));
 
           // Handle manual secondary key skip if using indexValue + lastKey
+          // lastKey is primaryKey (id) which is string.
           if (cursor && indexValue !== undefined && lastKey !== undefined) {
-            while (cursor && cursor.primaryKey >= (lastKey as string)) {
+            const lastKeyStr = lastKey as string;
+            while (cursor && cursor.primaryKey >= lastKeyStr) {
               cursor = yield* Effect.promise(() => cursor!.continue());
             }
           }

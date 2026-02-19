@@ -7,10 +7,15 @@ const INTERVALS = [
 ] as const;
 
 export const timeAgo = (timestamp: number): string => {
-  const seconds = Math.floor((Date.now() - timestamp) / 1000);
-  for (const { label, seconds: intervalSeconds } of INTERVALS) {
-    const count = Math.floor(seconds / intervalSeconds);
-    if (count >= 1) return `${count} ${label}${count > 1 ? 's' : ''} ago`;
+  const diffSeconds = (Date.now() - timestamp) / 1000;
+  if (diffSeconds < 60) return 'just now';
+
+  for (let i = 0, len = INTERVALS.length; i < len; i++) {
+    const { label, seconds } = INTERVALS[i];
+    if (diffSeconds >= seconds) {
+      const count = Math.floor(diffSeconds / seconds);
+      return `${count} ${label}${count > 1 ? 's' : ''} ago`;
+    }
   }
   return 'just now';
 };

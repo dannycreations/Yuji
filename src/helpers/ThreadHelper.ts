@@ -28,13 +28,16 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
 };
 
 export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
-  if (
-    (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
-    Object.keys(thread.messages).length === 0 &&
-    message.role === 'user' &&
-    message.content
-  ) {
-    return truncate(message.content.split('\n')[0], 40);
+  if ((thread.title === 'New Chat' || thread.title.endsWith('...')) && message.role === 'user' && message.content) {
+    // Only generate if no other messages exist
+    let hasMessages = false;
+    for (const _ in thread.messages) {
+      hasMessages = true;
+      break;
+    }
+    if (!hasMessages) {
+      return truncate(message.content.split('\n', 1)[0], 40);
+    }
   }
   return thread.title;
 };
@@ -119,11 +122,7 @@ export const groupThreads = (
   pinnedThreadIds: ReadonlyArray<string> = [],
 ): Record<string, ReadonlyArray<ThreadMetadata | Thread>> => {
   const now = Date.now();
-  const dayMs = 86400000; // 24 * 60 * 60 * 1000
-
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
-  const yesterdayStart = todayStart - dayMs;
-  const last7DaysStart = todayStart - 604800000; // 7 * dayMs
 
   const pinned: Array<ThreadMetadata | Thread> = [];
   const today: Array<ThreadMetadata | Thread> = [];
@@ -131,21 +130,21 @@ export const groupThreads = (
   const last7Days: Array<ThreadMetadata | Thread> = [];
   const last30Days: Array<ThreadMetadata | Thread> = [];
 
-  const pinnedSet = new Set(pinnedThreadIds);
+  const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
 
-  for (let i = 0; i < threadsList.length; i++) {
+  for (let i = 0, len = threadsList.length; i < len; i++) {
     const thread = threadsList[i];
-    if (pinnedSet.has(thread.id)) {
+    if (pinnedSet?.has(thread.id)) {
       pinned.push(thread);
       continue;
     }
 
-    const time = thread.updatedAt;
-    if (time >= todayStart) {
+    const diff = todayStart - thread.updatedAt;
+    if (diff <= 0) {
       today.push(thread);
-    } else if (time >= yesterdayStart) {
+    } else if (diff < 86400000) {
       yesterday.push(thread);
-    } else if (time >= last7DaysStart) {
+    } else if (diff < 604800000) {
       last7Days.push(thread);
     } else {
       last30Days.push(thread);

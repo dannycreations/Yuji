@@ -26,21 +26,22 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
 
   // Initialize/Rebuild tree when items change
   useMemo(() => {
-    const newKeys = items.map(getItemKey);
-    const newCount = newKeys.length;
+    const len = items.length;
+    const newKeys = new Array<string>(len);
+    const newCount = len;
     const tree = new Float64Array(newCount + 1);
     const newKeyToIndexMap = new Map<string, number>();
 
-    const getInitialValue = (i: number) => {
-      const key = newKeys[i];
+    for (let i = 0; i < len; i++) {
+      const key = getItemKey(items[i]);
+      newKeys[i] = key;
       newKeyToIndexMap.set(key, i);
-      return heightsRef.current.get(key) ?? estimatedItemHeight;
-    };
+      const h = heightsRef.current.get(key) ?? estimatedItemHeight;
 
-    for (let i = 1; i <= newCount; i++) {
-      tree[i] += getInitialValue(i - 1);
-      const j = i + (i & -i);
-      if (j <= newCount) tree[j] += tree[i];
+      const treeIdx = i + 1;
+      tree[treeIdx] += h;
+      const j = treeIdx + (treeIdx & -treeIdx);
+      if (j <= newCount) tree[j] += tree[treeIdx];
     }
 
     fenwickRef.current = tree;
@@ -48,10 +49,12 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     keyToIndexMapRef.current = newKeyToIndexMap;
 
     // Cleanup heights map to prevent memory leaks
-    const keySet = new Set(newKeys);
-    for (const key of heightsRef.current.keys()) {
-      if (!keySet.has(key)) {
-        heightsRef.current.delete(key);
+    if (heightsRef.current.size > len * 2) {
+      const keySet = new Set(newKeys);
+      for (const key of heightsRef.current.keys()) {
+        if (!keySet.has(key)) {
+          heightsRef.current.delete(key);
+        }
       }
     }
   }, [items, getItemKey, estimatedItemHeight]);

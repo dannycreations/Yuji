@@ -120,13 +120,16 @@ export const StoreServiceLive = Layer.effect(
 
         // Only keep pinned and most recent threads in initial memory
         // Others will be loaded via loadMoreThreads or search
-        const pinnedSet = new Set(metadata.pinnedThreadIds);
         const filteredThreadsMap: Record<string, ThreadMetadata> = {};
 
-        // Use a more memory-efficient inclusion check
-        const headerIds = new Set(threadHeaders.map((h) => h.id));
-        for (const id in threadsMap) {
-          if (pinnedSet.has(id) || headerIds.has(id)) {
+        for (let i = 0, len = threadHeaders.length; i < len; i++) {
+          const h = threadHeaders[i];
+          filteredThreadsMap[h.id] = h;
+        }
+
+        // Ensure pinned threads are also in memory if they were in threadsMap but not in recent headers
+        for (const id of metadata.pinnedThreadIds) {
+          if (threadsMap[id]) {
             filteredThreadsMap[id] = threadsMap[id];
           }
         }
@@ -293,8 +296,15 @@ export const StoreServiceLive = Layer.effect(
           if (!s.activeThread) return;
 
           const threadId = s.activeThread.id;
-          const currentMessages = Object.values(s.activeThread.messages).sort((a, b) => a.timestamp - b.timestamp);
-          const lastKey = currentMessages[0]?.id;
+          // Optimization: Avoid full Object.values().sort() just to find the oldest message
+          let oldest: ThreadMessage | undefined;
+          for (const id in s.activeThread.messages) {
+            const m = s.activeThread.messages[id];
+            if (!oldest || m.timestamp < oldest.timestamp) {
+              oldest = m;
+            }
+          }
+          const lastKey = oldest?.id;
 
           const moreMessages = yield* storage.getMessages(threadId, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (moreMessages.length === 0) return;
@@ -351,8 +361,15 @@ export const StoreServiceLive = Layer.effect(
       loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          const threadList = Object.values(s.threads).sort((a, b) => a.updatedAt - b.updatedAt);
-          const lastKey = threadList[0]?.updatedAt;
+          // Optimization: Avoid full Object.values().sort() just to find the oldest thread
+          let oldest: ThreadMetadata | undefined;
+          for (const id in s.threads) {
+            const t = s.threads[id];
+            if (!oldest || t.updatedAt < oldest.updatedAt) {
+              oldest = t;
+            }
+          }
+          const lastKey = oldest?.updatedAt;
 
           const moreHeaders = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
 

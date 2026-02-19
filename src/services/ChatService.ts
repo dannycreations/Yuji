@@ -329,13 +329,18 @@ export const ChatServiceLive = Layer.effect(
           const ids = typeof input === 'string' ? [input] : Array.from(input);
           const idSet = new Set(ids);
 
-          for (const id of ids) {
-            yield* stop(id);
+          // Batch interrupt
+          const stopEffects: Effect.Effect<void>[] = [];
+          for (let i = 0, len = ids.length; i < len; i++) {
+            stopEffects.push(stop(ids[i]));
           }
+          yield* Effect.all(stopEffects, { concurrency: 'unbounded' });
 
           yield* store.update((state) => {
             const threads = { ...state.threads };
-            ids.forEach((id) => delete threads[id]);
+            for (let i = 0, len = ids.length; i < len; i++) {
+              delete threads[ids[i]];
+            }
             const isActiveDeleted = state.activeThreadId && idSet.has(state.activeThreadId);
             return {
               ...state,
@@ -345,9 +350,12 @@ export const ChatServiceLive = Layer.effect(
             };
           });
 
-          for (const id of ids) {
-            yield* storage.deleteThread(id);
+          // Batch delete from storage
+          const deleteEffects: Effect.Effect<void>[] = [];
+          for (let i = 0, len = ids.length; i < len; i++) {
+            deleteEffects.push(storage.deleteThread(ids[i]));
           }
+          yield* Effect.all(deleteEffects, { concurrency: 'unbounded' });
         }),
 
       importThreads: (threads) =>
@@ -453,13 +461,19 @@ export const ChatServiceLive = Layer.effect(
 
             const messages = { ...thread.messages };
             idsToDelete = [];
-            const collectIds = (id: string) => {
+            const stack = [messageId];
+            while (stack.length > 0) {
+              const id = stack.pop()!;
               const msg = messages[id];
-              if (!msg) return;
-              idsToDelete.push(id);
-              msg.childrenIds?.forEach(collectIds);
-            };
-            collectIds(messageId);
+              if (msg) {
+                idsToDelete.push(id);
+                if (msg.childrenIds) {
+                  for (let i = 0, len = msg.childrenIds.length; i < len; i++) {
+                    stack.push(msg.childrenIds[i]);
+                  }
+                }
+              }
+            }
 
             idsToDelete.forEach((id) => delete messages[id]);
 
