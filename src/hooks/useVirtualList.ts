@@ -26,22 +26,21 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
 
   // Initialize/Rebuild tree when items change
   useMemo(() => {
-    const len = items.length;
-    const newKeys = new Array<string>(len);
-    const newCount = len;
+    const newKeys = items.map(getItemKey);
+    const newCount = newKeys.length;
     const tree = new Float64Array(newCount + 1);
     const newKeyToIndexMap = new Map<string, number>();
 
-    for (let i = 0; i < len; i++) {
-      const key = getItemKey(items[i]);
-      newKeys[i] = key;
+    const getInitialValue = (i: number) => {
+      const key = newKeys[i];
       newKeyToIndexMap.set(key, i);
-      const h = heightsRef.current.get(key) ?? estimatedItemHeight;
+      return heightsRef.current.get(key) ?? estimatedItemHeight;
+    };
 
-      const treeIdx = i + 1;
-      tree[treeIdx] += h;
-      const j = treeIdx + (treeIdx & -treeIdx);
-      if (j <= newCount) tree[j] += tree[treeIdx];
+    for (let i = 1; i <= newCount; i++) {
+      tree[i] += getInitialValue(i - 1);
+      const j = i + (i & -i);
+      if (j <= newCount) tree[j] += tree[i];
     }
 
     fenwickRef.current = tree;
@@ -49,13 +48,10 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     keyToIndexMapRef.current = newKeyToIndexMap;
 
     // Cleanup heights map to prevent memory leaks
-    if (heightsRef.current.size > len * 2 && len > 0) {
-      const keySet = new Set(newKeys);
-      const heights = heightsRef.current;
-      for (const key of heights.keys()) {
-        if (!keySet.has(key)) {
-          heights.delete(key);
-        }
+    const keySet = new Set(newKeys);
+    for (const key of heightsRef.current.keys()) {
+      if (!keySet.has(key)) {
+        heightsRef.current.delete(key);
       }
     }
   }, [items, getItemKey, estimatedItemHeight]);
@@ -78,17 +74,13 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     const n = tree.length - 1;
     if (n <= 0) return 0;
 
-    // Use 31 - Math.clz32(n) for faster floor(log2(n))
-    const bitLength = 32 - Math.clz32(n);
+    const bitLength = Math.floor(Math.log2(n)) + 1;
 
     for (let i = 1 << (bitLength - 1); i > 0; i >>= 1) {
       const nextIdx = idx + i;
-      if (nextIdx <= n) {
-        const val = tree[nextIdx];
-        if (currentSum + val <= target) {
-          idx = nextIdx;
-          currentSum += val;
-        }
+      if (nextIdx <= n && currentSum + tree[nextIdx] <= target) {
+        idx = nextIdx;
+        currentSum += tree[idx];
       }
     }
     return idx;
@@ -104,101 +96,45 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     }
   }, []);
 
-  const computeRange = useCallback(
-    (scrollTop: number) => {
-      if (totalCount === 0) return { startIndex: 0, endIndex: 0 };
-
-      const startIdx = findIndex(scrollTop);
-      // Use a fallback height when containerHeight is 0 (e.g. initial render or hidden)
-      // to ensure a reasonable number of items are rendered to avoid a "flash" of empty list
-      // when the component first appears.
-      const effectiveHeight = containerHeight > 0 ? containerHeight : 1000;
-      const endIdx = findIndex(scrollTop + effectiveHeight);
-
-      const nextStart = Math.max(0, startIdx - overscan);
-      const nextEnd = Math.min(totalCount, endIdx + overscan);
-
-      return {
-        startIndex: nextStart,
-        endIndex: nextEnd,
-      };
-    },
-    [containerHeight, findIndex, overscan, totalCount],
-  );
-
-  const onScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      // Clamp to non-negative values, preventing issues during "elastic" scrolling or momentum overscroll
-      const nextScrollTop = Math.max(0, e.currentTarget.scrollTop);
-      if (Math.abs(scrollTopRef.current - nextScrollTop) < 1) return;
-      scrollTopRef.current = nextScrollTop;
-
-      const nextRange = computeRange(nextScrollTop);
-      setRange((prev) => {
-        if (nextRange.startIndex !== prev.startIndex || nextRange.endIndex !== prev.endIndex) {
-          return nextRange;
-        }
-        return prev;
-      });
-    },
-    [computeRange],
-  );
-
-  const lastUpdateRef = useRef(0);
   const setItemHeight = useCallback(
     (key: string, height: number) => {
       const currentHeight = heightsRef.current.get(key) ?? estimatedItemHeight;
+      // Only update if change is significant (> 1px) to reduce thrashing during stream
       if (Math.abs(currentHeight - height) < 1) return;
 
       pendingUpdatesRef.current.set(key, height);
 
       if (animationFrameRef.current === null) {
-        const now = performance.now();
-        // Wait at least 16ms (1 frame) or more if we are thrashing
-        const delay = Math.max(0, 16 - (now - lastUpdateRef.current));
+        animationFrameRef.current = requestAnimationFrame(() => {
+          let needsRangeUpdate = false;
 
-        const update = () => {
-          animationFrameRef.current = requestAnimationFrame(() => {
-            let needsRangeUpdate = false;
-            lastUpdateRef.current = performance.now();
+          for (const [k, h] of pendingUpdatesRef.current) {
+            const oldH = heightsRef.current.get(k) ?? estimatedItemHeight;
+            const delta = h - oldH;
 
-            for (const [k, h] of pendingUpdatesRef.current) {
-              const oldH = heightsRef.current.get(k) ?? estimatedItemHeight;
-              const delta = h - oldH;
-
-              if (Math.abs(delta) >= 1) {
-                heightsRef.current.set(k, h);
-                const idx = keyToIndexMapRef.current.get(k);
-                if (idx !== undefined) {
-                  updateFenwick(idx, delta);
-                  needsRangeUpdate = true;
-                }
+            if (Math.abs(delta) >= 1) {
+              heightsRef.current.set(k, h);
+              const idx = keyToIndexMapRef.current.get(k);
+              if (idx !== undefined) {
+                updateFenwick(idx, delta);
+                needsRangeUpdate = true;
               }
             }
+          }
 
-            pendingUpdatesRef.current.clear();
-            animationFrameRef.current = null;
+          pendingUpdatesRef.current.clear();
+          animationFrameRef.current = null;
 
-            if (needsRangeUpdate) {
-              const nextRange = computeRange(scrollTopRef.current);
-              setRange((prev) => {
-                if (nextRange.startIndex !== prev.startIndex || nextRange.endIndex !== prev.endIndex) {
-                  return nextRange;
-                }
-                return prev;
-              });
+          if (needsRangeUpdate) {
+            const nextRange = computeRange(scrollTopRef.current);
+            if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+              setRange(nextRange);
             }
-          });
-        };
-
-        if (delay > 0) {
-          setTimeout(update, delay);
-        } else {
-          update();
-        }
+          }
+        });
       }
     },
-    [estimatedItemHeight, updateFenwick, computeRange],
+    [estimatedItemHeight, updateFenwick, range.startIndex, range.endIndex],
   );
 
   const clearItemHeights = useCallback(() => {
@@ -232,8 +168,7 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
 
       if (!observerRef.current) {
         observerRef.current = new ResizeObserver((entries) => {
-          for (let i = 0, len = entries.length; i < len; i++) {
-            const entry = entries[i];
+          for (const entry of entries) {
             const key = (entry.target as HTMLElement).getAttribute('data-vkey');
             if (key) {
               const height = entry.contentRect.height;
@@ -260,6 +195,39 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
       }
     };
   }, []);
+
+  const computeRange = useCallback(
+    (scrollTop: number) => {
+      if (totalCount === 0) return { startIndex: 0, endIndex: 0 };
+
+      const startIdx = findIndex(scrollTop);
+      // Use a fallback height when containerHeight is 0 (e.g. initial render or hidden)
+      // to ensure a reasonable number of items are rendered to avoid a "flash" of empty list
+      // when the component first appears.
+      const effectiveHeight = containerHeight > 0 ? containerHeight : 1000;
+      const endIdx = findIndex(scrollTop + effectiveHeight);
+
+      return {
+        startIndex: Math.max(0, startIdx - overscan),
+        endIndex: Math.min(totalCount, endIdx + overscan),
+      };
+    },
+    [containerHeight, findIndex, overscan, totalCount],
+  );
+
+  const onScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      // Clamp to non-negative values, preventing issues during "elastic" scrolling or momentum overscroll
+      const nextScrollTop = Math.max(0, e.currentTarget.scrollTop);
+      scrollTopRef.current = nextScrollTop;
+
+      const nextRange = computeRange(nextScrollTop);
+      if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
+        setRange(nextRange);
+      }
+    },
+    [computeRange, range.endIndex, range.startIndex],
+  );
 
   // Sync range when totalCount or heights change
   useMemo(() => {

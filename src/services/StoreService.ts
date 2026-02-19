@@ -108,8 +108,8 @@ export const StoreServiceLive = Layer.effect(
           threadsMap[h.id] = h;
         }
 
-        let activeThread: Thread | null = null;
         const settings = metadata.settings;
+        let activeThread: Thread | null = null;
 
         if (metadata.activeThreadId) {
           activeThread = yield* storage.getThread(metadata.activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));

@@ -131,6 +131,14 @@ export const StorageServiceLive = Layer.effect(
             messagesRecord[m.id] = m;
           }
 
+          // Ensure the active message is present if a limit was applied
+          if (options?.limit && thread.activeMessageId && !messagesRecord[thread.activeMessageId]) {
+            const activeMsg = yield* Effect.promise(() => db.get(STORES.MESSAGES, thread.activeMessageId));
+            if (activeMsg) {
+              messagesRecord[activeMsg.id] = activeMsg as ThreadMessage;
+            }
+          }
+
           return { ...thread, messages: messagesRecord } as Thread;
         }),
 
@@ -201,9 +209,9 @@ export const StorageServiceLive = Layer.effect(
             if (lastKey !== undefined) {
               // For compound indexes like [threadId, timestamp]
               if (direction === 'prev') {
-                range = IDBKeyRange.upperBound([indexValue, lastKey], true);
+                range = IDBKeyRange.bound([indexValue, -Infinity], [indexValue, lastKey], false, true);
               } else {
-                range = IDBKeyRange.lowerBound([indexValue, lastKey], true);
+                range = IDBKeyRange.bound([indexValue, lastKey], [indexValue, Infinity], true, false);
               }
             } else {
               range = IDBKeyRange.only(indexValue);
