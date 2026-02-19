@@ -43,7 +43,7 @@ const STORES = {
 
 const connectDB = Effect.promise(() =>
   openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, _oldVersion, _newVersion, transaction) {
+    upgrade(db) {
       if (!db.objectStoreNames.contains(STORES.METADATA)) {
         db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
       }
@@ -51,24 +51,11 @@ const connectDB = Effect.promise(() =>
         const threadStore = db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
         threadStore.createIndex('title', 'title');
         threadStore.createIndex('updatedAt', 'updatedAt');
-      } else {
-        const store = transaction.objectStore(STORES.THREADS);
-        if (!store.indexNames.contains('title')) {
-          store.createIndex('title', 'title');
-        }
-        if (!store.indexNames.contains('updatedAt')) {
-          store.createIndex('updatedAt', 'updatedAt');
-        }
       }
       if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
         const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
         messageStore.createIndex('threadId', 'threadId');
         messageStore.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
-      } else {
-        const store = transaction.objectStore(STORES.MESSAGES);
-        if (!store.indexNames.contains('threadId_timestamp')) {
-          store.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
-        }
       }
     },
   }),

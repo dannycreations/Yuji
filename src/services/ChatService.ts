@@ -155,7 +155,7 @@ export const ChatServiceLive = Layer.effect(
         };
 
         const streamEffect = Effect.gen(function* () {
-          yield* chatService.addMessage(threadId, assistantMessage);
+          yield* chat.addMessage(threadId, assistantMessage);
 
           const thread = yield* storage.getThread(threadId);
           if (!thread) return;
@@ -198,33 +198,33 @@ export const ChatServiceLive = Layer.effect(
               if (now - lastUITime >= UI_UPDATE_INTERVAL) {
                 lastUITime = now;
                 lastUISaveContent = fullContent;
-                yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
+                yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
               }
 
               // Throttle Storage updates to prevent IDB write bottleneck
               if (now - lastSaveTime >= STORAGE_SAVE_INTERVAL) {
                 lastSaveTime = now;
                 lastSavedContent = fullContent;
-                yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
+                yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
               }
             }),
           );
 
           // Ensure final state is synchronized to both UI and Storage
           if (fullContent !== lastUISaveContent) {
-            yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
+            yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
           }
           if (fullContent !== lastSavedContent) {
-            yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
+            yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
           }
 
           // Update timestamp once when stream is finished
-          yield* chatService.updateMessage(threadId, id, fullContent, { metadataOnly: true });
+          yield* chat.updateMessage(threadId, id, fullContent, { metadataOnly: true });
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
               const msg = formatError(err);
-              yield* chatService.updateMessage(threadId, id, `*[Error: ${msg}]*`, { isError: true });
+              yield* chat.updateMessage(threadId, id, `*[Error: ${msg}]*`, { isError: true });
               yield* store.notify('error', `Chat error: ${msg}`);
             }),
           ),
@@ -251,7 +251,7 @@ export const ChatServiceLive = Layer.effect(
         fibers.set(threadId, fiber);
       });
 
-    const chatService: ChatService = ChatService.of({
+    const chat: ChatService = ChatService.of({
       updateThread,
       generate,
       stop,
@@ -261,7 +261,7 @@ export const ChatServiceLive = Layer.effect(
           let targetThreadId = activeThreadId;
 
           if (!targetThreadId) {
-            const thread = yield* chatService.createThread();
+            const thread = yield* chat.createThread();
             targetThreadId = thread.id;
           }
 
@@ -274,9 +274,9 @@ export const ChatServiceLive = Layer.effect(
             parentId: activeThread?.activeMessageId,
           };
 
-          yield* chatService.addMessage(targetThreadId, userMessage);
-          const history = yield* chatService.getThreadPath(targetThreadId, userMessage.id);
-          yield* chatService.generate(targetThreadId, history, options);
+          yield* chat.addMessage(targetThreadId, userMessage);
+          const history = yield* chat.getThreadPath(targetThreadId, userMessage.id);
+          yield* chat.generate(targetThreadId, history, options);
         }).pipe(
           Effect.catchAll((err) => store.notify('error', `Failed to send message: ${formatError(err)}`)),
           Effect.orDie,
@@ -292,11 +292,11 @@ export const ChatServiceLive = Layer.effect(
           const history =
             originalMessage.role === 'assistant'
               ? originalMessage.parentId
-                ? yield* chatService.getThreadPath(threadId, originalMessage.parentId)
+                ? yield* chat.getThreadPath(threadId, originalMessage.parentId)
                 : []
-              : yield* chatService.getThreadPath(threadId, messageId);
+              : yield* chat.getThreadPath(threadId, messageId);
 
-          yield* chatService.generate(threadId, history, options);
+          yield* chat.generate(threadId, history, options);
         }).pipe(
           Effect.catchAll((err) => store.notify('error', `Failed to regenerate: ${formatError(err)}`)),
           Effect.orDie,
@@ -528,16 +528,8 @@ export const ChatServiceLive = Layer.effect(
             updatedAt: now,
           };
 
-          const metadata = yield* Schema.decode(ThreadMetadata)(newThread).pipe(Effect.orDie);
-          yield* store.update((s) => ({
-            ...s,
-            threads: { [id]: metadata, ...s.threads },
-            activeThreadId: id,
-            activeThread: newThread,
-          }));
-
-          yield* storage.saveThread(newThread);
-          yield* storage.saveMessages(id, Object.values(branchedMessages));
+          yield* chat.importThreads({ [id]: newThread });
+          yield* store.setActiveThread(newThread);
 
           return newThread;
         }),
@@ -557,13 +549,13 @@ export const ChatServiceLive = Layer.effect(
         if (lastMessage && lastUserMessage) {
           if (lastMessage.role === 'assistant' && !lastMessage.isError) {
             // It was an assistant message (empty or partial) that was interrupted
-            yield* chatService.deleteMessage(threadId, lastMessage.id);
+            yield* chat.deleteMessage(threadId, lastMessage.id);
             const path = getMessagePath(thread, lastUserMessage.id);
-            yield* chatService.generate(threadId, path);
+            yield* chat.generate(threadId, path);
           } else if (lastMessage.role === 'user') {
             // It was a user message that hadn't triggered generate yet
             const path = getMessagePath(thread, lastMessage.id);
-            yield* chatService.generate(threadId, path);
+            yield* chat.generate(threadId, path);
           } else {
             // Clear stale loading state for finished or errored messages
             yield* store.update((s) => ({
@@ -581,6 +573,6 @@ export const ChatServiceLive = Layer.effect(
       }
     }).pipe(Effect.forkDaemon);
 
-    return chatService;
+    return chat;
   }),
 );
