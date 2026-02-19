@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import mermaid from 'mermaid';
-import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -69,10 +69,6 @@ const CodeBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
   const theme = useStore((s) => s.settings.theme);
   const handleDownload = useCallback(() => downloadFile(value, `code-${randomId(6)}.txt`), [value]);
 
-  // Use deferred value for the code content to prioritize UI responsiveness (scrolling, typing)
-  // over heavy syntax highlighting, especially during high-frequency streaming updates.
-  const deferredValue = useDeferredValue(value);
-
   return (
     <BaseMessageBlock label={language || 'code'} value={value} onDownload={handleDownload}>
       <SyntaxHighlighter
@@ -96,15 +92,17 @@ const CodeBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
         }}
         wrapLongLines={true}
       >
-        {deferredValue}
+        {value}
       </SyntaxHighlighter>
     </BaseMessageBlock>
   );
 });
 
+const mermaidCache = new Map<string, string>();
+
 const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   const theme = useStore((s) => s.settings.theme);
-  const [svg, setSvg] = useState<string>('');
+  const [svg, setSvg] = useState<string>(() => mermaidCache.get(`${theme}-${code}`) || '');
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -112,18 +110,21 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   const mermaidConfig = useMemo(() => MERMAID_CONFIG(theme), [theme]);
 
   useEffect(() => {
+    const cached = mermaidCache.get(`${theme}-${code}`);
+    if (cached) {
+      setSvg(cached);
+      return;
+    }
+
     let isMounted = true;
     const render = async () => {
-      // Small debounce/delay to prevent rapid re-renders of Mermaid diagrams during streaming
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      if (!isMounted) return;
-
       try {
         mermaid.initialize(mermaidConfig);
         const id = `mermaid-${randomId(8)}`;
-        const { svg } = await mermaid.render(id, code);
+        const { svg: renderedSvg } = await mermaid.render(id, code);
         if (isMounted) {
-          setSvg(svg);
+          mermaidCache.set(`${theme}-${code}`, renderedSvg);
+          setSvg(renderedSvg);
           setError(null);
         }
       } catch (err) {
@@ -137,7 +138,7 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
     return () => {
       isMounted = false;
     };
-  }, [code, mermaidConfig]);
+  }, [code, theme, mermaidConfig]);
 
   const handleFullscreen = useCallback(() => setIsFullscreen(true), []);
   const handleCloseFullscreen = useCallback(() => setIsFullscreen(false), []);
@@ -148,7 +149,7 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
         {error ? (
           <pre className="code-error">{code}</pre>
         ) : (
-          <div ref={containerRef} className="mermaid-container" dangerouslySetInnerHTML={{ __html: svg }} />
+          <div ref={containerRef} className={clsx('mermaid-container', !svg && 'opacity-0')} dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </BaseMessageBlock>
       {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={handleCloseFullscreen} />}

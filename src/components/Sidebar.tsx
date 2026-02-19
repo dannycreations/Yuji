@@ -1,11 +1,10 @@
+import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
-import { useVirtualList } from '../hooks/useVirtualList';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
@@ -49,7 +48,7 @@ export const Sidebar: FC = () => {
 
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { height: containerHeight } = useResizeObserver(scrollContainerRef);
+  useResizeObserver(scrollContainerRef);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
 
@@ -60,20 +59,27 @@ export const Sidebar: FC = () => {
     [sortedThreads, searchQuery, pinnedThreadIds],
   );
 
-  const { startIndex, endIndex, translateY, totalHeight, onScroll, measureElement } = useVirtualList({
-    containerHeight,
-    estimatedItemHeight: 44, // 40px item + 4px gap
-    items: flattenedThreads,
-    getItemKey: (item) => (item.type === 'label' ? `label-${item.label}` : item.thread.id),
+  const virtualizer = useVirtualizer({
+    count: flattenedThreads.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 44,
+    getItemKey: (index) => {
+      const item = flattenedThreads[index];
+      return item.type === 'label' ? `label-${item.label}` : item.thread.id;
+    },
+    overscan: 5,
   });
 
-  const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
-    onLoadMore: () => {
+  const virtualItems = virtualizer.getVirtualItems();
+
+  useEffect(() => {
+    const [lastItem] = [...virtualItems].reverse();
+    if (!lastItem) return;
+
+    if (lastItem.index >= flattenedThreads.length - 1) {
       loadMoreThreads();
-    },
-    direction: 'bottom',
-    threshold: 20,
-  });
+    }
+  }, [virtualItems, flattenedThreads.length, loadMoreThreads]);
 
   const menuThreadMetadata = menuOpenId ? threads[menuOpenId] : null;
 
@@ -109,10 +115,7 @@ export const Sidebar: FC = () => {
       <div
         className={clsx('sidebar-content scrollbar-autohide', isScrolling && 'scrolling')}
         ref={scrollContainerRef}
-        onScroll={(e) => {
-          onScroll(e);
-          handleInfiniteScroll(e);
-
+        onScroll={() => {
           setIsScrolling(true);
           if (scrollTimerRef.current) {
             window.clearTimeout(scrollTimerRef.current);
@@ -123,12 +126,21 @@ export const Sidebar: FC = () => {
           }, 1500);
         }}
       >
-        <div style={{ height: totalHeight, position: 'relative' }}>
-          <div style={{ transform: `translateY(${translateY}px)` }}>
-            {flattenedThreads.slice(startIndex, endIndex).map((item) => {
+        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
+            }}
+          >
+            {virtualItems.map((virtualRow) => {
+              const item = flattenedThreads[virtualRow.index];
               if (item.type === 'label') {
                 return (
-                  <h3 key={`label-${item.label}`} ref={measureElement} data-vkey={`label-${item.label}`} className="label-caps p-2 h-[40px]">
+                  <h3 key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="label-caps p-2 h-[40px]">
                     {item.label}
                   </h3>
                 );
@@ -136,9 +148,9 @@ export const Sidebar: FC = () => {
               const { thread } = item;
               return (
                 <div
-                  key={thread.id}
-                  ref={measureElement}
-                  data-vkey={thread.id}
+                  key={virtualRow.key}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
                   className={clsx('sidebar-thread-item group', activeThreadId === thread.id && 'sidebar-thread-item-active')}
                   onClick={() => setActiveThread(thread.id)}
                 >

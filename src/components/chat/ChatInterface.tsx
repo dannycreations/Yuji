@@ -1,13 +1,12 @@
+import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS, SEARCH_INSTRUCTION } from '../../app/Constant';
 import { getVisibleMessages } from '../../helpers/ThreadHelper';
 import { getGreeting } from '../../helpers/UserHelper';
-import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
-import { useVirtualList } from '../../hooks/useVirtualList';
 import { Header } from '../Header';
 import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
@@ -41,77 +40,84 @@ export const ChatInterface: FC = () => {
   const visibleMessages = useMemo(() => (activeThread ? getVisibleMessages(activeThread) : []), [activeThread]);
 
   const isAtBottomRef = useRef(true);
+  const [isReady, setIsReady] = useState(false);
+  const lastThreadId = useRef<string | null>(null);
 
   const isTransitioning = activeThreadId && (!activeThread || activeThread.id !== activeThreadId);
   const isEmpty = !activeThread || Object.keys(activeThread.messages).length === 0;
 
-  const { handleScroll: handleInfiniteScroll } = useInfiniteScroll({
-    onLoadMore: () => {
-      loadMoreMessages();
-    },
-    direction: 'top',
-    threshold: 50,
-    isLoading,
-    enabled: !isEmpty,
-  });
-
-  useLayoutEffect(() => {
-    const el = scrollAreaRef.current;
-    if (!el || !containerHeight) return;
-
-    if (isAtBottomRef.current) {
-      requestAnimationFrame(() => {
-        el.scrollTop = el.scrollHeight;
-      });
-    }
-  }, [
-    visibleMessages.length,
-    activeThread?.activeMessageId,
-    containerHeight,
-    // Trigger auto-scroll when content of the last message changes during streaming
-    visibleMessages[visibleMessages.length - 1]?.content,
-  ]);
-
-  useLayoutEffect(() => {
-    if (!isLoading && scrollAreaRef.current && containerHeight) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
-      isAtBottomRef.current = true;
-    }
-  }, [isLoading, containerHeight]);
-
-  const { startIndex, endIndex, translateY, totalHeight, onScroll, measureElement, clearItemHeights } = useVirtualList({
-    containerHeight,
-    estimatedItemHeight: 100,
-    items: visibleMessages,
-    getItemKey: (m) => m.id,
+  const virtualizer = useVirtualizer({
+    count: visibleMessages.length,
+    getScrollElement: () => scrollAreaRef.current,
+    estimateSize: () => 150,
+    getItemKey: (index) => visibleMessages[index].id,
     overscan: 10,
   });
 
-  useEffect(() => {
-    if (activeThreadId) {
-      clearItemHeights();
-      loadMessages(activeThreadId);
+  const totalSize = virtualizer.getTotalSize();
+  const virtualItems = virtualizer.getVirtualItems();
+
+  // Reset ready state and scroll position on thread change
+  useLayoutEffect(() => {
+    if (activeThreadId !== lastThreadId.current) {
+      lastThreadId.current = activeThreadId;
+      setIsReady(false);
       isAtBottomRef.current = true;
     }
-  }, [activeThreadId, loadMessages, clearItemHeights]);
+  }, [activeThreadId]);
 
+  // Load messages for the active thread
   useEffect(() => {
-    if (isLoading) {
-      clearItemHeights();
+    if (activeThreadId) {
+      loadMessages(activeThreadId);
     }
-  }, [isLoading, clearItemHeights]);
+  }, [activeThreadId, loadMessages]);
+
+  // Handle initial scroll and ready state
+  useLayoutEffect(() => {
+    if (!containerHeight || isTransitioning || isEmpty) return;
+
+    if (!isReady) {
+      if (visibleMessages.length > 0) {
+        virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
+      }
+
+      // Mark as ready after a short delay to allow measurements to stabilize
+      const timer = setTimeout(() => {
+        setIsReady(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [containerHeight, isReady, isTransitioning, isEmpty, visibleMessages.length, virtualizer]);
+
+  // Keep scroll at bottom when content changes or during streaming
+  useLayoutEffect(() => {
+    if (!isReady || !isAtBottomRef.current || isTransitioning) return;
+
+    // Use scrollToIndex for more stable behavior with virtualization
+    virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
+  }, [totalSize, visibleMessages.length, isReady, isTransitioning, virtualizer]);
+
+  // Auto-load more messages when scrolling to top
+  useEffect(() => {
+    const [firstItem] = virtualItems;
+    if (!firstItem) return;
+
+    if (firstItem.index <= 0 && !isLoading && !isEmpty && isReady) {
+      loadMoreMessages();
+    }
+  }, [virtualItems, isLoading, isEmpty, loadMoreMessages, isReady]);
 
   return (
     <div className="main-layout">
       <Header />
       <div
-        className={clsx('chat-scroll-area', !containerHeight && 'opacity-0')}
+        className={clsx('chat-scroll-area', (!containerHeight || (!isReady && !isEmpty)) && 'opacity-0')}
         ref={scrollAreaRef}
         onScroll={(e) => {
-          onScroll(e);
-          handleInfiniteScroll(e);
           const el = e.currentTarget;
-          const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+          // Use a slightly larger threshold for virtualization stability
+          const isAtBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 100;
           isAtBottomRef.current = isAtBottom;
         }}
       >
@@ -138,16 +144,24 @@ export const ChatInterface: FC = () => {
           </div>
         ) : (
           <div className="message-list-container">
-            <div style={{ height: totalHeight, position: 'relative' }}>
-              <div style={{ transform: `translateY(${translateY}px)` }}>
-                {visibleMessages.slice(startIndex, endIndex).map((message, sliceIdx) => {
-                  const idx = startIndex + sliceIdx;
+            <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
+                }}
+              >
+                {virtualItems.map((virtualRow) => {
+                  const message = visibleMessages[virtualRow.index];
                   return (
-                    <div key={message.id} ref={measureElement} data-vkey={message.id} className="w-full">
+                    <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="w-full">
                       <ChatMessageBubble
                         message={message}
                         threadId={activeThread.id}
-                        isThinking={isLoading && idx === visibleMessages.length - 1 && message.role === 'assistant'}
+                        isThinking={isLoading && virtualRow.index === visibleMessages.length - 1 && message.role === 'assistant'}
                       />
                     </div>
                   );
