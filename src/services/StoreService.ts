@@ -39,8 +39,7 @@ const createNotification = (
   message: string,
   existingNotifications: readonly AppRuntimeState['notifications'][number][],
 ): AppRuntimeState['notifications'] => {
-  const existing = existingNotifications.find((n) => n.message === message && n.type === type);
-  const filtered = existing ? existingNotifications.filter((n) => n.id !== existing.id) : existingNotifications;
+  const filtered = existingNotifications.filter((n) => n.message !== message || n.type !== type);
 
   return [
     {
@@ -102,37 +101,11 @@ export const StoreServiceLive = Layer.effect(
       const { metadata, threadHeaders } = result.right;
 
       if (metadata) {
-        const threadsMap: Record<string, ThreadMetadata> = {};
-        for (let i = 0, len = threadHeaders.length; i < len; i++) {
-          const h = threadHeaders[i];
-          threadsMap[h.id] = h;
-        }
-
-        const settings = metadata.settings;
-        let activeThread: Thread | null = null;
-
-        if (metadata.activeThreadId) {
-          activeThread = yield* storage.getThread(metadata.activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
-        }
-
-        // Only keep pinned and most recent threads in initial memory
-        // Others will be loaded via loadMoreThreads or search
-        const filteredThreadsMap: Record<string, ThreadMetadata> = {};
-
-        for (let i = 0, len = threadHeaders.length; i < len; i++) {
-          const h = threadHeaders[i];
-          filteredThreadsMap[h.id] = h;
-        }
-
-        // Ensure pinned threads are also in memory
-        const pIds = metadata.pinnedThreadIds;
-        for (let i = 0, pLen = pIds.length; i < pLen; i++) {
-          const pid = pIds[i];
-          if (!filteredThreadsMap[pid]) {
-            const t = threadsMap[pid];
-            if (t) filteredThreadsMap[pid] = t;
-          }
-        }
+        const threads: Record<string, ThreadMetadata> = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
+        const { activeThreadId, settings } = metadata;
+        const activeThread = activeThreadId
+          ? yield* storage.getThread(activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)))
+          : null;
 
         return {
           ...INITIAL_STATE,
@@ -143,7 +116,7 @@ export const StoreServiceLive = Layer.effect(
             model: activeThread?.general.model || settings.model,
           },
           activeThread,
-          threads: filteredThreadsMap,
+          threads,
           isHydrated: true,
         } as AppRuntimeState;
       }
@@ -285,131 +258,73 @@ export const StoreServiceLive = Layer.effect(
       loadMoreMessages: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          const active = s.activeThread;
-          if (!active) return;
+          if (!s.activeThread) return;
 
-          const threadId = active.id;
-          // Use timestamp for lastKey since we updated StorageService to use compound index [threadId, timestamp]
-          let oldestTimestamp: number | undefined;
-          const msgs = active.messages;
-          for (const id in msgs) {
-            const m = msgs[id];
-            if (!oldestTimestamp || m.timestamp < oldestTimestamp) {
-              oldestTimestamp = m.timestamp;
-            }
-          }
-          const lastKey = oldestTimestamp;
+          const { id: tid, messages } = s.activeThread;
+          const lastKey = Object.values(messages).reduce((min, m) => (m.timestamp < min ? m.timestamp : min), Infinity);
 
-          const moreMessages = yield* storage.getMessages(threadId, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
-          if (moreMessages.length === 0) return;
+          const more = yield* storage.getMessages(tid, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+          if (more.length === 0) return;
 
           yield* update((s) => {
-            if (!s.activeThread || s.activeThread.id !== threadId) return s;
-            const newMessages = { ...s.activeThread.messages };
-            moreMessages.forEach((m) => {
-              newMessages[m.id] = m;
-            });
-
-            // Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
-            const messageList = Object.values(newMessages);
-            const total = messageList.length;
-
-            if (total <= MAX_MEM_MESSAGES) {
-              return {
-                ...s,
-                activeThread: { ...s.activeThread, messages: newMessages },
-              };
+            if (s.activeThread?.id !== tid) return s;
+            const next = { ...s.activeThread.messages };
+            for (let i = 0, len = more.length; i < len; i++) {
+              next[more[i].id] = more[i];
             }
 
-            const activePath = s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId) : [];
-            const finalMessages: Record<string, ThreadMessage> = {};
-            let count = 0;
+            const list = Object.values(next);
+            if (list.length <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
 
-            for (let i = 0, len = activePath.length; i < len; i++) {
-              const m = activePath[i];
-              finalMessages[m.id] = m;
-              count++;
-            }
-
-            if (count < MAX_MEM_MESSAGES) {
-              messageList.sort((a, b) => b.timestamp - a.timestamp);
-              for (let i = 0; i < total && count < MAX_MEM_MESSAGES; i++) {
-                const m = messageList[i];
-                if (!finalMessages[m.id]) {
-                  finalMessages[m.id] = m;
-                  count++;
-                }
+            const final: Record<string, ThreadMessage> = {};
+            const activeId = s.activeThread.activeMessageId;
+            if (activeId) {
+              const path = getMessagePath(s.activeThread, activeId);
+              for (let i = 0, len = path.length; i < len; i++) {
+                final[path[i].id] = path[i];
               }
             }
 
-            return {
-              ...s,
-              activeThread: { ...s.activeThread, messages: finalMessages },
-            };
+            list.sort((a, b) => b.timestamp - a.timestamp);
+            for (let i = 0, len = list.length; i < len && Object.keys(final).length < MAX_MEM_MESSAGES; i++) {
+              final[list[i].id] = list[i];
+            }
+
+            return { ...s, activeThread: { ...s.activeThread, messages: final } };
           });
         }),
       loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          // Avoid full Object.values().sort() just to find the oldest thread
-          let oldest: ThreadMetadata | undefined;
-          for (const id in s.threads) {
-            const t = s.threads[id];
-            if (!oldest || t.updatedAt < oldest.updatedAt) {
-              oldest = t;
-            }
-          }
-          const lastKey = oldest?.updatedAt;
+          const lastKey = Object.values(s.threads).reduce((min, t) => (t.updatedAt < min ? t.updatedAt : min), Infinity);
 
-          const moreHeaders = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
-
-          if (moreHeaders.length === 0) return;
+          const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+          if (more.length === 0) return;
 
           yield* update((s) => {
-            const newThreads = { ...s.threads };
-            moreHeaders.forEach((h) => {
-              newThreads[h.id] = h;
-            });
-
-            // Keep pinned threads + up to MAX_MEM_THREADS most recent/relevant threads
-            const threadList = Object.values(newThreads);
-
-            if (threadList.length <= MAX_MEM_THREADS) {
-              return { ...s, threads: newThreads };
+            const next = { ...s.threads };
+            for (let i = 0, len = more.length; i < len; i++) {
+              next[more[i].id] = more[i];
             }
 
-            const sortedByRecent = threadList.sort((a, b) => b.updatedAt - a.updatedAt);
-            const result: Record<string, ThreadMetadata> = {};
-            let count = 0;
+            const list = Object.values(next);
+            if (list.length <= MAX_MEM_THREADS) return { ...s, threads: next };
 
-            // 1. Always keep pinned threads
-            const pIds = s.pinnedThreadIds;
-            for (let i = 0, pLen = pIds.length; i < pLen; i++) {
-              const t = newThreads[pIds[i]];
-              if (t) {
-                result[t.id] = t;
-                count++;
-              }
+            const res: Record<string, ThreadMetadata> = {};
+            const pinned = s.pinnedThreadIds;
+            for (let i = 0, len = pinned.length; i < len; i++) {
+              const id = pinned[i];
+              if (next[id]) res[id] = next[id];
             }
-
-            // 2. Always keep the active thread header
             const activeId = s.activeThreadId;
-            if (activeId && newThreads[activeId] && !result[activeId]) {
-              result[activeId] = newThreads[activeId];
-              count++;
+            if (activeId && next[activeId]) res[activeId] = next[activeId];
+
+            list.sort((a, b) => b.updatedAt - a.updatedAt);
+            for (let i = 0, len = list.length; i < len && Object.keys(res).length < MAX_MEM_THREADS; i++) {
+              res[list[i].id] = list[i];
             }
 
-            // 3. Fill remaining quota with most recent threads
-            for (let i = 0, sLen = sortedByRecent.length; i < sLen; i++) {
-              if (count >= MAX_MEM_THREADS) break;
-              const t = sortedByRecent[i];
-              if (!result[t.id]) {
-                result[t.id] = t;
-                count++;
-              }
-            }
-
-            return { ...s, threads: result };
+            return { ...s, threads: res };
           });
         }),
       searchThreads: (query) =>

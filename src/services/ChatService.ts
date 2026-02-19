@@ -90,21 +90,32 @@ export const ChatServiceLive = Layer.effect(
 
         const updated = f(thread, now);
         const finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
-        const finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread).pipe(Effect.orDie);
 
         yield* store.update((s) => ({
           ...s,
-          threads: options.skipUpdateTimestamp ? s.threads : { ...s.threads, [threadId]: finalMetadata },
+          threads: options.skipUpdateTimestamp
+            ? s.threads
+            : {
+                ...s.threads,
+                [threadId]: {
+                  id: finalThread.id,
+                  title: finalThread.title,
+                  createdAt: finalThread.createdAt,
+                  updatedAt: finalThread.updatedAt,
+                  activeMessageId: finalThread.activeMessageId,
+                  archived: finalThread.archived,
+                } satisfies ThreadMetadata,
+              },
           activeThread: s.activeThreadId === threadId ? finalThread : s.activeThread,
         }));
 
-        // Always patch metadata for immediate O(1) visibility of state changes.
-        yield* storage.patchThread(threadId, finalMetadata);
+        if (!options.uiOnly) {
+          const finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread).pipe(Effect.orDie);
+          yield* storage.patchThread(threadId, finalMetadata);
 
-        // Only perform a full thread save if we are not in a metadata-only update
-        // AND not in a high-frequency UI-only pulse (streaming).
-        if (!options.metadataOnly && (!options.skipUpdateTimestamp || !options.uiOnly)) {
-          yield* storage.saveThread(finalThread);
+          if (!options.metadataOnly && !options.skipUpdateTimestamp) {
+            yield* storage.saveThread(finalThread);
+          }
         }
       });
 
@@ -320,30 +331,22 @@ export const ChatServiceLive = Layer.effect(
 
       deleteThreads: (input) =>
         Effect.gen(function* () {
-          const ids = typeof input === 'string' ? [input] : Array.isArray(input) ? input : Array.from(input);
+          const ids = typeof input === 'string' ? [input] : Array.from(input);
           const len = ids.length;
           if (len === 0) return;
 
-          // Batch interrupt
-          const stopEffects: Effect.Effect<void, never, never>[] = new Array(len);
-          for (let i = 0; i < len; i++) {
-            stopEffects[i] = stop(ids[i]);
-          }
-          yield* Effect.all(stopEffects, { concurrency: 'unbounded', discard: true });
+          yield* Effect.all(ids.map(stop), { concurrency: 'unbounded', discard: true });
 
-          const idSet = len > 1 ? new Set(ids) : null;
-
+          const idSet = new Set(ids);
           yield* store.update((state) => {
             const threads = { ...state.threads };
-            for (let i = 0; i < len; i++) {
-              delete threads[ids[i]];
-            }
+            for (let i = 0; i < len; i++) delete threads[ids[i]];
             const activeId = state.activeThreadId;
-            const isActiveDeleted = activeId && (idSet ? idSet.has(activeId) : activeId === ids[0]);
+            const isActiveDeleted = activeId && idSet.has(activeId);
             return {
               ...state,
               threads,
-              activeThreadId: isActiveDeleted ? null : state.activeThreadId,
+              activeThreadId: isActiveDeleted ? null : activeId,
               activeThread: isActiveDeleted ? null : state.activeThread,
             };
           });
@@ -360,6 +363,7 @@ export const ChatServiceLive = Layer.effect(
           for (const [id, thread] of Object.entries(threads)) {
             metadatas[id] = yield* Schema.decode(ThreadMetadata)(thread).pipe(Effect.orDie);
             saveEffects.push(storage.saveThread(thread));
+            saveEffects.push(storage.saveMessages(id, Object.values(thread.messages)));
           }
 
           yield* Effect.all(
@@ -463,7 +467,7 @@ export const ChatServiceLive = Layer.effect(
                 idsToDelete.push(id);
                 const children = msg.childrenIds;
                 if (children) {
-                  for (let i = 0, len = children.length; i < len; i++) {
+                  for (let i = 0, cLen = children.length; i < cLen; i++) {
                     stack.push(children[i]);
                   }
                 }
@@ -549,25 +553,13 @@ export const ChatServiceLive = Layer.effect(
         const lastMessage = messages[0];
         const lastUserMessage = messages.find((m) => m.role === 'user');
 
-        if (lastMessage && lastUserMessage) {
-          if (lastMessage.role === 'assistant' && !lastMessage.isError) {
-            // It was an assistant message (empty or partial) that was interrupted
-            yield* chat.deleteMessage(threadId, lastMessage.id);
-            const path = getMessagePath(thread, lastUserMessage.id);
-            yield* chat.generate(threadId, path);
-          } else if (lastMessage.role === 'user') {
-            // It was a user message that hadn't triggered generate yet
-            const path = getMessagePath(thread, lastMessage.id);
-            yield* chat.generate(threadId, path);
-          } else {
-            // Clear stale loading state for finished or errored messages
-            yield* store.update((s) => ({
-              ...s,
-              backgroundThreadIds: s.backgroundThreadIds.filter((id) => id !== threadId),
-            }));
-          }
+        if (lastMessage?.role === 'assistant' && !lastMessage.isError) {
+          yield* chat.deleteMessage(threadId, lastMessage.id);
+          const path = lastUserMessage ? getMessagePath(thread, lastUserMessage.id) : [];
+          if (path.length > 0) yield* chat.generate(threadId, path);
+        } else if (lastMessage?.role === 'user') {
+          yield* chat.generate(threadId, getMessagePath(thread, lastMessage.id));
         } else {
-          // No valid state to resume
           yield* store.update((s) => ({
             ...s,
             backgroundThreadIds: s.backgroundThreadIds.filter((id) => id !== threadId),

@@ -15,10 +15,7 @@ import type { FC } from 'react';
 import type { ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
-  const threads = useStore(
-    (s) => s.threads,
-    (a, b) => a === b,
-  );
+  const threads = useStore((s) => s.threads);
   const userName = useStore((s) => s.settings.personalisation.userName);
   const activeThreadId = useStore((s) => s.activeThreadId);
   const pinnedThreadIds = useStore((s) => s.pinnedThreadIds);
@@ -52,12 +49,10 @@ export const Sidebar: FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
 
-  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads)), [threads]);
-
-  const flattenedThreads = useMemo(
-    () => getFlattenedThreads(sortedThreads, searchQuery, pinnedThreadIds),
-    [sortedThreads, searchQuery, pinnedThreadIds],
-  );
+  const flattenedThreads = useMemo(() => {
+    const sorted = sortThreadsByDate(Object.values(threads));
+    return getFlattenedThreads(sorted, searchQuery, pinnedThreadIds);
+  }, [threads, searchQuery, pinnedThreadIds]);
 
   const virtualizer = useVirtualizer({
     count: flattenedThreads.length,

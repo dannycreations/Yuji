@@ -76,7 +76,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   const handleSaveEdit = useCallback(() => {
     const contentChanged = editContent.trim() !== message.content.trim();
-    const attachmentsChanged = JSON.stringify(attachments) !== JSON.stringify(message.attachments || []);
+    const currentAttachments = message.attachments || [];
+    const attachmentsChanged =
+      attachments.length !== currentAttachments.length ||
+      attachments.some((a, i) => a.id !== currentAttachments[i]?.id || a.url !== currentAttachments[i]?.url);
 
     if (contentChanged || attachmentsChanged) {
       onUpdateMessage(threadId, message.id, editContent, [...attachments]);
@@ -115,13 +118,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     () => ({
       code({ node, className, children, ...props }) {
         const match = /language-(\w+)/.exec(className || '');
-        const language = match ? match[1] : '';
         const rawContent = String(children);
         const value = rawContent.replace(/\n$/, '');
-        const isMultiline = value.includes('\n');
 
-        if (match || isMultiline || rawContent.endsWith('\n')) {
-          return <ChatMessageBlock language={language} value={value} />;
+        if (match || value.includes('\n') || rawContent.endsWith('\n')) {
+          return <ChatMessageBlock language={match ? match[1] : ''} value={value} />;
         }
 
         return (

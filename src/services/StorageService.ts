@@ -127,17 +127,16 @@ export const StorageServiceLive = Layer.effect(
 
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord: Record<string, ThreadMessage> = {};
-          let hasActiveMessage = false;
+          const activeId = thread.activeMessageId;
 
           for (let i = 0, len = messages.length; i < len; i++) {
             const m = messages[i];
             messagesRecord[m.id] = m;
-            if (m.id === thread.activeMessageId) hasActiveMessage = true;
           }
 
           // Ensure the active message is present if a limit was applied
-          if (options?.limit && thread.activeMessageId && !hasActiveMessage) {
-            const activeMsg = yield* Effect.promise(() => db.get(STORES.MESSAGES, thread.activeMessageId));
+          if (options?.limit && activeId && !messagesRecord[activeId]) {
+            const activeMsg = yield* Effect.promise(() => db.get(STORES.MESSAGES, activeId));
             if (activeMsg) {
               messagesRecord[activeMsg.id] = activeMsg as ThreadMessage;
             }
@@ -230,9 +229,8 @@ export const StorageServiceLive = Layer.effect(
             const val = cursor.value;
             // If using compound index but range isn't strictly 'only' on the first part (e.g. upperBound)
             // we must manually verify the prefix to avoid bleeding into other threads.
-            if (indexValue !== undefined && indexName?.includes('_')) {
-              const rowValue = val as any;
-              if (rowValue.threadId !== indexValue) break;
+            if (indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue) {
+              break;
             }
 
             results.push(val);

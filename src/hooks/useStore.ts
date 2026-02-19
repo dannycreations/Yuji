@@ -1,5 +1,5 @@
 import { Effect, ManagedRuntime } from 'effect';
-import { createContext, useCallback, useContext, useMemo, useRef, useSyncExternalStore } from 'react';
+import { createContext, useCallback, useContext, useRef, useSyncExternalStore } from 'react';
 
 import { YujiRuntime } from '../app/Runtime';
 import { ChatService } from '../services/ChatService';
@@ -19,31 +19,22 @@ const useStoreService = (): StoreService => {
 
 export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T => {
   const store = useStoreService();
-  const lastSelectedState = useRef<T>(null as unknown as T);
-  const selectorRef = useRef(selector);
-  const isEqualRef = useRef(isEqual);
 
-  selectorRef.current = selector;
-  isEqualRef.current = isEqual;
+  const getSnapshot = useCallback(() => selector(store.getSnapshot()), [store, selector]);
 
-  const subscribe = useMemo(() => {
-    return (callback: () => void) => {
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      let lastValue = getSnapshot();
       return store.subscribe(() => {
-        const nextSelectedState = selectorRef.current(store.getSnapshot());
-        const changed = !isEqualRef.current(lastSelectedState.current, nextSelectedState);
-
-        if (changed) {
-          callback();
+        const nextValue = getSnapshot();
+        if (!isEqual(lastValue, nextValue)) {
+          lastValue = nextValue;
+          onStoreChange();
         }
       });
-    };
-  }, [store]);
-
-  const getSnapshot = useCallback(() => {
-    const nextSelectedState = selectorRef.current(store.getSnapshot());
-    lastSelectedState.current = nextSelectedState;
-    return nextSelectedState;
-  }, [store]);
+    },
+    [store, getSnapshot, isEqual],
+  );
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };

@@ -32,7 +32,7 @@ export const generateThreadTitle = (thread: Thread, message: ThreadMessage): str
     message.role === 'user' &&
     message.content &&
     (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
-    !Object.keys(thread.messages).some((id) => id !== message.id)
+    (Object.keys(thread.messages).length === 0 || (Object.keys(thread.messages).length === 1 && thread.messages[message.id] !== undefined))
   ) {
     const firstLine = message.content.split('\n', 1)[0];
     return truncate(firstLine, 40);
@@ -70,8 +70,7 @@ export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage>
     return getMessagePath(thread, activeMessageId);
   }
   const vals = Object.values(messages);
-  if (vals.length <= 1) return vals;
-  return vals.sort((a, b) => a.timestamp - b.timestamp);
+  return vals.length <= 1 ? vals : vals.sort((a, b) => a.timestamp - b.timestamp);
 };
 
 export const branchThreadPath = (
@@ -84,30 +83,32 @@ export const branchThreadPath = (
   const path = getMessagePath(sourceThread, messageId);
   const branchedMessages: Record<string, ThreadMessage> = {};
   const idMap = new Map<string, string>();
-  const messagesToSave: ThreadMessage[] = [];
 
-  for (const m of path) {
+  // Single pass to clone messages and map IDs
+  for (let i = 0, len = path.length; i < len; i++) {
+    const m = path[i];
     const newMsgId = randomId();
     idMap.set(m.id, newMsgId);
 
+    const newParentId = m.parentId ? idMap.get(m.parentId) : undefined;
     const branchedMsg: ThreadMessage = {
       ...m,
       id: newMsgId,
-      parentId: m.parentId ? idMap.get(m.parentId) : undefined,
+      parentId: newParentId,
       childrenIds: [],
     };
 
     branchedMessages[newMsgId] = branchedMsg;
-    messagesToSave.push(branchedMsg);
-  }
 
-  for (const m of messagesToSave) {
-    if (m.parentId && branchedMessages[m.parentId]) {
-      const parent = branchedMessages[m.parentId];
-      branchedMessages[m.parentId] = {
-        ...parent,
-        childrenIds: [...(parent.childrenIds || []), m.id],
-      };
+    // Link current message to its new parent's childrenIds
+    if (newParentId) {
+      const parent = branchedMessages[newParentId];
+      if (parent) {
+        branchedMessages[newParentId] = {
+          ...parent,
+          childrenIds: [...(parent.childrenIds || []), newMsgId],
+        };
+      }
     }
   }
 
@@ -151,8 +152,7 @@ export const getFlattenedThreads = (
 
   for (let i = 0, len = threadsList.length; i < len; i++) {
     const thread = threadsList[i];
-    if (thread.archived) continue;
-    if (query && !thread.title.toLowerCase().includes(query)) continue;
+    if (thread.archived || (query && !thread.title.toLowerCase().includes(query))) continue;
 
     if (pinnedSet?.has(thread.id)) {
       groups.Pinned.push(thread);

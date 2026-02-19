@@ -2,26 +2,19 @@ import { Cause } from 'effect';
 
 import type { ReactNode } from 'react';
 
-export const formatError = (err: unknown): string => {
-  if (Cause.isCause(err)) return Cause.pretty(err);
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
-  return (err as { readonly message?: string })?.message ?? JSON.stringify(err);
-};
-
 const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 const ID_CHARS_LEN = ID_CHARS.length;
-const MAX_VALID_BYTE = 256 - (256 % ID_CHARS_LEN);
+const MASK = (1 << Math.ceil(Math.log2(ID_CHARS_LEN))) - 1;
+const STEP = Math.ceil((1.6 * MASK * 8) / ID_CHARS_LEN);
 
 export const randomId = (size: number = 8): string => {
   let id = '';
   while (id.length < size) {
-    const bytes = crypto.getRandomValues(new Uint8Array(size - id.length));
-    for (let i = 0, len = bytes.length; i < len; i++) {
-      const byte = bytes[i];
-      if (byte < MAX_VALID_BYTE) {
-        id += ID_CHARS[byte % ID_CHARS_LEN];
-        if (id.length === size) return id;
+    const bytes = crypto.getRandomValues(new Uint8Array(STEP));
+    for (let i = 0; i < STEP && id.length < size; i++) {
+      const value = bytes[i] & MASK;
+      if (value < ID_CHARS_LEN) {
+        id += ID_CHARS[value];
       }
     }
   }
@@ -52,6 +45,13 @@ export const parseBoldText = (text: string): (string | ReactNode)[] => {
     }
     return part;
   });
+};
+
+export const formatError = (err: unknown): string => {
+  if (Cause.isCause(err)) return Cause.pretty(err);
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return (err as { readonly message?: string })?.message ?? JSON.stringify(err);
 };
 
 export const downloadFile = (content: string, filename: string, type = 'text/plain') => {
