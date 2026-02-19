@@ -124,11 +124,14 @@ export const StoreServiceLive = Layer.effect(
           filteredThreadsMap[h.id] = h;
         }
 
-        // Ensure pinned threads are also in memory if they were in threadsMap but not in recent headers
+        // Ensure pinned threads are also in memory
         const pIds = metadata.pinnedThreadIds;
         for (let i = 0, pLen = pIds.length; i < pLen; i++) {
-          const t = threadsMap[pIds[i]];
-          if (t) filteredThreadsMap[t.id] = t;
+          const pid = pIds[i];
+          if (!filteredThreadsMap[pid]) {
+            const t = threadsMap[pid];
+            if (t) filteredThreadsMap[pid] = t;
+          }
         }
 
         return {
@@ -309,8 +312,9 @@ export const StoreServiceLive = Layer.effect(
 
             // Keep the active path + the most recent messages up to MAX_MEM_MESSAGES
             const messageList = Object.values(newMessages);
+            const total = messageList.length;
 
-            if (messageList.length <= MAX_MEM_MESSAGES) {
+            if (total <= MAX_MEM_MESSAGES) {
               return {
                 ...s,
                 activeThread: { ...s.activeThread, messages: newMessages },
@@ -327,15 +331,15 @@ export const StoreServiceLive = Layer.effect(
               count++;
             }
 
-            const candidates = messageList.filter((m) => !finalMessages[m.id]);
-            if (candidates.length > 1) {
-              candidates.sort((a, b) => b.timestamp - a.timestamp);
-            }
-
-            for (let i = 0, cLen = candidates.length; i < cLen && count < MAX_MEM_MESSAGES; i++) {
-              const m = candidates[i];
-              finalMessages[m.id] = m;
-              count++;
+            if (count < MAX_MEM_MESSAGES) {
+              messageList.sort((a, b) => b.timestamp - a.timestamp);
+              for (let i = 0; i < total && count < MAX_MEM_MESSAGES; i++) {
+                const m = messageList[i];
+                if (!finalMessages[m.id]) {
+                  finalMessages[m.id] = m;
+                  count++;
+                }
+              }
             }
 
             return {

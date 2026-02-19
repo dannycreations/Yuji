@@ -107,10 +107,11 @@ export const StorageServiceLive = Layer.effect(
           let cursor = yield* Effect.promise(() => index.openCursor(null, 'prev'));
 
           const results: ThreadMetadata[] = [];
-          while (cursor && results.length < limit) {
+          while (cursor) {
             const thread = cursor.value as ThreadMetadata;
             if (thread.title.toLowerCase().includes(normalizedQuery)) {
               results.push(thread);
+              if (results.length >= limit) break;
             }
             cursor = yield* Effect.promise(() => cursor!.continue());
           }
@@ -126,13 +127,16 @@ export const StorageServiceLive = Layer.effect(
 
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord: Record<string, ThreadMessage> = {};
+          let hasActiveMessage = false;
+
           for (let i = 0, len = messages.length; i < len; i++) {
             const m = messages[i];
             messagesRecord[m.id] = m;
+            if (m.id === thread.activeMessageId) hasActiveMessage = true;
           }
 
           // Ensure the active message is present if a limit was applied
-          if (options?.limit && thread.activeMessageId && !messagesRecord[thread.activeMessageId]) {
+          if (options?.limit && thread.activeMessageId && !hasActiveMessage) {
             const activeMsg = yield* Effect.promise(() => db.get(STORES.MESSAGES, thread.activeMessageId));
             if (activeMsg) {
               messagesRecord[activeMsg.id] = activeMsg as ThreadMessage;

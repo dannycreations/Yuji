@@ -137,6 +137,8 @@ export const getFlattenedThreads = (
   const query = searchQuery.trim().toLowerCase();
   const now = Date.now();
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
+  const yesterdayStart = todayStart - 86400000;
+  const last7DaysStart = todayStart - 518400000; // 6 * 86400000
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
 
   const groups: Record<(typeof GROUP_LABELS)[number], Array<ThreadMetadata | Thread>> = {
@@ -155,12 +157,12 @@ export const getFlattenedThreads = (
     if (pinnedSet?.has(thread.id)) {
       groups.Pinned.push(thread);
     } else {
-      const diff = todayStart - thread.updatedAt;
-      if (diff <= 0) {
+      const ts = thread.updatedAt;
+      if (ts >= todayStart) {
         groups.Today.push(thread);
-      } else if (diff < 86400000) {
+      } else if (ts >= yesterdayStart) {
         groups.Yesterday.push(thread);
-      } else if (diff < 604800000) {
+      } else if (ts >= last7DaysStart) {
         groups['Last 7 Days'].push(thread);
       } else {
         groups['Last 30 Days'].push(thread);

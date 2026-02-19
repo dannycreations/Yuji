@@ -10,21 +10,21 @@ export const formatError = (err: unknown): string => {
 };
 
 const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+const ID_CHARS_LEN = ID_CHARS.length;
+const MAX_VALID_BYTE = 256 - (256 % ID_CHARS_LEN);
 
 export const randomId = (size: number = 8): string => {
-  const charCount = ID_CHARS.length;
-  const maxValidByte = 256 - (256 % charCount);
   let id = '';
-
   while (id.length < size) {
     const bytes = crypto.getRandomValues(new Uint8Array(size - id.length));
-    for (let i = 0; i < bytes.length; i++) {
-      if (bytes[i] < maxValidByte) {
-        id += ID_CHARS[bytes[i] % charCount];
+    for (let i = 0, len = bytes.length; i < len; i++) {
+      const byte = bytes[i];
+      if (byte < MAX_VALID_BYTE) {
+        id += ID_CHARS[byte % ID_CHARS_LEN];
+        if (id.length === size) return id;
       }
     }
   }
-
   return id;
 };
 
