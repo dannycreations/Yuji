@@ -232,7 +232,8 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
 
       if (!observerRef.current) {
         observerRef.current = new ResizeObserver((entries) => {
-          for (const entry of entries) {
+          for (let i = 0, len = entries.length; i < len; i++) {
+            const entry = entries[i];
             const key = (entry.target as HTMLElement).getAttribute('data-vkey');
             if (key) {
               const height = entry.contentRect.height;

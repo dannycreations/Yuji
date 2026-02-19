@@ -103,8 +103,9 @@ export const StoreServiceLive = Layer.effect(
 
       if (metadata) {
         const threadsMap: Record<string, ThreadMetadata> = {};
-        for (let i = 0; i < threadHeaders.length; i++) {
-          threadsMap[threadHeaders[i].id] = threadHeaders[i];
+        for (let i = 0, len = threadHeaders.length; i < len; i++) {
+          const h = threadHeaders[i];
+          threadsMap[h.id] = h;
         }
 
         let activeThread: Thread | null = null;
@@ -316,29 +317,22 @@ export const StoreServiceLive = Layer.effect(
               };
             }
 
-            const activePathIds = new Set(
-              s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId).map((m) => m.id) : [],
-            );
-
-            // Use Partial Sort / Selection Logic instead of full sort for performance
+            const activePath = s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId) : [];
             const finalMessages: Record<string, ThreadMessage> = {};
             let count = 0;
 
-            // 1. Always keep active path (Essential for UI continuity)
-            for (const id of activePathIds) {
-              const m = newMessages[id];
-              if (m) {
-                finalMessages[id] = m;
-                count++;
-              }
+            for (let i = 0, len = activePath.length; i < len; i++) {
+              const m = activePath[i];
+              finalMessages[m.id] = m;
+              count++;
             }
 
-            // 2. Fill remaining quota with most recent messages (Selection instead of full sort if possible)
-            // But with N=50, a simple sort is fine; however, we can optimize by only sorting what we don't already have.
             const candidates = messageList.filter((m) => !finalMessages[m.id]);
-            candidates.sort((a, b) => b.timestamp - a.timestamp);
+            if (candidates.length > 1) {
+              candidates.sort((a, b) => b.timestamp - a.timestamp);
+            }
 
-            for (let i = 0; i < candidates.length && count < MAX_MEM_MESSAGES; i++) {
+            for (let i = 0, cLen = candidates.length; i < cLen && count < MAX_MEM_MESSAGES; i++) {
               const m = candidates[i];
               finalMessages[m.id] = m;
               count++;

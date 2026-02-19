@@ -15,13 +15,16 @@ export const getFilteredModels = (
   const query = search.trim().toLowerCase();
   const disabledSet = new Set(disabledModels);
 
-  const filtered = availableModels.filter((m) => {
-    if (!includeDisabled && disabledSet.has(m.id)) return false;
-    if (!query) return true;
-    return m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query);
-  });
+  const filtered: Model[] = [];
+  for (let i = 0, len = availableModels.length; i < len; i++) {
+    const m = availableModels[i];
+    if (!includeDisabled && disabledSet.has(m.id)) continue;
+    if (!query || m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) {
+      filtered.push(m);
+    }
+  }
 
-  if (sort) {
+  if (sort && filtered.length > 1) {
     return filtered.sort((a, b) => {
       if (includeDisabled) {
         const aDisabled = disabledSet.has(a.id) ? 1 : 0;
@@ -57,6 +60,9 @@ export const getCurrentModelId = (activeThread: Thread | null, settings: GlobalS
 };
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
-  const model = availableModels.find((m) => m.id === modelId);
-  return model ? toTitleCase(model.name) : 'Yuji';
+  for (let i = 0, len = availableModels.length; i < len; i++) {
+    const m = availableModels[i];
+    if (m.id === modelId) return toTitleCase(m.name);
+  }
+  return 'Yuji';
 };

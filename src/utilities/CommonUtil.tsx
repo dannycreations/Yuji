@@ -12,21 +12,29 @@ export const formatError = (err: unknown): string => {
 const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 export const randomId = (size: number = 8): string => {
-  const bytes = crypto.getRandomValues(new Uint8Array(size));
+  const charCount = ID_CHARS.length;
+  const maxValidByte = 256 - (256 % charCount);
   let id = '';
-  for (let i = 0; i < size; i++) {
-    id += ID_CHARS[bytes[i] % 36];
+
+  while (id.length < size) {
+    const bytes = crypto.getRandomValues(new Uint8Array(size - id.length));
+    for (let i = 0; i < bytes.length; i++) {
+      if (bytes[i] < maxValidByte) {
+        id += ID_CHARS[bytes[i] % charCount];
+      }
+    }
   }
+
   return id;
 };
 
 export const getFirstChar = (str: string): string => {
-  return str ? str.trim().charAt(0).toUpperCase() : '';
+  const trimmed = str.trim();
+  return trimmed ? trimmed.charAt(0).toUpperCase() : '';
 };
 
 export const truncate = (str: string, length: number): string => {
-  if (str.length <= length) return str;
-  return str.slice(0, length).trim() + '...';
+  return str.length <= length ? str : str.slice(0, length).trim() + '...';
 };
 
 export const toTitleCase = (str: string): string => {

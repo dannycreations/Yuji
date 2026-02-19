@@ -126,8 +126,7 @@ export const StorageServiceLive = Layer.effect(
 
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord: Record<string, ThreadMessage> = {};
-          const len = messages.length;
-          for (let i = 0; i < len; i++) {
+          for (let i = 0, len = messages.length; i < len; i++) {
             const m = messages[i];
             messagesRecord[m.id] = m;
           }

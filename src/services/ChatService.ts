@@ -320,9 +320,9 @@ export const ChatServiceLive = Layer.effect(
 
       deleteThreads: (input) =>
         Effect.gen(function* () {
-          const ids = typeof input === 'string' ? [input] : Array.from(input);
+          const ids = typeof input === 'string' ? [input] : Array.isArray(input) ? input : Array.from(input);
           const len = ids.length;
-          const idSet = new Set(ids);
+          if (len === 0) return;
 
           // Batch interrupt
           const stopEffects: Effect.Effect<void, never, never>[] = new Array(len);
@@ -331,12 +331,15 @@ export const ChatServiceLive = Layer.effect(
           }
           yield* Effect.all(stopEffects, { concurrency: 'unbounded', discard: true });
 
+          const idSet = len > 1 ? new Set(ids) : null;
+
           yield* store.update((state) => {
             const threads = { ...state.threads };
-            for (let i = 0, len = ids.length; i < len; i++) {
+            for (let i = 0; i < len; i++) {
               delete threads[ids[i]];
             }
-            const isActiveDeleted = state.activeThreadId && idSet.has(state.activeThreadId);
+            const activeId = state.activeThreadId;
+            const isActiveDeleted = activeId && (idSet ? idSet.has(activeId) : activeId === ids[0]);
             return {
               ...state,
               threads,

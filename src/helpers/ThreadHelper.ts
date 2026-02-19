@@ -29,24 +29,25 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
 
 export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
   if (
-    (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
     message.role === 'user' &&
     message.content &&
-    Object.keys(thread.messages).length === 0
+    (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
+    !Object.keys(thread.messages).some((id) => id !== message.id)
   ) {
-    return truncate(message.content.split('\n', 1)[0], 40);
+    const firstLine = message.content.split('\n', 1)[0];
+    return truncate(firstLine, 40);
   }
   return thread.title;
 };
 
 export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[]): T[] => {
-  return [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
+  return threads.length <= 1 ? threads : [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
 };
 
 export const filterThreads = <T extends ThreadMetadata | Thread>(threads: T[], query: string): T[] => {
-  if (!query) return threads;
-  const normalizedQuery = query.toLowerCase();
-  return threads.filter((s) => s.title.toLowerCase().includes(normalizedQuery));
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return threads;
+  return threads.filter((s) => s.title.toLowerCase().includes(normalized));
 };
 
 export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray<ThreadMessage> => {
@@ -118,13 +119,15 @@ export const branchThreadPath = (
 
 export type FlattenedThreadItem =
   | {
-      type: 'label';
-      label: string;
+      readonly type: 'label';
+      readonly label: string;
     }
   | {
-      type: 'thread';
-      thread: ThreadMetadata | Thread;
+      readonly type: 'thread';
+      readonly thread: ThreadMetadata | Thread;
     };
+
+const GROUP_LABELS = ['Pinned', 'Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days'] as const;
 
 export const getFlattenedThreads = (
   threadsList: ReadonlyArray<ThreadMetadata | Thread>,
@@ -136,15 +139,13 @@ export const getFlattenedThreads = (
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
 
-  const groups: Record<string, Array<ThreadMetadata | Thread>> = {
+  const groups: Record<(typeof GROUP_LABELS)[number], Array<ThreadMetadata | Thread>> = {
     Pinned: [],
     Today: [],
     Yesterday: [],
     'Last 7 Days': [],
     'Last 30 Days': [],
   };
-
-  const groupLabels = Object.keys(groups);
 
   for (let i = 0, len = threadsList.length; i < len; i++) {
     const thread = threadsList[i];
@@ -168,12 +169,13 @@ export const getFlattenedThreads = (
   }
 
   const result: FlattenedThreadItem[] = [];
-  for (let i = 0, len = groupLabels.length; i < len; i++) {
-    const label = groupLabels[i];
+  for (let i = 0, len = GROUP_LABELS.length; i < len; i++) {
+    const label = GROUP_LABELS[i];
     const group = groups[label];
-    if (group.length > 0) {
+    const gLen = group.length;
+    if (gLen > 0) {
       result.push({ type: 'label', label });
-      for (let j = 0, gLen = group.length; j < gLen; j++) {
+      for (let j = 0; j < gLen; j++) {
         result.push({ type: 'thread', thread: group[j] });
       }
     }
