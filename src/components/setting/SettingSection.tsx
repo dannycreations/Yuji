@@ -7,7 +7,8 @@ import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
 import { getVisibleMessages, sortThreadsByDate } from '../../helpers/ThreadHelper';
 import { useChatAction, useStoreAction } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
-import { downloadFile } from '../../utilities/CommonUtil';
+import { StoreService } from '../../services/StoreService';
+import { downloadFile, formatError } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { ChatMessageBubble } from '../chat/ChatMessageBubble';
 import { Checkbox } from '../shared/Checkbox';
@@ -144,7 +145,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
       }).pipe(
         Effect.catchAll((e) => {
           setRefreshState('idle');
-          return Effect.fail(e);
+          return Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to fetch models: ${formatError(e)}`));
         }),
       ),
     ).catch(() => {});

@@ -917,7 +917,12 @@
   }
 
   .toast-progress-track {
-    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-separator/20;
+    @apply absolute bottom-0 left-0 right-0 h-0.5 bg-separator/20 overflow-hidden;
+  }
+
+  .toast-progress-line {
+    @apply h-full w-full origin-left bg-current;
+    animation: progress var(--duration) linear forwards;
   }
 
   /* Special Effects & Misc */

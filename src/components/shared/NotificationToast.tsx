@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useStore, useStoreAction } from '../../hooks/useStore';
 import { Icon } from './Icon';
 
+import type { CSSProperties } from 'react';
 import type { Notification } from '../../app/Schema';
 
 const TOAST_VARIANTS = {
@@ -41,8 +42,6 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
 
   return (
     <div className={clsx('toast-container', variantClass)}>
-      <div className="toast-line" />
-
       <div className="toast-icon-wrapper">
         <Icon name={icon} size={18} />
       </div>
@@ -54,11 +53,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
       </button>
 
       <div className="toast-progress-track">
-        <div
-          key={notification.timestamp}
-          className="toast-line static h-full w-full origin-left"
-          style={{ animation: `progress ${duration}ms linear forwards` }}
-        />
+        <div key={notification.timestamp} className="toast-progress-line" style={{ '--duration': `${duration}ms` } as CSSProperties} />
       </div>
     </div>
   );
