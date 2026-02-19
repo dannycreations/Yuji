@@ -128,10 +128,10 @@ export const StoreServiceLive = Layer.effect(
         }
 
         // Ensure pinned threads are also in memory if they were in threadsMap but not in recent headers
-        for (const id of metadata.pinnedThreadIds) {
-          if (threadsMap[id]) {
-            filteredThreadsMap[id] = threadsMap[id];
-          }
+        const pIds = metadata.pinnedThreadIds;
+        for (let i = 0, pLen = pIds.length; i < pLen; i++) {
+          const t = threadsMap[pIds[i]];
+          if (t) filteredThreadsMap[t.id] = t;
         }
 
         return {
@@ -214,8 +214,8 @@ export const StoreServiceLive = Layer.effect(
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
       togglePin: (threadId) =>
         update((s) => {
-          const isPinned = s.pinnedThreadIds.includes(threadId);
-          const pinnedThreadIds = isPinned ? s.pinnedThreadIds.filter((id) => id !== threadId) : [...s.pinnedThreadIds, threadId];
+          const idx = s.pinnedThreadIds.indexOf(threadId);
+          const pinnedThreadIds = idx !== -1 ? s.pinnedThreadIds.filter((_, i) => i !== idx) : [...s.pinnedThreadIds, threadId];
           return { ...s, pinnedThreadIds };
         }),
       toggleArchive: (threadId) =>
@@ -285,18 +285,20 @@ export const StoreServiceLive = Layer.effect(
       loadMoreMessages: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          if (!s.activeThread) return;
+          const active = s.activeThread;
+          if (!active) return;
 
-          const threadId = s.activeThread.id;
-          // Optimization: Avoid full Object.values().sort() just to find the oldest message
-          let oldest: ThreadMessage | undefined;
-          for (const id in s.activeThread.messages) {
-            const m = s.activeThread.messages[id];
-            if (!oldest || m.timestamp < oldest.timestamp) {
-              oldest = m;
+          const threadId = active.id;
+          // Use timestamp for lastKey since we updated StorageService to use compound index [threadId, timestamp]
+          let oldestTimestamp: number | undefined;
+          const msgs = active.messages;
+          for (const id in msgs) {
+            const m = msgs[id];
+            if (!oldestTimestamp || m.timestamp < oldestTimestamp) {
+              oldestTimestamp = m.timestamp;
             }
           }
-          const lastKey = oldest?.id;
+          const lastKey = oldestTimestamp;
 
           const moreMessages = yield* storage.getMessages(threadId, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (moreMessages.length === 0) return;
@@ -322,26 +324,28 @@ export const StoreServiceLive = Layer.effect(
               s.activeThread.activeMessageId ? getMessagePath(s.activeThread, s.activeThread.activeMessageId).map((m) => m.id) : [],
             );
 
-            const sortedByRecent = messageList.sort((a, b) => b.timestamp - a.timestamp);
+            // Use Partial Sort / Selection Logic instead of full sort for performance
             const finalMessages: Record<string, ThreadMessage> = {};
             let count = 0;
 
-            // 1. Always keep active path
+            // 1. Always keep active path (Essential for UI continuity)
             for (const id of activePathIds) {
-              if (newMessages[id]) {
-                finalMessages[id] = newMessages[id];
+              const m = newMessages[id];
+              if (m) {
+                finalMessages[id] = m;
                 count++;
               }
             }
 
-            // 2. Fill remaining quota with most recent messages
-            for (let i = 0; i < sortedByRecent.length; i++) {
-              if (count >= MAX_MEM_MESSAGES) break;
-              const m = sortedByRecent[i];
-              if (!finalMessages[m.id]) {
-                finalMessages[m.id] = m;
-                count++;
-              }
+            // 2. Fill remaining quota with most recent messages (Selection instead of full sort if possible)
+            // But with N=50, a simple sort is fine; however, we can optimize by only sorting what we don't already have.
+            const candidates = messageList.filter((m) => !finalMessages[m.id]);
+            candidates.sort((a, b) => b.timestamp - a.timestamp);
+
+            for (let i = 0; i < candidates.length && count < MAX_MEM_MESSAGES; i++) {
+              const m = candidates[i];
+              finalMessages[m.id] = m;
+              count++;
             }
 
             return {
@@ -353,7 +357,7 @@ export const StoreServiceLive = Layer.effect(
       loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          // Optimization: Avoid full Object.values().sort() just to find the oldest thread
+          // Avoid full Object.values().sort() just to find the oldest thread
           let oldest: ThreadMetadata | undefined;
           for (const id in s.threads) {
             const t = s.threads[id];
@@ -385,21 +389,24 @@ export const StoreServiceLive = Layer.effect(
             let count = 0;
 
             // 1. Always keep pinned threads
-            for (const id of s.pinnedThreadIds) {
-              if (newThreads[id]) {
-                result[id] = newThreads[id];
+            const pIds = s.pinnedThreadIds;
+            for (let i = 0, pLen = pIds.length; i < pLen; i++) {
+              const t = newThreads[pIds[i]];
+              if (t) {
+                result[t.id] = t;
                 count++;
               }
             }
 
             // 2. Always keep the active thread header
-            if (s.activeThreadId && newThreads[s.activeThreadId] && !result[s.activeThreadId]) {
-              result[s.activeThreadId] = newThreads[s.activeThreadId];
+            const activeId = s.activeThreadId;
+            if (activeId && newThreads[activeId] && !result[activeId]) {
+              result[activeId] = newThreads[activeId];
               count++;
             }
 
             // 3. Fill remaining quota with most recent threads
-            for (let i = 0; i < sortedByRecent.length; i++) {
+            for (let i = 0, sLen = sortedByRecent.length; i < sLen; i++) {
               if (count >= MAX_MEM_THREADS) break;
               const t = sortedByRecent[i];
               if (!result[t.id]) {

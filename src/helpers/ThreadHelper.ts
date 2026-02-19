@@ -28,16 +28,13 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
 };
 
 export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
-  if ((thread.title === 'New Chat' || thread.title.endsWith('...')) && message.role === 'user' && message.content) {
-    // Only generate if no other messages exist
-    let hasMessages = false;
-    for (const _ in thread.messages) {
-      hasMessages = true;
-      break;
-    }
-    if (!hasMessages) {
-      return truncate(message.content.split('\n', 1)[0], 40);
-    }
+  if (
+    (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
+    message.role === 'user' &&
+    message.content &&
+    Object.keys(thread.messages).length === 0
+  ) {
+    return truncate(message.content.split('\n', 1)[0], 40);
   }
   return thread.title;
 };
@@ -71,7 +68,9 @@ export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage>
   if (activeMessageId) {
     return getMessagePath(thread, activeMessageId);
   }
-  return Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+  const vals = Object.values(messages);
+  if (vals.length <= 1) return vals;
+  return vals.sort((a, b) => a.timestamp - b.timestamp);
 };
 
 export const branchThreadPath = (
@@ -117,45 +116,67 @@ export const branchThreadPath = (
   };
 };
 
-export const groupThreads = (
+export type FlattenedThreadItem =
+  | {
+      type: 'label';
+      label: string;
+    }
+  | {
+      type: 'thread';
+      thread: ThreadMetadata | Thread;
+    };
+
+export const getFlattenedThreads = (
   threadsList: ReadonlyArray<ThreadMetadata | Thread>,
+  searchQuery: string,
   pinnedThreadIds: ReadonlyArray<string> = [],
-): Record<string, ReadonlyArray<ThreadMetadata | Thread>> => {
+): FlattenedThreadItem[] => {
+  const query = searchQuery.trim().toLowerCase();
   const now = Date.now();
   const todayStart = new Date(now).setHours(0, 0, 0, 0);
-
-  const pinned: Array<ThreadMetadata | Thread> = [];
-  const today: Array<ThreadMetadata | Thread> = [];
-  const yesterday: Array<ThreadMetadata | Thread> = [];
-  const last7Days: Array<ThreadMetadata | Thread> = [];
-  const last30Days: Array<ThreadMetadata | Thread> = [];
-
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
+
+  const groups: Record<string, Array<ThreadMetadata | Thread>> = {
+    Pinned: [],
+    Today: [],
+    Yesterday: [],
+    'Last 7 Days': [],
+    'Last 30 Days': [],
+  };
+
+  const groupLabels = Object.keys(groups);
 
   for (let i = 0, len = threadsList.length; i < len; i++) {
     const thread = threadsList[i];
-    if (pinnedSet?.has(thread.id)) {
-      pinned.push(thread);
-      continue;
-    }
+    if (thread.archived) continue;
+    if (query && !thread.title.toLowerCase().includes(query)) continue;
 
-    const diff = todayStart - thread.updatedAt;
-    if (diff <= 0) {
-      today.push(thread);
-    } else if (diff < 86400000) {
-      yesterday.push(thread);
-    } else if (diff < 604800000) {
-      last7Days.push(thread);
+    if (pinnedSet?.has(thread.id)) {
+      groups.Pinned.push(thread);
     } else {
-      last30Days.push(thread);
+      const diff = todayStart - thread.updatedAt;
+      if (diff <= 0) {
+        groups.Today.push(thread);
+      } else if (diff < 86400000) {
+        groups.Yesterday.push(thread);
+      } else if (diff < 604800000) {
+        groups['Last 7 Days'].push(thread);
+      } else {
+        groups['Last 30 Days'].push(thread);
+      }
     }
   }
 
-  return {
-    Pinned: pinned,
-    Today: today,
-    Yesterday: yesterday,
-    'Last 7 Days': last7Days,
-    'Last 30 Days': last30Days,
-  };
+  const result: FlattenedThreadItem[] = [];
+  for (let i = 0, len = groupLabels.length; i < len; i++) {
+    const label = groupLabels[i];
+    const group = groups[label];
+    if (group.length > 0) {
+      result.push({ type: 'label', label });
+      for (let j = 0, gLen = group.length; j < gLen; j++) {
+        result.push({ type: 'thread', thread: group[j] });
+      }
+    }
+  }
+  return result;
 };

@@ -49,11 +49,12 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     keyToIndexMapRef.current = newKeyToIndexMap;
 
     // Cleanup heights map to prevent memory leaks
-    if (heightsRef.current.size > len * 2) {
+    if (heightsRef.current.size > len * 2 && len > 0) {
       const keySet = new Set(newKeys);
-      for (const key of heightsRef.current.keys()) {
+      const heights = heightsRef.current;
+      for (const key of heights.keys()) {
         if (!keySet.has(key)) {
-          heightsRef.current.delete(key);
+          heights.delete(key);
         }
       }
     }
@@ -77,13 +78,17 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     const n = tree.length - 1;
     if (n <= 0) return 0;
 
-    const bitLength = Math.floor(Math.log2(n)) + 1;
+    // Use 31 - Math.clz32(n) for faster floor(log2(n))
+    const bitLength = 32 - Math.clz32(n);
 
     for (let i = 1 << (bitLength - 1); i > 0; i >>= 1) {
       const nextIdx = idx + i;
-      if (nextIdx <= n && currentSum + tree[nextIdx] <= target) {
-        idx = nextIdx;
-        currentSum += tree[idx];
+      if (nextIdx <= n) {
+        const val = tree[nextIdx];
+        if (currentSum + val <= target) {
+          idx = nextIdx;
+          currentSum += val;
+        }
       }
     }
     return idx;
@@ -110,9 +115,12 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
       const effectiveHeight = containerHeight > 0 ? containerHeight : 1000;
       const endIdx = findIndex(scrollTop + effectiveHeight);
 
+      const nextStart = Math.max(0, startIdx - overscan);
+      const nextEnd = Math.min(totalCount, endIdx + overscan);
+
       return {
-        startIndex: Math.max(0, startIdx - overscan),
-        endIndex: Math.min(totalCount, endIdx + overscan),
+        startIndex: nextStart,
+        endIndex: nextEnd,
       };
     },
     [containerHeight, findIndex, overscan, totalCount],
@@ -122,14 +130,18 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
     (e: React.UIEvent<HTMLDivElement>) => {
       // Clamp to non-negative values, preventing issues during "elastic" scrolling or momentum overscroll
       const nextScrollTop = Math.max(0, e.currentTarget.scrollTop);
+      if (Math.abs(scrollTopRef.current - nextScrollTop) < 1) return;
       scrollTopRef.current = nextScrollTop;
 
       const nextRange = computeRange(nextScrollTop);
-      if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
-        setRange(nextRange);
-      }
+      setRange((prev) => {
+        if (nextRange.startIndex !== prev.startIndex || nextRange.endIndex !== prev.endIndex) {
+          return nextRange;
+        }
+        return prev;
+      });
     },
-    [computeRange, range.endIndex, range.startIndex],
+    [computeRange],
   );
 
   const lastUpdateRef = useRef(0);
@@ -169,9 +181,12 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
 
             if (needsRangeUpdate) {
               const nextRange = computeRange(scrollTopRef.current);
-              if (nextRange.startIndex !== range.startIndex || nextRange.endIndex !== range.endIndex) {
-                setRange(nextRange);
-              }
+              setRange((prev) => {
+                if (nextRange.startIndex !== prev.startIndex || nextRange.endIndex !== prev.endIndex) {
+                  return nextRange;
+                }
+                return prev;
+              });
             }
           });
         };
@@ -183,7 +198,7 @@ export const useVirtualList = <T>({ containerHeight, estimatedItemHeight, items,
         }
       }
     },
-    [estimatedItemHeight, updateFenwick, range.startIndex, range.endIndex, computeRange],
+    [estimatedItemHeight, updateFenwick, computeRange],
   );
 
   const clearItemHeights = useCallback(() => {

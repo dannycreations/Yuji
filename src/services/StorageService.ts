@@ -12,15 +12,21 @@ export interface StorageService {
   readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null>;
   readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void>;
   readonly patchThread: (id: string, patch: Partial<ThreadMetadata>) => Effect.Effect<void>;
-  readonly deleteThread: (id: string) => Effect.Effect<void>;
+  readonly deleteThreads: (ids: Iterable<string>) => Effect.Effect<void>;
 
   readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>>;
   readonly paginate: <T>(
     storeName: string,
-    options: { lastKey?: IDBValidKey; limit?: number; indexName?: string; indexValue?: IDBValidKey },
+    options: {
+      lastKey?: IDBValidKey;
+      limit?: number;
+      indexName?: string;
+      indexValue?: IDBValidKey;
+      direction?: IDBCursorDirection;
+    },
   ) => Effect.Effect<ReadonlyArray<T>>;
-  readonly saveMessages: (threadId: string, messages: ThreadMessage | ThreadMessage[]) => Effect.Effect<void>;
-  readonly deleteMessage: (id: string) => Effect.Effect<void>;
+  readonly saveMessages: (threadId: string, messages: Iterable<ThreadMessage>) => Effect.Effect<void>;
+  readonly deleteMessages: (ids: Iterable<string>) => Effect.Effect<void>;
   readonly clearDatabase: () => Effect.Effect<void>;
 }
 
@@ -59,6 +65,12 @@ export const StorageServiceLive = Layer.effect(
         if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
           const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
           messageStore.createIndex('threadId', 'threadId');
+          messageStore.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
+        } else {
+          const store = transaction.objectStore(STORES.MESSAGES);
+          if (!store.indexNames.contains('threadId_timestamp')) {
+            store.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
+          }
         }
       },
       blocked() {
@@ -138,7 +150,8 @@ export const StorageServiceLive = Layer.effect(
 
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord: Record<string, ThreadMessage> = {};
-          for (let i = 0, len = messages.length; i < len; i++) {
+          const len = messages.length;
+          for (let i = 0; i < len; i++) {
             const m = messages[i];
             messagesRecord[m.id] = m;
           }
@@ -169,55 +182,73 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => tx.done);
         }),
 
-      deleteThread: (id) =>
+      deleteThreads: (ids) =>
         Effect.gen(function* () {
           const db = yield* getDB;
           const tx = db.transaction([STORES.THREADS, STORES.MESSAGES], 'readwrite');
-          tx.objectStore(STORES.THREADS).delete(id);
-
+          const threadStore = tx.objectStore(STORES.THREADS);
           const messageStore = tx.objectStore(STORES.MESSAGES);
+          const msgIndex = messageStore.index('threadId');
 
-          // More efficient batch deletion for modern browsers:
-          // Instead of manually iterating a cursor which involves multiple request cycles,
-          // we use the index to find the range and let the browser's IDB engine handle the bulk deletion.
-          yield* Effect.promise(() => messageStore.delete(IDBKeyRange.only(id)));
-
+          for (const id of ids) {
+            threadStore.delete(id);
+            // In IndexedDB, delete() on a store with an IDBKeyRange only deletes by primary key.
+            // To delete by index, we must use a cursor or a browser-specific extension if available.
+            // Industry standard: iterate cursor and delete.
+            let cursor = yield* Effect.promise(() => msgIndex.openKeyCursor(IDBKeyRange.only(id)));
+            while (cursor) {
+              messageStore.delete(cursor.primaryKey);
+              cursor = yield* Effect.promise(() => cursor!.continue());
+            }
+          }
           yield* Effect.promise(() => tx.done);
         }),
 
-      paginate: <T>(storeName: string, options: { lastKey?: IDBValidKey; limit?: number; indexName?: string; indexValue?: IDBValidKey }) =>
+      paginate: <T>(
+        storeName: string,
+        options: {
+          lastKey?: IDBValidKey;
+          limit?: number;
+          indexName?: string;
+          indexValue?: IDBValidKey;
+          direction?: IDBCursorDirection;
+        },
+      ) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const { lastKey, limit = 20, indexName, indexValue } = options;
+          const { lastKey, limit = 20, indexName, indexValue, direction = 'prev' } = options;
           const results: T[] = [];
           const tx = db.transaction(storeName, 'readonly');
           const source = indexName ? tx.store.index(indexName) : tx.store;
 
           let range: IDBKeyRange | null = null;
-          if (indexValue !== undefined && lastKey !== undefined) {
-            // In IDB, compound ranges for index + primary key require manual filtering or specific key structures.
-            // Since we use threadId index, we bound by the index value and start after the lastKey.
-            range = IDBKeyRange.only(indexValue);
-          } else if (indexValue !== undefined) {
-            range = IDBKeyRange.only(indexValue);
-          } else if (lastKey !== undefined) {
-            // O(log N) lookup instead of O(N) advance()
-            range = IDBKeyRange.upperBound(lastKey, true);
-          }
-
-          let cursor = yield* Effect.promise(() => source.openCursor(range, 'prev'));
-
-          // Handle manual secondary key skip if using indexValue + lastKey
-          // lastKey is primaryKey (id) which is string.
-          if (cursor && indexValue !== undefined && lastKey !== undefined) {
-            const lastKeyStr = lastKey as string;
-            while (cursor && cursor.primaryKey >= lastKeyStr) {
-              cursor = yield* Effect.promise(() => cursor!.continue());
+          if (indexValue !== undefined) {
+            if (lastKey !== undefined) {
+              // For compound indexes like [threadId, timestamp]
+              if (direction === 'prev') {
+                range = IDBKeyRange.upperBound([indexValue, lastKey], true);
+              } else {
+                range = IDBKeyRange.lowerBound([indexValue, lastKey], true);
+              }
+            } else {
+              range = IDBKeyRange.only(indexValue);
             }
+          } else if (lastKey !== undefined) {
+            range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
           }
+
+          let cursor = yield* Effect.promise(() => source.openCursor(range, direction));
 
           while (cursor && results.length < limit) {
-            results.push(cursor.value);
+            const val = cursor.value;
+            // If using compound index but range isn't strictly 'only' on the first part (e.g. upperBound)
+            // we must manually verify the prefix to avoid bleeding into other threads.
+            if (indexValue !== undefined && indexName?.includes('_')) {
+              const rowValue = val as any;
+              if (rowValue.threadId !== indexValue) break;
+            }
+
+            results.push(val);
             cursor = yield* Effect.promise(() => cursor!.continue());
           }
           return results;
@@ -233,28 +264,32 @@ export const StorageServiceLive = Layer.effect(
 
           const messages = yield* storage.paginate<ThreadMessage>(STORES.MESSAGES, {
             ...options,
-            indexName: 'threadId',
+            indexName: 'threadId_timestamp',
             indexValue: threadId,
+            direction: 'prev',
           });
 
-          return [...(messages as ThreadMessage[])].reverse();
+          return messages;
         }),
 
       saveMessages: (threadId, messages) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          const msgs = Array.isArray(messages) ? messages : [messages];
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
-          for (const m of msgs) {
+          for (const m of messages) {
             tx.store.put({ ...m, threadId });
           }
           yield* Effect.promise(() => tx.done);
         }),
 
-      deleteMessage: (id) =>
+      deleteMessages: (ids) =>
         Effect.gen(function* () {
           const db = yield* getDB;
-          yield* Effect.promise(() => db.delete(STORES.MESSAGES, id));
+          const tx = db.transaction(STORES.MESSAGES, 'readwrite');
+          for (const id of ids) {
+            tx.store.delete(id);
+          }
+          yield* Effect.promise(() => tx.done);
         }),
 
       clearDatabase: () =>

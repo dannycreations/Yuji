@@ -125,14 +125,13 @@ export const ChatServiceLive = Layer.effect(
         if (threadId) {
           const fiber = fibers.get(threadId);
           if (fiber) {
-            yield* Fiber.interrupt(fiber);
             fibers.delete(threadId);
+            yield* Fiber.interrupt(fiber);
           }
         } else {
-          for (const fiber of fibers.values()) {
-            yield* Fiber.interrupt(fiber);
-          }
+          const allFibers = Array.from(fibers.values());
           fibers.clear();
+          yield* Effect.all(allFibers.map(Fiber.interrupt), { concurrency: 'unbounded', discard: true });
         }
       });
 
@@ -188,8 +187,8 @@ export const ChatServiceLive = Layer.effect(
           let fullContent = '';
           let lastSavedContent = '';
           let lastUISaveContent = '';
-          let lastUITime = Date.now();
-          let lastSaveTime = Date.now();
+          let lastUITime = performance.now();
+          let lastSaveTime = performance.now();
 
           // ~20fps for smoother scrolling while still feeling responsive
           const UI_UPDATE_INTERVAL = 50;
@@ -198,17 +197,17 @@ export const ChatServiceLive = Layer.effect(
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {
               fullContent += token;
-              const now = Date.now();
+              const now = performance.now();
 
               // Throttle UI updates to prevent React reconciliation bottleneck
-              if (now - lastUITime > UI_UPDATE_INTERVAL) {
+              if (now - lastUITime >= UI_UPDATE_INTERVAL) {
                 lastUITime = now;
                 lastUISaveContent = fullContent;
                 yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
               }
 
               // Throttle Storage updates to prevent IDB write bottleneck
-              if (now - lastSaveTime > STORAGE_SAVE_INTERVAL) {
+              if (now - lastSaveTime >= STORAGE_SAVE_INTERVAL) {
                 lastSaveTime = now;
                 lastSavedContent = fullContent;
                 yield* chatService.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
@@ -327,14 +326,15 @@ export const ChatServiceLive = Layer.effect(
       deleteThreads: (input) =>
         Effect.gen(function* () {
           const ids = typeof input === 'string' ? [input] : Array.from(input);
+          const len = ids.length;
           const idSet = new Set(ids);
 
           // Batch interrupt
-          const stopEffects: Effect.Effect<void>[] = [];
-          for (let i = 0, len = ids.length; i < len; i++) {
-            stopEffects.push(stop(ids[i]));
+          const stopEffects: Effect.Effect<void, never, never>[] = new Array(len);
+          for (let i = 0; i < len; i++) {
+            stopEffects[i] = stop(ids[i]);
           }
-          yield* Effect.all(stopEffects, { concurrency: 'unbounded' });
+          yield* Effect.all(stopEffects, { concurrency: 'unbounded', discard: true });
 
           yield* store.update((state) => {
             const threads = { ...state.threads };
@@ -350,12 +350,8 @@ export const ChatServiceLive = Layer.effect(
             };
           });
 
-          // Batch delete from storage
-          const deleteEffects: Effect.Effect<void>[] = [];
-          for (let i = 0, len = ids.length; i < len; i++) {
-            deleteEffects.push(storage.deleteThread(ids[i]));
-          }
-          yield* Effect.all(deleteEffects, { concurrency: 'unbounded' });
+          // Atomic batch delete from storage
+          yield* storage.deleteThreads(ids);
         }),
 
       importThreads: (threads) =>
@@ -446,7 +442,7 @@ export const ChatServiceLive = Layer.effect(
           }
 
           if (!options.uiOnly) {
-            yield* storage.saveMessages(threadId, updatedMessage);
+            yield* storage.saveMessages(threadId, [updatedMessage]);
           }
         }),
 
@@ -467,9 +463,10 @@ export const ChatServiceLive = Layer.effect(
               const msg = messages[id];
               if (msg) {
                 idsToDelete.push(id);
-                if (msg.childrenIds) {
-                  for (let i = 0, len = msg.childrenIds.length; i < len; i++) {
-                    stack.push(msg.childrenIds[i]);
+                const children = msg.childrenIds;
+                if (children) {
+                  for (let i = 0, len = children.length; i < len; i++) {
+                    stack.push(children[i]);
                   }
                 }
               }
@@ -493,11 +490,9 @@ export const ChatServiceLive = Layer.effect(
           });
 
           if (idsToDelete.length > 0) {
-            for (const id of idsToDelete) {
-              yield* storage.deleteMessage(id);
-            }
+            yield* storage.deleteMessages(idsToDelete);
             if (updatedParent) {
-              yield* storage.saveMessages(threadId, updatedParent);
+              yield* storage.saveMessages(threadId, [updatedParent]);
             }
           }
         }).pipe(

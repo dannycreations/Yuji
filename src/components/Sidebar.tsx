@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { filterThreads, groupThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
+import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
@@ -13,7 +13,7 @@ import { Icon } from './shared/Icon';
 import { InputButton, InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
-import type { ConfirmOptions, Thread } from '../app/Schema';
+import type { ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const threads = useStore(
@@ -53,26 +53,12 @@ export const Sidebar: FC = () => {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
 
-  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads)).filter((t) => !t.archived), [threads]);
+  const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads)), [threads]);
 
-  const flattenedThreads = useMemo(() => {
-    const filtered = filterThreads(sortedThreads, searchQuery);
-    const grouped = groupThreads(filtered, pinnedThreadIds);
-
-    const result: Array<{ type: 'label'; label: string } | { type: 'thread'; thread: Thread }> = [];
-    const entries = Object.entries(grouped);
-
-    for (let i = 0; i < entries.length; i++) {
-      const [label, group] = entries[i];
-      if (group.length > 0) {
-        result.push({ type: 'label', label });
-        for (let j = 0; j < group.length; j++) {
-          result.push({ type: 'thread', thread: group[j] as Thread });
-        }
-      }
-    }
-    return result;
-  }, [sortedThreads, searchQuery, pinnedThreadIds]);
+  const flattenedThreads = useMemo(
+    () => getFlattenedThreads(sortedThreads, searchQuery, pinnedThreadIds),
+    [sortedThreads, searchQuery, pinnedThreadIds],
+  );
 
   const { startIndex, endIndex, translateY, totalHeight, onScroll, measureElement } = useVirtualList({
     containerHeight,

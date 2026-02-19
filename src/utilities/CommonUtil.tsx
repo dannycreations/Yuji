@@ -3,20 +3,18 @@ import type { ReactNode } from 'react';
 export const formatError = (err: unknown): string => {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
-  const msg = (err as { message?: string })?.message;
-  return msg || JSON.stringify(err);
+  return (err as { readonly message?: string })?.message ?? JSON.stringify(err);
 };
 
 const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 export const randomId = (size: number = 8): string => {
-  const values = new Uint8Array(size);
-  crypto.getRandomValues(values);
-  let result = '';
+  const bytes = crypto.getRandomValues(new Uint8Array(size));
+  let id = '';
   for (let i = 0; i < size; i++) {
-    result += ID_CHARS[values[i] % 36];
+    id += ID_CHARS[bytes[i] % 36];
   }
-  return result;
+  return id;
 };
 
 export const getFirstChar = (str: string): string => {
@@ -36,8 +34,9 @@ export const toTitleCase = (str: string): string => {
 };
 
 export const parseBoldText = (text: string): (string | ReactNode)[] => {
+  if (!text.includes('**')) return [text];
   return text.split(/(\*\*.*?\*\*)/).map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
+    if (part.length > 4 && part[0] === '*' && part[1] === '*' && part[part.length - 2] === '*' && part[part.length - 1] === '*') {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
     }
     return part;
