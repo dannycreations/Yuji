@@ -20,25 +20,30 @@ const useStoreService = (): StoreService => {
 export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T => {
   const store = useStoreService();
   const lastSelectedState = useRef<T>(null as unknown as T);
+  const selectorRef = useRef(selector);
+  const isEqualRef = useRef(isEqual);
+
+  selectorRef.current = selector;
+  isEqualRef.current = isEqual;
 
   const subscribe = useMemo(() => {
     return (callback: () => void) => {
       return store.subscribe(() => {
-        const nextSelectedState = selector(store.getSnapshot());
-        const changed = !isEqual(lastSelectedState.current, nextSelectedState);
+        const nextSelectedState = selectorRef.current(store.getSnapshot());
+        const changed = !isEqualRef.current(lastSelectedState.current, nextSelectedState);
 
         if (changed) {
           callback();
         }
       });
     };
-  }, [store, selector, isEqual]);
+  }, [store]);
 
-  const getSnapshot = () => {
-    const nextSelectedState = selector(store.getSnapshot());
+  const getSnapshot = useCallback(() => {
+    const nextSelectedState = selectorRef.current(store.getSnapshot());
     lastSelectedState.current = nextSelectedState;
     return nextSelectedState;
-  };
+  }, [store]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };

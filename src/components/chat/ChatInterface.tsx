@@ -156,11 +156,14 @@ export const ChatInterface: FC = () => {
               >
                 {virtualItems.map((virtualRow) => {
                   const message = visibleMessages[virtualRow.index];
+                  const siblings = message.parentId ? activeThread.messages[message.parentId]?.childrenIds : undefined;
+
                   return (
                     <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="w-full">
                       <ChatMessageBubble
                         message={message}
                         threadId={activeThread.id}
+                        siblings={siblings}
                         isThinking={isLoading && virtualRow.index === visibleMessages.length - 1 && message.role === 'assistant'}
                       />
                     </div>

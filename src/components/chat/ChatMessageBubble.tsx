@@ -32,23 +32,14 @@ const Markdown = memo(
 interface ChatMessageBubbleProps {
   readonly message: ThreadMessage;
   readonly threadId: string;
+  readonly siblings?: readonly string[];
   readonly isThinking?: boolean;
   readonly readOnly?: boolean;
 }
 
-export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, isThinking, readOnly }) => {
+export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, siblings, isThinking, readOnly }) => {
   const isUser = message.role === 'user';
   const saveAfterEditing = useStore((s) => s.settings.saveAfterEditing);
-  const childrenIds = useStore(
-    (s) => {
-      if (!message.parentId) return undefined;
-      const thread = s.activeThread;
-      if (!thread || thread.id !== threadId) return undefined;
-      return thread.messages[message.parentId!]?.childrenIds;
-    },
-    // Use identity check for childrenIds array since we immutable-update them in ChatService
-    Object.is,
-  );
 
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
@@ -61,7 +52,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const regenerateTriggerRef = useRef<HTMLButtonElement>(null);
 
   const onBranch = useChatAction((c, tid: string, mid: string) => c.branchChat(tid, mid));
-  const onSwitchVersion = useChatAction((c, _tid: string, mid: string) => c.updateActiveThread((t) => ({ ...t, activeMessageId: mid })));
+  const onSwitch = useChatAction((c, _tid: string, mid: string) => c.updateActiveThread((t) => ({ ...t, activeMessageId: mid })));
   const onDeleteMessage = useChatAction((c, tid: string, mid: string) => c.deleteMessage(tid, mid));
   const onRegenerate = useChatAction((c, tid: string, mid: string, options?: { instruction?: string; search?: boolean }) =>
     c.regenerateMessage(tid, mid, options),
@@ -71,14 +62,14 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   );
 
   // Logic to find siblings for navigation
-  const siblings = childrenIds || [];
-  const currentIndex = siblings.indexOf(message.id);
+  const siblingsList = siblings || [];
+  const currentIndex = siblingsList.indexOf(message.id);
 
   const handleSwitch = useCallback(
     (newId: string) => {
-      onSwitchVersion(threadId, newId);
+      onSwitch(threadId, newId);
     },
-    [onSwitchVersion, threadId],
+    [onSwitch, threadId],
   );
 
   const handleCopy = useCallback(() => setCopy(message.content), [message.content, setCopy]);
@@ -228,20 +219,20 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
           {!isEditing && !readOnly && (
             <div className={clsx('message-action-bar', isThinking && 'opacity-0 pointer-events-none')}>
               <div className="message-actions">
-                {siblings.length > 1 && (
+                {siblingsList.length > 1 && (
                   <div className="message-branch-navigation">
-                    <InputButton disabled={currentIndex === 0} onClick={() => handleSwitch(siblings[currentIndex - 1])} title="Previous Version">
+                    <InputButton disabled={currentIndex === 0} onClick={() => handleSwitch(siblingsList[currentIndex - 1])} title="Previous">
                       <Icon name="ChevronLeft" size={16} />
                     </InputButton>
                     <div className="message-branch-indicator">
                       {currentIndex + 1}
                       <span className="message-branch-indicator-slash">/</span>
-                      {siblings.length}
+                      {siblingsList.length}
                     </div>
                     <InputButton
-                      disabled={currentIndex === siblings.length - 1}
-                      onClick={() => handleSwitch(siblings[currentIndex + 1])}
-                      title="Next Version"
+                      disabled={currentIndex === siblingsList.length - 1}
+                      onClick={() => handleSwitch(siblingsList[currentIndex + 1])}
+                      title="Next"
                     >
                       <Icon name="ChevronRight" size={16} />
                     </InputButton>
