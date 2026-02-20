@@ -30,7 +30,7 @@
         "@types/react-syntax-highlighter": "^15.5.13",
         "@vitejs/plugin-react": "^5.1.4",
         "husky": "^9.1.7",
-        "npm-check-updates": "^19.4.0",
+        "npm-check-updates": "^19.4.1",
         "prettier": "^3.8.1",
         "typescript": "^5.9.3",
         "vite": "^7.3.1",
@@ -745,7 +745,7 @@
 
     "node-releases": ["node-releases@2.0.27", "", {}, "sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA=="],
 
-    "npm-check-updates": ["npm-check-updates@19.4.0", "", { "bin": { "npm-check-updates": "build/cli.js", "ncu": "build/cli.js" } }, "sha512-ZEyGbO/jQOGs/7OW0hOwyFnBG0XWO8ciSCRZEyshCxi3/ZrPtCY2laZq4MFO+UIM6oJrKXTE33jZaht9WuvXRw=="],
+    "npm-check-updates": ["npm-check-updates@19.4.1", "", { "bin": { "npm-check-updates": "build/cli.js", "ncu": "build/cli.js" } }, "sha512-g3s+khrneBo0iGx7xqu/cQUk0Qc1XAHEYDptPCyCFF447RdhiBd6yPRxB7GkesbUBHXeNfmqV3ArlwxcI8h56w=="],
 
     "npm-run-path": ["npm-run-path@6.0.0", "", { "dependencies": { "path-key": "^4.0.0", "unicorn-magic": "^0.3.0" } }, "sha512-9qny7Z9DsQU8Ou39ERsPU4OZQlSTP47ShQzuKZ6PRXpYLtIFgl/DEBYEXKlvcEa+9tHVcK8CF81Y2V72qaZhWA=="],
 

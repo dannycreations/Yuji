@@ -1,9 +1,9 @@
 import clsx from 'clsx';
+import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
-import { Icon } from '../Icon';
 import { InputButton } from '../InputArea';
 
 import type { FC, ReactNode } from 'react';
@@ -13,7 +13,7 @@ export const ModalHeader: FC<{ readonly title: ReactNode; readonly onClose?: () 
     <div className="header-title">{title}</div>
     {onClose && (
       <InputButton onClick={onClose} className="ml-auto">
-        <Icon name="X" size={18} />
+        <X size={18} />
       </InputButton>
     )}
   </div>

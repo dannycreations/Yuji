@@ -1,34 +1,34 @@
 import clsx from 'clsx';
+import { AlertCircle, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 import { useEffect } from 'react';
 
 import { useStore, useStoreAction } from '../../hooks/useStore';
-import { Icon } from './Icon';
 
 import type { CSSProperties } from 'react';
 import type { Notification } from '../../app/Schema';
 
 const TOAST_VARIANTS = {
   error: {
-    icon: 'AlertCircle',
+    icon: AlertCircle,
     variantClass: 'toast-variant-error',
   },
   warning: {
-    icon: 'AlertTriangle',
+    icon: AlertTriangle,
     variantClass: 'toast-variant-warning',
   },
   info: {
-    icon: 'Info',
+    icon: Info,
     variantClass: 'toast-variant-info',
   },
   success: {
-    icon: 'CheckCircle',
+    icon: CheckCircle,
     variantClass: 'toast-variant-success',
   },
 } as const;
 
 const ToastItem = ({ notification, onDismiss }: { notification: Notification; onDismiss: (id: string) => void }) => {
   const duration = 5000;
-  const { icon, variantClass } = TOAST_VARIANTS[notification.type];
+  const { icon: IconComponent, variantClass } = TOAST_VARIANTS[notification.type];
   const handleClose = () => onDismiss(notification.id);
 
   useEffect(() => {
@@ -43,13 +43,13 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
   return (
     <div className={clsx('toast-container', variantClass)}>
       <div className="toast-icon-wrapper">
-        <Icon name={icon} size={18} />
+        <IconComponent size={18} />
       </div>
 
       <div className="flex-1 text-sm font-medium text-text-primary pr-2">{notification.message}</div>
 
       <button onClick={handleClose} className="toast-dismiss-btn">
-        <Icon name="X" size={16} />
+        <X size={16} />
       </button>
 
       <div className="toast-progress-track">

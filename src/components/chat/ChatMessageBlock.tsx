@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { Check, ChevronDown, ChevronUp, Copy, Download, Maximize } from 'lucide-react';
 import mermaid from 'mermaid';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -8,7 +9,6 @@ import { MERMAID_CONFIG } from '../../app/Constant';
 import { useCopy } from '../../hooks/useCopy';
 import { useStore } from '../../hooks/useStore';
 import { downloadFile, randomId } from '../../utilities/CommonUtil';
-import { Icon } from '../shared/Icon';
 import { MermaidFullscreenModal } from './MermaidFullscreenModal';
 
 import type { FC } from 'react';
@@ -40,22 +40,22 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
       <div className={clsx('code-block-header', isCollapsed ? 'collapsed' : 'expanded')} onClick={() => setIsCollapsed(!isCollapsed)}>
         <div className="flex items-center gap-2">
           <div className="code-block-header-icon" title={isCollapsed ? 'Expand' : 'Collapse'}>
-            <Icon name={isCollapsed ? 'ChevronDown' : 'ChevronUp'} size={14} />
+            {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
           </div>
           <span className="code-block-header-label">{label}</span>
         </div>
         <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           <button onClick={handleCopy} className="code-block-header-btn" title={copied ? 'Copied' : 'Copy'}>
-            <Icon name={copied ? 'Check' : 'Copy'} size={14} className={clsx(copied && 'code-block-header-btn-copy')} />
+            {copied ? <Check size={14} className="code-block-header-btn-copy" /> : <Copy size={14} />}
           </button>
           {onFullscreen && (
             <button onClick={onFullscreen} className="code-block-header-btn" title="Fullscreen">
-              <Icon name="Maximize" size={14} />
+              <Maximize size={14} />
             </button>
           )}
           {onDownload && (
             <button onClick={onDownload} className="code-block-header-btn" title="Download">
-              <Icon name="Download" size={14} />
+              <Download size={14} />
             </button>
           )}
         </div>

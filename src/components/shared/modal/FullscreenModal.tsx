@@ -1,6 +1,6 @@
 import clsx from 'clsx';
+import { X } from 'lucide-react';
 
-import { Icon } from '../Icon';
 import { InputButton } from '../InputArea';
 import { Modal } from './Modal';
 
@@ -43,7 +43,7 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
           {headerActions}
           {headerActions && <div className="w-px h-4 bg-separator/50 mx-1" />}
           <InputButton onClick={onClose} title="Close">
-            <Icon name="X" size={18} />
+            <X size={18} />
           </InputButton>
         </div>
       </div>

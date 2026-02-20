@@ -1,6 +1,5 @@
 import clsx from 'clsx';
-
-import { Icon } from './Icon';
+import { X } from 'lucide-react';
 
 import type { FC } from 'react';
 import type { Attachment } from '../../app/Schema';
@@ -32,7 +31,7 @@ export const AttachmentGrid: FC<AttachmentGridProps> = ({
               onClick={() => onRemove(att.id)}
               className="absolute -top-1.5 -right-1.5 bg-background border border-separator rounded-full p-1 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <Icon name="X" size={10} />
+              <X size={10} />
             </button>
           )}
         </div>

@@ -1,6 +1,5 @@
 import clsx from 'clsx';
-
-import { Icon } from './Icon';
+import { Check, Minus } from 'lucide-react';
 
 import type { FC } from 'react';
 
@@ -14,7 +13,7 @@ interface CheckboxProps {
 export const Checkbox: FC<CheckboxProps> = ({ checked, onChange, indeterminate, className }) => {
   return (
     <button type="button" onClick={onChange} className={clsx('checkbox-base', (checked || indeterminate) && 'checked', className)}>
-      {checked ? <Icon name="Check" size={12} strokeWidth={4} /> : indeterminate ? <Icon name="Minus" size={12} strokeWidth={4} /> : null}
+      {checked ? <Check size={12} strokeWidth={4} /> : indeterminate ? <Minus size={12} strokeWidth={4} /> : null}
     </button>
   );
 };

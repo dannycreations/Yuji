@@ -1,3 +1,4 @@
+import { Settings, Terminal, User } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
@@ -15,9 +16,9 @@ interface ThreadSettingModalProps {
 }
 
 const THREAD_SETTING_TABS: SettingTabItem[] = [
-  { icon: 'Settings', id: 'general', label: 'General' },
-  { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
-  { icon: 'User', id: 'persona', label: 'Personalization' },
+  { icon: Settings, id: 'general', label: 'General' },
+  { icon: Terminal, id: 'instruction', label: 'Instruction' },
+  { icon: User, id: 'persona', label: 'Personalization' },
 ];
 
 export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onClose }) => {

@@ -1,9 +1,9 @@
+import { Check, ChevronDown, PanelLeftOpen } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 
 import { getCurrentModelId, getFilteredModels, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
-import { Icon } from './shared/Icon';
 import { InputButton, InputSearch } from './shared/InputArea';
 import { ModelItem } from './shared/ModelItem';
 
@@ -43,7 +43,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
               onSelect(model.id);
               onClose();
             }}
-            rightContent={currentModel === model.id && <Icon name="Check" size={18} className="text-primary" />}
+            rightContent={currentModel === model.id && <Check size={18} className="text-primary" />}
           />
         ))}
         {filtered.length === 0 && <div className="p-3 text-center text-xs text-text-tertiary">No models found</div>}
@@ -105,14 +105,14 @@ export const Header: FC = () => {
       <div className="flex items-center gap-2">
         {!isSidebarOpen && (
           <InputButton onClick={toggleSidebar} title="Open Sidebar">
-            <Icon name="PanelLeftOpen" size={20} />
+            <PanelLeftOpen size={20} />
           </InputButton>
         )}
 
         <div className="relative" ref={pickerRef}>
           <InputButton onClick={() => setShowModelPicker(!showModelPicker)}>
             <span className="header-title pr-1">{currentModelName}</span>
-            <Icon name="ChevronDown" size={16} className="text-text-secondary" />
+            <ChevronDown size={16} className="text-text-secondary" />
           </InputButton>
 
           {showModelPicker && <ModelPicker currentModel={currentModelId} onSelect={handleModelSelect} onClose={() => setShowModelPicker(false)} />}

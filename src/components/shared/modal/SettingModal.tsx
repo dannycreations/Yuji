@@ -1,15 +1,16 @@
 import clsx from 'clsx';
+import { X } from 'lucide-react';
 
-import { Icon } from '../Icon';
 import { InputButton } from '../InputArea';
 import { Modal, ModalHeader } from './Modal';
 
+import type { LucideIcon } from 'lucide-react';
 import type { FC, ReactNode } from 'react';
 
 export interface SettingTabItem {
   readonly id: string;
   readonly label: string;
-  readonly icon: string;
+  readonly icon: LucideIcon;
 }
 
 interface SettingModalProps {
@@ -32,13 +33,13 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
       <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator/50">
         <div className="flex-between px-1 mb-2">
           <InputButton onClick={onClose}>
-            <Icon name="X" size={18} />
+            <X size={18} />
           </InputButton>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1">
           {tabs.map((tab) => (
             <button key={tab.id} onClick={() => onTabChange(tab.id)} className={clsx('list-item-interactive', activeTab === tab.id && 'active')}>
-              <Icon name={tab.icon} size={18} className="list-item-icon settings-tab-icon" />
+              <tab.icon size={18} className="list-item-icon settings-tab-icon" />
               {tab.label}
             </button>
           ))}

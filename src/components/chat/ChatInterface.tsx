@@ -1,5 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
+import { Bot, Code, Compass, Network, Sparkles } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS, SEARCH_INSTRUCTION } from '../../app/Constant';
@@ -8,7 +9,6 @@ import { getGreeting } from '../../helpers/UserHelper';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { Header } from '../Header';
-import { Icon } from '../shared/Icon';
 import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
 
@@ -125,20 +125,30 @@ export const ChatInterface: FC = () => {
           <div className="chat-empty-container">
             <div className="mb-3 flex flex-col items-center w-full select-none">
               <div className="chat-empty-icon-wrapper">
-                <Icon name="Bot" size={24} className="text-background" />
+                <Bot size={24} className="text-background" />
               </div>
               <div className="chat-empty-title">{getGreeting(userName)}</div>
             </div>
 
             {showSuggestions && (
               <div className="suggestion-grid">
-                {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
-                  <button key={idx} onClick={() => onSend(suggestion.prompt)} className="suggestion-item">
-                    <Icon name={suggestion.icon} size={20} className="suggestion-item-icon text-text-tertiary" />
-                    <div className="suggestion-item-label">{suggestion.label}</div>
-                    <div className="suggestion-item-prompt">{suggestion.prompt}</div>
-                  </button>
-                ))}
+                {INITIAL_SUGGESTIONS.map((suggestion, idx) => {
+                  const IconComponent =
+                    {
+                      Sparkles,
+                      Compass,
+                      Code,
+                      Network,
+                    }[suggestion.icon] || Bot;
+
+                  return (
+                    <button key={idx} onClick={() => onSend(suggestion.prompt)} className="suggestion-item">
+                      <IconComponent size={20} className="suggestion-item-icon text-text-tertiary" />
+                      <div className="suggestion-item-label">{suggestion.label}</div>
+                      <div className="suggestion-item-prompt">{suggestion.prompt}</div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
+import { Archive, Bot, MoreHorizontal, PanelLeftClose, Pin, Settings, SquarePen, Trash2, User } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
@@ -8,7 +9,6 @@ import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
-import { Icon } from './shared/Icon';
 import { InputButton, InputSearch } from './shared/InputArea';
 
 import type { FC } from 'react';
@@ -82,18 +82,18 @@ export const Sidebar: FC = () => {
     <div className={clsx('sidebar-container', !isSidebarOpen && 'hidden')}>
       <div className="sidebar-header relative">
         <InputButton onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
-          <Icon name="PanelLeftClose" size={20} />
+          <PanelLeftClose size={20} />
         </InputButton>
 
         <div className="abs-center pointer-events-none">
           <InputButton variant="logo" onClick={() => setActiveThread(null)}>
-            <Icon name="Bot" size={20} className="text-primary" />
+            <Bot size={20} className="text-primary" />
             <div className="header-title">Yuji</div>
           </InputButton>
         </div>
 
         <InputButton onClick={onCreateThread} className="z-chat-input" title="New Chat">
-          <Icon name="SquarePen" size={20} />
+          <SquarePen size={20} />
         </InputButton>
       </div>
 
@@ -166,7 +166,7 @@ export const Sidebar: FC = () => {
                             menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0',
                           )}
                         >
-                          <Icon name="Pin" size={16} className="rotate-45" />
+                          <Pin size={16} className="rotate-45" />
                         </div>
                       )
                     )}
@@ -181,7 +181,7 @@ export const Sidebar: FC = () => {
                         setMenuOpenId(menuOpenId === thread.id ? null : thread.id);
                       }}
                     >
-                      <Icon name="MoreHorizontal" size={16} />
+                      <MoreHorizontal size={16} />
                     </InputButton>
                   </div>
                 </div>
@@ -193,12 +193,12 @@ export const Sidebar: FC = () => {
 
       <div className="sidebar-footer">
         <InputButton variant="sidebar" onClick={toggleSetting}>
-          <div className="avatar-sm">{getFirstChar(userName) || <Icon name="User" size={12} />}</div>
+          <div className="avatar-sm">{getFirstChar(userName) || <User size={12} />}</div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{userName || 'User'}</div>
           </div>
           <div className="text-text-tertiary flex items-center">
-            <Icon name="Settings" size={16} />
+            <Settings size={16} />
           </div>
         </InputButton>
       </div>
@@ -207,7 +207,7 @@ export const Sidebar: FC = () => {
       {menuOpenId && menuThreadMetadata && (
         <Dropdown isOpen={true} triggerRef={menuTriggerRef} onClose={() => setMenuOpenId(null)}>
           <DropdownItem
-            icon="Pin"
+            icon={Pin}
             iconClassName={clsx(pinnedThreadIds.includes(menuOpenId) && 'rotate-45')}
             label={pinnedThreadIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
             onClick={() => {
@@ -216,7 +216,7 @@ export const Sidebar: FC = () => {
             }}
           />
           <DropdownItem
-            icon="Archive"
+            icon={Archive}
             label="Archive"
             onClick={() => {
               setMenuOpenId(null);
@@ -224,7 +224,7 @@ export const Sidebar: FC = () => {
             }}
           />
           <DropdownItem
-            icon="Settings"
+            icon={Settings}
             label="Settings"
             onClick={() => {
               setMenuOpenId(null);
@@ -232,7 +232,7 @@ export const Sidebar: FC = () => {
             }}
           />
           <DropdownItem
-            icon="Trash2"
+            icon={Trash2}
             label="Delete"
             variant="danger"
             onClick={() => {

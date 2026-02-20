@@ -1,11 +1,11 @@
 import clsx from 'clsx';
+import { ArrowUp, Globe, Square } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { useAttachment } from '../../hooks/useAttachment';
 import { useStore } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { FilePicker } from '../shared/FilePicker';
-import { Icon } from '../shared/Icon';
 import { InputButton, InputTextarea } from '../shared/InputArea';
 
 import type { FC, KeyboardEvent } from 'react';
@@ -77,7 +77,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
               title="Search"
               className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
             >
-              <Icon name="Globe" size={18} />
+              <Globe size={18} />
             </InputButton>
           </div>
 
@@ -86,7 +86,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
             disabled={!input.trim() && attachments.length === 0 && !isLoading}
             className={clsx('chat-input-submit', isLoading || input.trim() || attachments.length > 0 ? 'active' : 'inactive')}
           >
-            {isLoading ? <Icon name="Square" size={16} fill="currentColor" /> : <Icon name="ArrowUp" size={20} />}
+            {isLoading ? <Square size={16} fill="currentColor" /> : <ArrowUp size={20} />}
           </button>
         </div>
       </div>

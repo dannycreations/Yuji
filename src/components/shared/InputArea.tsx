@@ -1,35 +1,35 @@
 import clsx from 'clsx';
+import { ChevronDown, Search, X } from 'lucide-react';
 import { forwardRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 
 import { useLocalValue } from '../../hooks/useLocalValue';
-import { Icon } from './Icon';
 
+import type { LucideIcon } from 'lucide-react';
 import type { ComponentProps, FC } from 'react';
 import type { TextareaAutosizeProps } from 'react-textarea-autosize';
-import type { IconName } from './Icon';
 
 interface InputWrapperProps {
-  readonly leftIcon?: IconName;
-  readonly rightIcon?: IconName;
+  readonly leftIcon?: LucideIcon;
+  readonly rightIcon?: LucideIcon;
   readonly containerClassName?: string;
   readonly children: React.ReactNode;
   readonly disabled?: boolean;
 }
 
-export const InputWrapper: FC<InputWrapperProps> = ({ leftIcon, rightIcon, containerClassName, children, disabled }) => {
+export const InputWrapper: FC<InputWrapperProps> = ({ leftIcon: LeftIcon, rightIcon: RightIcon, containerClassName, children, disabled }) => {
   return (
     <div className={clsx('input-wrapper', containerClassName, disabled && 'disabled')}>
-      {leftIcon && <Icon name={leftIcon} size={14} className="input-icon left" />}
+      {LeftIcon && <LeftIcon size={14} className="input-icon left" />}
       {children}
-      {rightIcon && <Icon name={rightIcon} size={14} className="input-icon right" />}
+      {RightIcon && <RightIcon size={14} className="input-icon right" />}
     </div>
   );
 };
 
 interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
-  readonly leftIcon?: IconName;
-  readonly rightIcon?: IconName;
+  readonly leftIcon?: LucideIcon;
+  readonly rightIcon?: LucideIcon;
   readonly containerClassName?: string;
   readonly debounceMs?: number;
 }
@@ -53,7 +53,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
 );
 
 export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>((props, ref) => {
-  return <InputText ref={ref} leftIcon="Search" debounceMs={0} {...props} />;
+  return <InputText ref={ref} leftIcon={Search} debounceMs={0} {...props} />;
 });
 
 interface InputSelectProps extends ComponentProps<'select'> {
@@ -62,7 +62,7 @@ interface InputSelectProps extends ComponentProps<'select'> {
 
 export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ className, containerClassName, children, disabled, ...props }, ref) => {
   return (
-    <InputWrapper rightIcon="ChevronDown" containerClassName={containerClassName} disabled={disabled}>
+    <InputWrapper rightIcon={ChevronDown} containerClassName={containerClassName} disabled={disabled}>
       <select ref={ref} className={clsx('select-base', className)} disabled={disabled} {...props}>
         {children}
       </select>
@@ -105,7 +105,7 @@ export const InputTag: FC<InputTagProps> = ({ tags, onChange, placeholder, maxLe
         <div key={tag} className="tag-item">
           {tag}
           <button onClick={() => removeTag(tag)} className="tag-remove" type="button">
-            <Icon name="X" size={10} />
+            <X size={10} />
           </button>
         </div>
       ))}

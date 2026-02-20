@@ -1,4 +1,19 @@
 import clsx from 'clsx';
+import {
+  ArrowUp,
+  ArrowUpDown,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  GitFork,
+  Globe,
+  Lightbulb,
+  Minimize2,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
@@ -12,7 +27,6 @@ import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
 import { FilePicker } from '../shared/FilePicker';
-import { Icon } from '../shared/Icon';
 import { InputButton, InputTextarea } from '../shared/InputArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
 
@@ -189,7 +203,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                       title="Search"
                       className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
                     >
-                      <Icon name="Globe" size={18} />
+                      <Globe size={18} />
                     </InputButton>
                   </div>
                   <div className="flex gap-2">
@@ -223,7 +237,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 {siblingsList.length > 1 && (
                   <div className="message-branch-navigation">
                     <InputButton disabled={currentIndex === 0} onClick={() => handleSwitch(siblingsList[currentIndex - 1])} title="Previous">
-                      <Icon name="ChevronLeft" size={16} />
+                      <ChevronLeft size={16} />
                     </InputButton>
                     <div className="message-branch-indicator">
                       {currentIndex + 1}
@@ -235,18 +249,18 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                       onClick={() => handleSwitch(siblingsList[currentIndex + 1])}
                       title="Next"
                     >
-                      <Icon name="ChevronRight" size={16} />
+                      <ChevronRight size={16} />
                     </InputButton>
                   </div>
                 )}
 
                 <InputButton onClick={() => onBranch(threadId, message.id)} title="Branch">
-                  <Icon name="GitFork" size={16} />
+                  <GitFork size={16} />
                 </InputButton>
 
                 <div className="relative">
                   <InputButton ref={regenerateTriggerRef} onClick={() => setIsRegenerateDropdownOpen(true)} title="Regenerate">
-                    <Icon name="RefreshCw" size={16} />
+                    <RefreshCw size={16} />
                   </InputButton>
 
                   <Dropdown
@@ -288,13 +302,13 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                             }
                           }}
                         >
-                          <Icon name="ArrowUp" size={14} />
+                          <ArrowUp size={14} />
                         </button>
                       </div>
                     </div>
                     <div className="py-1">
                       <DropdownItem
-                        icon="RefreshCw"
+                        icon={RefreshCw}
                         label="Try again"
                         onClick={() => {
                           onRegenerate(threadId, message.id);
@@ -303,7 +317,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         }}
                       />
                       <DropdownItem
-                        icon="ArrowUpDown"
+                        icon={ArrowUpDown}
                         label="Add details"
                         onClick={() => {
                           onRegenerate(threadId, message.id, {
@@ -314,7 +328,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         }}
                       />
                       <DropdownItem
-                        icon="Minimize2"
+                        icon={Minimize2}
                         label="More concise"
                         onClick={() => {
                           onRegenerate(threadId, message.id, {
@@ -325,7 +339,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         }}
                       />
                       <DropdownItem
-                        icon="Lightbulb"
+                        icon={Lightbulb}
                         label="Think longer"
                         onClick={() => {
                           onRegenerate(threadId, message.id, {
@@ -340,7 +354,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 </div>
 
                 <InputButton onClick={handleCopy} title="Copy">
-                  <Icon name={copied ? 'Check' : 'Copy'} size={16} />
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
                 </InputButton>
 
                 <InputButton
@@ -351,7 +365,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   }}
                   title="Edit"
                 >
-                  <Icon name="Pencil" size={16} />
+                  <Pencil size={16} />
                 </InputButton>
 
                 <InputButton
@@ -360,7 +374,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   className="bg-transparent! text-text-secondary! hover:text-danger!"
                   title="Delete"
                 >
-                  <Icon name="Trash2" size={16} />
+                  <Trash2 size={16} />
                 </InputButton>
               </div>
             </div>

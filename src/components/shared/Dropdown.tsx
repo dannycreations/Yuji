@@ -3,13 +3,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../hooks/useClickOutside';
-import { Icon } from './Icon';
 
+import type { LucideIcon } from 'lucide-react';
 import type { FC, ReactNode, RefObject } from 'react';
-import type { IconName } from './Icon';
 
 export interface DropdownItemProps {
-  readonly icon?: IconName;
+  readonly icon?: LucideIcon;
   readonly iconClassName?: string;
   readonly label: string;
   readonly onClick: () => void;
@@ -17,19 +16,21 @@ export interface DropdownItemProps {
   readonly className?: string;
 }
 
-export const DropdownItem: FC<DropdownItemProps> = ({ icon, iconClassName, label, onClick, variant = 'default', className }) => (
-  <button
-    type="button"
-    className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', className)}
-    onClick={(e) => {
-      e.stopPropagation();
-      onClick();
-    }}
-  >
-    {icon && <Icon name={icon} size={16} className={clsx(variant !== 'danger' && 'text-text-tertiary', iconClassName)} />}
-    <span className="flex-1 text-left">{label}</span>
-  </button>
-);
+export const DropdownItem: FC<DropdownItemProps> = ({ icon: IconComponent, iconClassName, label, onClick, variant = 'default', className }) => {
+  return (
+    <button
+      type="button"
+      className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', className)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      {IconComponent && <IconComponent size={16} className={clsx(variant !== 'danger' && 'text-text-tertiary', iconClassName)} />}
+      <span className="flex-1 text-left">{label}</span>
+    </button>
+  );
+};
 
 interface DropdownProps {
   readonly isOpen: boolean;

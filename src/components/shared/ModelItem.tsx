@@ -1,7 +1,7 @@
 import clsx from 'clsx';
+import { Cpu } from 'lucide-react';
 
 import { getModelName } from '../../helpers/ModelHelper';
-import { Icon } from './Icon';
 
 import type { FC } from 'react';
 import type { Model } from '../../app/Schema';
@@ -33,7 +33,7 @@ export const ModelItem: FC<ModelItemProps> = ({
   return (
     <Component onClick={onClick} className={clsx('model-picker-item group items-center', isActive && 'active', className)}>
       <div className={clsx('flex-shrink-0', isEnabled ? model.color || 'text-text-tertiary' : 'text-text-tertiary')}>
-        <Icon name={model.icon} size={18} />
+        <Cpu size={18} />
       </div>
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-2">

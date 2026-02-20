@@ -1,6 +1,6 @@
+import { RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { Icon } from '../shared/Icon';
 import { InputButton } from '../shared/InputArea';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
 
@@ -91,13 +91,13 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
       headerActions={
         <>
           <InputButton onClick={resetZoom} title="Reset Zoom">
-            <Icon name="RefreshCw" size={18} />
+            <RefreshCw size={18} />
           </InputButton>
           <InputButton onClick={() => handleZoom(1.2)} title="Zoom In">
-            <Icon name="ZoomIn" size={18} />
+            <ZoomIn size={18} />
           </InputButton>
           <InputButton onClick={() => handleZoom(0.8)} title="Zoom Out">
-            <Icon name="ZoomOut" size={18} />
+            <ZoomOut size={18} />
           </InputButton>
         </>
       }

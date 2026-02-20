@@ -1,5 +1,22 @@
 import clsx from 'clsx';
 import { Effect } from 'effect';
+import {
+  Archive,
+  ArchiveRestore,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Cpu,
+  Download,
+  Inbox,
+  Key,
+  Link,
+  Lock,
+  Maximize2,
+  RefreshCw,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { YujiRuntime } from '../../app/Runtime';
@@ -12,11 +29,11 @@ import { downloadFile, formatError } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { ChatMessageBubble } from '../chat/ChatMessageBubble';
 import { Checkbox } from '../shared/Checkbox';
-import { Icon } from '../shared/Icon';
 import { InputButton, InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
 import { ModelItem } from '../shared/ModelItem';
 
+import type { LucideIcon } from 'lucide-react';
 import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { AppRuntimeState, ConfirmOptions, GlobalSetting, Instruction, Model, Personalisation, Thread, ThreadMetadata } from '../../app/Schema';
 
@@ -95,7 +112,7 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
 
       <SettingField label="Base URL">
         <InputText
-          leftIcon="Link"
+          leftIcon={Link}
           value={settings.baseUrl}
           onChange={(e) => onChange({ baseUrl: e.target.value })}
           placeholder="http://localhost:11434/v1"
@@ -105,7 +122,7 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
       <SettingField label="API Key">
         <InputText
           type="password"
-          leftIcon="Key"
+          leftIcon={Key}
           value={settings.apiKey}
           onChange={(e) => onChange({ apiKey: e.target.value })}
           placeholder="sk-..."
@@ -166,7 +183,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
 
   return (
     <SettingTable
-      emptyIcon="Cpu"
+      emptyIcon={Cpu}
       emptyLabel={modelSearch ? `No models match "${modelSearch}"` : 'No models available. Click refresh to fetch models.'}
       items={filteredModels}
       getId={(m) => m.id}
@@ -187,11 +204,11 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
           disabled={refreshState === 'loading'}
           title="Refresh Library"
         >
-          <Icon
-            name={refreshState === 'success' ? 'Check' : 'RefreshCw'}
-            size={14}
-            className={clsx(refreshState === 'loading' && 'animate-spin-once')}
-          />
+          {refreshState === 'success' ? (
+            <Check size={14} />
+          ) : (
+            <RefreshCw size={14} className={clsx(refreshState === 'loading' && 'animate-spin-once')} />
+          )}
           <span>{refreshState === 'success' ? 'Updated' : 'Refresh'}</span>
         </InputButton>
       )}
@@ -216,7 +233,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
 
 interface SettingTableProps<T> {
   readonly info?: string;
-  readonly emptyIcon: string;
+  readonly emptyIcon: LucideIcon;
   readonly emptyLabel: string;
   readonly items: T[];
   readonly size?: number;
@@ -230,7 +247,7 @@ interface SettingTableProps<T> {
 
 export const SettingTable = <T,>({
   info,
-  emptyIcon,
+  emptyIcon: EmptyIcon,
   emptyLabel,
   items,
   size = 6,
@@ -323,7 +340,7 @@ export const SettingTable = <T,>({
             })
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2 min-h-[200px]">
-              <Icon name={emptyIcon} size={32} className="opacity-20" />
+              <EmptyIcon size={32} className="opacity-20" />
               <p className="text-sm">{emptyLabel}</p>
             </div>
           )}
@@ -342,7 +359,7 @@ export const SettingTable = <T,>({
               variant="secondary"
               className="px-3! py-2! text-xs! font-medium!"
             >
-              <Icon name="ChevronLeft" size={12} />
+              <ChevronLeft size={12} />
               Prev
             </InputButton>
             <InputButton
@@ -352,7 +369,7 @@ export const SettingTable = <T,>({
               className="px-3! py-2! text-xs! font-medium!"
             >
               Next
-              <Icon name="ChevronRight" size={12} />
+              <ChevronRight size={12} />
             </InputButton>
           </div>
         </div>
@@ -413,7 +430,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
   return (
     <SettingTable
       info="Back up your conversation history or migrate it to another device. Importing data will merge with your existing conversations."
-      emptyIcon="Inbox"
+      emptyIcon={Inbox}
       emptyLabel="No chat history available."
       items={sortedThreads}
       getId={(t) => t.id}
@@ -421,16 +438,16 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
         <>
           {selectedIds.size > 0 && (
             <InputButton onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
-              <Icon name="Trash2" size={12} />
+              <Trash2 size={12} />
               Delete ({selectedIds.size})
             </InputButton>
           )}
           <InputButton onClick={() => exportThreads(threads, selectedIds, 'history')} className="badge-outline">
-            <Icon name="Upload" size={12} />
+            <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
           <InputButton onClick={() => fileInputRef.current?.click()} className="badge-outline">
-            <Icon name="Download" size={12} />
+            <Download size={12} />
             Import
           </InputButton>
         </>
@@ -491,7 +508,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
   return (
     <SettingTable
       info="View and manage your archived conversations. Archived chats are hidden from the sidebar but can be restored at any time."
-      emptyIcon="Archive"
+      emptyIcon={Archive}
       emptyLabel="No archived conversations."
       items={sortedThreads}
       getId={(t) => t.id}
@@ -499,12 +516,12 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
         <>
           {selectedIds.size > 0 && (
             <InputButton onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
-              <Icon name="Trash2" size={12} />
+              <Trash2 size={12} />
               Delete ({selectedIds.size})
             </InputButton>
           )}
           <InputButton onClick={() => exportThreads(threads, selectedIds, 'archive')} className="badge-outline">
-            <Icon name="Upload" size={12} />
+            <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
         </>
@@ -522,11 +539,11 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           </div>
           <div className="flex items-center gap-2">
             <InputButton onClick={() => toggleArchive(thread.id)} className="badge-outline" title="Unarchive">
-              <Icon name="ArchiveRestore" size={12} />
+              <ArchiveRestore size={12} />
               Restore
             </InputButton>
             <InputButton onClick={() => handlePreview(thread.id)} className="badge-outline" title="View Conversation">
-              <Icon name="Maximize2" size={12} />
+              <Maximize2 size={12} />
               View
             </InputButton>
           </div>
@@ -547,7 +564,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               }}
               className="badge-outline"
             >
-              <Icon name="ArchiveRestore" size={14} />
+              <ArchiveRestore size={14} />
               Restore
             </InputButton>
           }
@@ -637,7 +654,7 @@ export const OverrideSection = <T,>({ description, checked, onChange, children, 
   if (!checked) {
     return (
       <div className="override-empty-state">
-        <Icon name="Lock" size={24} className="mb-2 opacity-50" />
+        <Lock size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
         <InputButton onClick={() => onChange(true)} className="override-enable-btn">
           Enable Override

@@ -1,3 +1,4 @@
+import { Archive, Cpu, History, Link, Settings, Terminal, User } from 'lucide-react';
 import { useState } from 'react';
 
 import { useStore, useStoreAction } from '../../hooks/useStore';
@@ -19,13 +20,13 @@ import type { SettingTabItem } from '../shared/modal/SettingModal';
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history' | 'archive';
 
 const GLOBAL_SETTING_TABS: SettingTabItem[] = [
-  { icon: 'Settings', id: 'general', label: 'General' },
-  { icon: 'Link', id: 'connection', label: 'Connection' },
-  { icon: 'Cpu', id: 'models', label: 'Models' },
-  { icon: 'Terminal', id: 'instruction', label: 'Instruction' },
-  { icon: 'User', id: 'persona', label: 'Personalization' },
-  { icon: 'History', id: 'history', label: 'History & Sync' },
-  { icon: 'Archive', id: 'archive', label: 'Archive' },
+  { icon: Settings, id: 'general', label: 'General' },
+  { icon: Link, id: 'connection', label: 'Connection' },
+  { icon: Cpu, id: 'models', label: 'Models' },
+  { icon: Terminal, id: 'instruction', label: 'Instruction' },
+  { icon: User, id: 'persona', label: 'Personalization' },
+  { icon: History, id: 'history', label: 'History & Sync' },
+  { icon: Archive, id: 'archive', label: 'Archive' },
 ];
 
 export const GlobalSettingModal: FC = () => {
