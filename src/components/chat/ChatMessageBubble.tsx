@@ -273,10 +273,10 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                     className="w-55 p-0"
                   >
                     <div className="p-2 border-b border-separator/50">
-                      <div className="relative flex items-center">
+                      <div className="regenerate-input-wrapper">
                         <input
                           type="text"
-                          className="input-base input-sm pr-9"
+                          className="regenerate-input"
                           placeholder="Ask to change response"
                           value={customInstruction}
                           onChange={(e) => setCustomInstruction(e.target.value)}
@@ -291,7 +291,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                         />
                         <button
                           className={clsx(
-                            'absolute right-1.5 p-1 rounded-md transition-all',
+                            'regenerate-submit-btn',
                             customInstruction.trim() ? 'bg-primary text-background' : 'text-text-tertiary opacity-50',
                           )}
                           onClick={() => {

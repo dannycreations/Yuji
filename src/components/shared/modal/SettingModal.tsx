@@ -28,9 +28,9 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
   const activeTabLabel = title || tabs.find((t) => t.id === activeTab)?.label || '';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} containerClassName="w-full max-w-settings h-settings bg-sidebar flex overflow-hidden origin-bottom">
+    <Modal isOpen={isOpen} onClose={onClose} containerClassName="settings-modal-container">
       {/* Sidebar */}
-      <div className="w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator/50">
+      <div className="settings-sidebar">
         <div className="flex-between px-1 mb-2">
           <InputButton onClick={onClose}>
             <X size={18} />

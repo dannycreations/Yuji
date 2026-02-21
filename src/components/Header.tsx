@@ -46,7 +46,7 @@ const ModelPicker: FC<ModelPickerProps> = ({ currentModel, onSelect, onClose }) 
             rightContent={currentModel === model.id && <Check size={18} className="text-primary" />}
           />
         ))}
-        {filtered.length === 0 && <div className="p-3 text-center text-xs text-text-tertiary">No models found</div>}
+        {filtered.length === 0 && <div className="model-picker-empty">No models found</div>}
       </div>
     </div>
   );

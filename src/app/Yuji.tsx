@@ -17,10 +17,10 @@ const DatabaseErrorView = ({ error }: { error: string }) => {
   const handleDeleteDatabase = useStoreAction((s) => s.deleteDatabase());
 
   return (
-    <div className="fixed inset-0 flex-center flex-col bg-background text-text-primary text-center z-fullscreen">
-      <div className="max-w-md w-full space-y-2">
+    <div className="database-error-container">
+      <div className="database-error-content">
         <div className="flex-center">
-          <div className="p-3 bg-danger/10 rounded-full">
+          <div className="database-error-icon-wrapper">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="48"
@@ -47,7 +47,7 @@ const DatabaseErrorView = ({ error }: { error: string }) => {
         </div>
 
         {error && (
-          <div className="p-3 bg-background-raised rounded-lg border border-line text-left overflow-auto max-h-[200px]">
+          <div className="database-error-details">
             <p className="text-xs font-mono text-danger break-all">{error}</p>
           </div>
         )}

@@ -38,7 +38,7 @@ import type { ChangeEvent, FC, ReactNode } from 'react';
 import type { AppRuntimeState, ConfirmOptions, GlobalSetting, Instruction, Model, Personalisation, Thread, ThreadMetadata } from '../../app/Schema';
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={clsx('flex flex-col min-h-0 h-full', className)}>{children}</div>
+  <div className={clsx('settings-section-wrapper', className)}>{children}</div>
 );
 
 export const SettingItem: FC<{ label: string; description?: string; children: ReactNode; className?: string }> = ({
@@ -194,7 +194,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
           value={modelSearch}
           onChange={(e) => setModelSearch(e.target.value)}
           placeholder="Search models..."
-          className="input-sm bg-primary/10 hover:bg-surface focus:bg-surface mr-2"
+          className="settings-search-input"
         />
       }
       headerActions={() => (
@@ -339,7 +339,7 @@ export const SettingTable = <T,>({
               );
             })
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-text-tertiary gap-2 min-h-[200px]">
+            <div className="settings-table-empty">
               <EmptyIcon size={32} className="opacity-20" />
               <p className="text-sm">{emptyLabel}</p>
             </div>

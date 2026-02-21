@@ -34,7 +34,7 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
       className={clsx('p-0 bg-background', className)}
       containerClassName="w-full h-full max-w-none rounded-none flex flex-col overflow-hidden"
     >
-      <div className="flex-between p-3 border-b border-separator/50 shrink-0" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="fullscreen-modal-header" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex flex-col min-w-0">
           {title && <h3 className="text-sm font-medium text-text-primary truncate">{title}</h3>}
           {subtitle && <p className="text-xs text-text-tertiary truncate">{subtitle}</p>}
@@ -47,7 +47,7 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
           </InputButton>
         </div>
       </div>
-      <div className={clsx('flex-1 overflow-hidden relative', bodyClassName)} onMouseDown={(e) => e.stopPropagation()}>
+      <div className={clsx('fullscreen-modal-body', bodyClassName)} onMouseDown={(e) => e.stopPropagation()}>
         {children}
       </div>
     </Modal>

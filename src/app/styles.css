@@ -413,6 +413,10 @@
     @apply w-1.5 h-1.5 rounded-full bg-primary animate-pulse;
   }
 
+  .sidebar-thread-action-btn {
+    @apply p-1 transition-opacity absolute inset-0 bg-transparent flex-center;
+  }
+
   .btn-sidebar {
     @apply w-full flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-surface transition-colors text-text-primary;
     & .avatar-sm {
@@ -550,6 +554,18 @@
 
   .message-branch-indicator-slash {
     @apply text-text-tertiary mx-0.5;
+  }
+
+  .regenerate-input-wrapper {
+    @apply relative flex items-center;
+  }
+
+  .regenerate-input {
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-colors placeholder:text-text-tertiary pr-9;
+  }
+
+  .regenerate-submit-btn {
+    @apply absolute right-1.5 p-1 rounded-md transition-all;
   }
 
   /* Chat Input Area */
@@ -695,6 +711,10 @@
     @apply overflow-y-auto max-h-[320px] p-2 space-y-1 overscroll-y-contain;
   }
 
+  .model-picker-empty {
+    @apply p-3 text-center text-xs text-text-tertiary;
+  }
+
   .model-picker-item {
     @apply w-full flex items-start gap-3 p-2 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover;
     & .model-picker-item-title {
@@ -718,8 +738,20 @@
   }
 
   /* Settings */
+  .settings-modal-container {
+    @apply w-full max-w-settings h-settings bg-sidebar flex overflow-hidden origin-bottom;
+  }
+
+  .settings-sidebar {
+    @apply w-settings-sidebar bg-sidebar flex flex-col flex-shrink-0 py-2 px-2 border-r border-separator/50;
+  }
+
   .settings-main-content {
     @apply flex-1 flex flex-col min-w-0 bg-background relative p-3;
+  }
+
+  .settings-section-wrapper {
+    @apply flex flex-col min-h-0 h-full;
   }
 
   .settings-section-title {
@@ -790,6 +822,14 @@
     @apply bg-line;
   }
 
+  .settings-table-empty {
+    @apply flex-center flex-col h-full text-text-tertiary gap-2 min-h-[200px];
+  }
+
+  .settings-search-input {
+    @apply px-3 py-2 text-xs bg-primary/10 hover:bg-surface focus:bg-surface mr-2;
+  }
+
   .settings-footer-note {
     @apply text-xs text-text-tertiary pl-1;
   }
@@ -829,6 +869,31 @@
 
   .fullscreen-overlay {
     @apply fixed inset-0 z-fullscreen flex flex-col bg-background/95 backdrop-blur-md;
+  }
+
+  .fullscreen-modal-header {
+    @apply flex-between p-3 border-b border-separator/50 shrink-0;
+  }
+
+  .fullscreen-modal-body {
+    @apply flex-1 overflow-hidden relative;
+  }
+
+  /* Database Error */
+  .database-error-container {
+    @apply fixed inset-0 flex-center flex-col bg-background text-text-primary text-center z-fullscreen;
+  }
+
+  .database-error-content {
+    @apply max-w-md w-full space-y-2;
+  }
+
+  .database-error-icon-wrapper {
+    @apply p-3 bg-danger/10 rounded-full;
+  }
+
+  .database-error-details {
+    @apply p-3 bg-background-raised rounded-lg border border-line text-left overflow-auto max-h-[200px];
   }
 
   /* Mermaid */
@@ -914,6 +979,10 @@
 
   .toast-icon-wrapper {
     @apply flex-center w-8 h-8 rounded-full;
+  }
+
+  .toast-message {
+    @apply flex-1 text-sm font-medium text-text-primary pr-2;
   }
 
   .toast-progress-track {

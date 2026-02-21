@@ -172,10 +172,7 @@ export const Sidebar: FC = () => {
                     )}
                     <InputButton
                       ref={menuOpenId === thread.id ? menuTriggerRef : null}
-                      className={clsx(
-                        'p-1 transition-opacity absolute inset-0 bg-transparent flex-center',
-                        menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-                      )}
+                      className={clsx('sidebar-thread-action-btn', menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
                       onClick={(e) => {
                         e.stopPropagation();
                         setMenuOpenId(menuOpenId === thread.id ? null : thread.id);

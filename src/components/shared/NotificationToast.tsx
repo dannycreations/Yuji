@@ -46,7 +46,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
         <IconComponent size={18} />
       </div>
 
-      <div className="flex-1 text-sm font-medium text-text-primary pr-2">{notification.message}</div>
+      <div className="toast-message">{notification.message}</div>
 
       <button onClick={handleClose} className="toast-dismiss-btn">
         <X size={16} />
