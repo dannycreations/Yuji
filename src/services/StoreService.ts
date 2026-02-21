@@ -58,7 +58,7 @@ const INITIAL_STATE: AppRuntimeState = {
   activeThread: null,
   settings: DEFAULT_SETTINGS,
   availableModels: [],
-  isSidebarOpen: true,
+  isSidebarOpen: typeof window !== 'undefined' ? window.innerWidth > 768 : true,
   isSettingOpen: false,
   isHydrated: false,
   confirm: {

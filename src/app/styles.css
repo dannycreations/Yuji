@@ -571,6 +571,7 @@
   /* Chat Input Area */
   .chat-input-wrapper {
     @apply w-full max-w-chat mx-auto px-3 md:px-0 pb-3 pt-2 z-chat-input;
+    padding-bottom: calc(max(0.75rem, env(safe-area-inset-bottom)));
   }
 
   .chat-input-container {
