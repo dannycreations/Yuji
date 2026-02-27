@@ -240,20 +240,28 @@ export const StoreServiceLive = Layer.effect(
       loadMessages: (threadId) =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          if (s.activeThreadId === threadId && s.activeThread?.id === threadId) return;
+          // If the thread is already active and being updated (e.g. streaming), do not reload from storage
+          // to avoid overwriting the volatile live state with stale/partial data from disk.
+          if (s.activeThreadId === threadId && s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > 0) {
+            return;
+          }
 
-          const thread = yield* storage.getThread(threadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)));
+          const thread = yield* storage.getThread(threadId, { limit: MAX_MEM_MESSAGES }).pipe(Effect.catchAll(() => Effect.succeed(null)));
           if (!thread) return;
 
-          yield* update((s) =>
-            s.activeThreadId === threadId
-              ? {
-                  ...s,
-                  activeThread: thread,
-                  settings: { ...s.settings, model: thread.general.model || s.settings.model },
-                }
-              : s,
-          );
+          yield* update((s) => {
+            if (s.activeThreadId !== threadId) return s;
+            // Final check: if the thread became active and populated while we were loading, don't overwrite.
+            if (s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > Object.keys(thread.messages).length) {
+              return s;
+            }
+
+            return {
+              ...s,
+              activeThread: thread,
+              settings: { ...s.settings, model: thread.general.model || s.settings.model },
+            };
+          });
         }).pipe(Effect.orDie),
       loadMoreMessages: () =>
         Effect.gen(function* () {

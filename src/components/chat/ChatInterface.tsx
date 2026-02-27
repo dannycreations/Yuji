@@ -50,7 +50,11 @@ export const ChatInterface: FC = () => {
     count: visibleMessages.length,
     getScrollElement: () => scrollAreaRef.current,
     estimateSize: () => 150,
-    getItemKey: (index) => visibleMessages[index].id,
+    getItemKey: (index) => {
+      // In case of race conditions during transition, ensure index is safe
+      const msg = visibleMessages[index];
+      return msg ? msg.id : `empty-${index}`;
+    },
     overscan: 10,
   });
 
@@ -63,8 +67,10 @@ export const ChatInterface: FC = () => {
       lastThreadId.current = activeThreadId;
       setIsReady(false);
       isAtBottomRef.current = true;
+      // Force virtualizer to clear measurements and scroll position immediately on thread change
+      virtualizer.scrollToOffset(0);
     }
-  }, [activeThreadId]);
+  }, [activeThreadId, virtualizer]);
 
   // Load messages for the active thread
   useEffect(() => {
@@ -92,7 +98,7 @@ export const ChatInterface: FC = () => {
 
   // Keep scroll at bottom when content changes or during streaming
   useLayoutEffect(() => {
-    if (!isReady || !isAtBottomRef.current || isTransitioning) return;
+    if (!isReady || !isAtBottomRef.current || isTransitioning || visibleMessages.length === 0) return;
 
     // Use scrollToIndex for more stable behavior with virtualization
     virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
