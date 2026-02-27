@@ -473,7 +473,7 @@ export const ChatServiceLive = Layer.effect(
 
       deleteMessage: (threadId, messageId) =>
         Effect.gen(function* () {
-          const idsToDelete = yield* storage.getDescendantIds(messageId);
+          const idsToDelete = yield* storage.getDescendantIds(messageId, threadId);
           let updatedParent: ThreadMessage | undefined;
 
           yield* updateThread(

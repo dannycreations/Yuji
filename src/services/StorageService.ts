@@ -16,7 +16,7 @@ export interface StorageService {
   readonly deleteThreads: (ids: Iterable<string>) => Effect.Effect<void, Error>;
 
   readonly getMessage: (id: string) => Effect.Effect<ThreadMessage | null, Error>;
-  readonly getDescendantIds: (id: string) => Effect.Effect<ReadonlyArray<string>, Error>;
+  readonly getDescendantIds: (id: string, threadId?: string) => Effect.Effect<ReadonlyArray<string>, Error>;
   readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>, Error>;
   readonly paginate: <T>(
     storeName: string,
@@ -82,18 +82,11 @@ export const StorageServiceLive = Layer.effect(
         }),
 
       getThreadsMetadata: (options) =>
-        Effect.gen(function* () {
-          if (!options) {
-            const db = yield* getDB;
-            const threads = yield* Effect.promise(() => db.getAllFromIndex(STORES.THREADS, 'updatedAt'));
-            return (threads as ThreadMetadata[]).reverse();
-          }
-
-          const threads = yield* storage.paginate<ThreadMetadata>(STORES.THREADS, {
-            ...options,
-            indexName: 'updatedAt',
-          });
-          return threads as ThreadMetadata[];
+        storage.paginate<ThreadMetadata>(STORES.THREADS, {
+          limit: options?.limit ?? 50,
+          lastKey: options?.lastKey,
+          indexName: 'updatedAt',
+          direction: 'prev',
         }),
 
       searchThreads: (query, options) =>
@@ -244,21 +237,11 @@ export const StorageServiceLive = Layer.effect(
         }),
 
       getMessages: (threadId, options) =>
-        Effect.gen(function* () {
-          if (!options) {
-            const db = yield* getDB;
-            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId));
-            return messages as ThreadMessage[];
-          }
-
-          const messages = yield* storage.paginate<ThreadMessage>(STORES.MESSAGES, {
-            ...options,
-            indexName: 'threadId_timestamp',
-            indexValue: threadId,
-            direction: 'prev',
-          });
-
-          return messages;
+        storage.paginate<ThreadMessage>(STORES.MESSAGES, {
+          ...options,
+          indexName: 'threadId_timestamp',
+          indexValue: threadId,
+          direction: 'prev',
         }),
 
       saveMessages: (threadId, messages) =>
@@ -288,12 +271,35 @@ export const StorageServiceLive = Layer.effect(
           return (msg as ThreadMessage) || null;
         }),
 
-      getDescendantIds: (id) =>
+      getDescendantIds: (id, threadId) =>
         Effect.gen(function* () {
           const db = yield* getDB;
+
+          if (threadId) {
+            const allMessages = (yield* storage.getMessages(threadId)) as (ThreadMessage & { parentId?: string })[];
+            const parentToChildren = new Map<string, string[]>();
+
+            for (const m of allMessages) {
+              if (m.parentId) {
+                const children = parentToChildren.get(m.parentId) || [];
+                children.push(m.id);
+                parentToChildren.set(m.parentId, children);
+              }
+            }
+
+            const results: string[] = [];
+            const stack = [id];
+            while (stack.length > 0) {
+              const currentId = stack.pop()!;
+              results.push(currentId);
+              const children = parentToChildren.get(currentId);
+              if (children) stack.push(...children);
+            }
+            return results;
+          }
+
           const results: string[] = [];
           const stack = [id];
-
           while (stack.length > 0) {
             const currentId = stack.pop()!;
             results.push(currentId);

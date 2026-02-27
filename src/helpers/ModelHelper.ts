@@ -13,11 +13,12 @@ export const getFilteredModels = (
 ): Model[] => {
   const { includeDisabled = false, sort = true } = options;
   const query = search.trim().toLowerCase();
-  const disabledSet = new Set(disabledModels);
+  const disabledSet = disabledModels.length > 0 ? new Set(disabledModels) : null;
 
   const filtered: Model[] = [];
-  for (const m of availableModels) {
-    if (!includeDisabled && disabledSet.has(m.id)) continue;
+  for (let i = 0; i < availableModels.length; i++) {
+    const m = availableModels[i];
+    if (!includeDisabled && disabledSet?.has(m.id)) continue;
     if (!query || m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) {
       filtered.push(m);
     }
@@ -25,7 +26,7 @@ export const getFilteredModels = (
 
   if (sort && filtered.length > 1) {
     return filtered.sort((a, b) => {
-      if (includeDisabled) {
+      if (includeDisabled && disabledSet) {
         const aDisabled = disabledSet.has(a.id) ? 1 : 0;
         const bDisabled = disabledSet.has(b.id) ? 1 : 0;
         if (aDisabled !== bDisabled) return aDisabled - bDisabled;
@@ -38,11 +39,12 @@ export const getFilteredModels = (
 };
 
 export const getModelId = (settings: GlobalSetting, availableModels: readonly Model[]): string => {
-  const disabledSet = new Set(settings.disabledModels);
+  const disabledSet = settings.disabledModels.length > 0 ? new Set(settings.disabledModels) : null;
   let firstActiveId = '';
 
-  for (const m of availableModels) {
-    if (!disabledSet.has(m.id)) {
+  for (let i = 0; i < availableModels.length; i++) {
+    const m = availableModels[i];
+    if (!disabledSet?.has(m.id)) {
       if (!firstActiveId) firstActiveId = m.id;
       if (m.id === settings.model) return m.id;
     }

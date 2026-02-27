@@ -23,9 +23,9 @@ export const toTitleCase = (str: string): string => {
 };
 
 export const parseBoldText = (text: string): (string | ReactNode)[] => {
-  if (!text.includes('**')) return [text];
+  if (text.length < 5 || !text.includes('**')) return [text];
   return text.split(/(\*\*.*?\*\*)/).map((part, i) => {
-    if (part.length > 4 && part[0] === '*' && part[1] === '*' && part[part.length - 2] === '*' && part[part.length - 1] === '*') {
+    if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) {
       return <strong key={i}>{part.slice(2, -2)}</strong>;
     }
     return part;

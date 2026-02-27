@@ -28,15 +28,18 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
 };
 
 export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
-  if (
-    message.role === 'user' &&
-    message.content &&
-    (thread.title === 'New Chat' || thread.title.endsWith('...')) &&
-    (Object.keys(thread.messages).length === 0 || (Object.keys(thread.messages).length === 1 && thread.messages[message.id] !== undefined))
-  ) {
+  if (message.role !== 'user' || !message.content) return thread.title;
+
+  const isInitialState = thread.title === 'New Chat' || thread.title.endsWith('...');
+  if (!isInitialState) return thread.title;
+
+  const msgCount = Object.keys(thread.messages).length;
+  // If no messages or only this message exists (during addMessage flow), generate title
+  if (msgCount === 0 || (msgCount === 1 && thread.messages[message.id])) {
     const firstLine = message.content.split('\n', 1)[0];
     return truncate(firstLine, 40);
   }
+
   return thread.title;
 };
 
@@ -134,8 +137,7 @@ export const getFlattenedThreads = (
   pinnedThreadIds: ReadonlyArray<string> = [],
 ): FlattenedThreadItem[] => {
   const query = searchQuery.trim().toLowerCase();
-  const now = Date.now();
-  const todayStart = new Date(now).setHours(0, 0, 0, 0);
+  const todayStart = new Date().setHours(0, 0, 0, 0);
   const yesterdayStart = todayStart - 86400000;
   const last7DaysStart = todayStart - 518400000; // 6 * 86400000
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
@@ -146,22 +148,24 @@ export const getFlattenedThreads = (
   const last7: Array<ThreadMetadata | Thread> = [];
   const last30: Array<ThreadMetadata | Thread> = [];
 
-  for (const thread of threadsList) {
+  for (let i = 0; i < threadsList.length; i++) {
+    const thread = threadsList[i];
     if (thread.archived || (query && !thread.title.toLowerCase().includes(query))) continue;
 
     if (pinnedSet?.has(thread.id)) {
       pinned.push(thread);
+      continue;
+    }
+
+    const ts = thread.updatedAt;
+    if (ts >= todayStart) {
+      today.push(thread);
+    } else if (ts >= yesterdayStart) {
+      yesterday.push(thread);
+    } else if (ts >= last7DaysStart) {
+      last7.push(thread);
     } else {
-      const ts = thread.updatedAt;
-      if (ts >= todayStart) {
-        today.push(thread);
-      } else if (ts >= yesterdayStart) {
-        yesterday.push(thread);
-      } else if (ts >= last7DaysStart) {
-        last7.push(thread);
-      } else {
-        last30.push(thread);
-      }
+      last30.push(thread);
     }
   }
 

@@ -1,4 +1,4 @@
-import { Context, Effect, Either, Layer, Schema, Stream, SubscriptionRef } from 'effect';
+import { Context, Effect, Either, Layer, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
@@ -149,7 +149,16 @@ export const StoreServiceLive = Layer.effect(
     yield* Effect.forkDaemon(
       state.changes.pipe(
         Stream.drop(1),
-        Stream.mapEffect((s) => Schema.decode(AppStoreState)(s).pipe(Effect.orDie)),
+        Stream.map(
+          (s) =>
+            ({
+              activeThreadId: s.activeThreadId,
+              settings: s.settings,
+              availableModels: s.availableModels,
+              pinnedThreadIds: s.pinnedThreadIds,
+              backgroundThreadIds: s.backgroundThreadIds,
+            }) satisfies AppStoreState,
+        ),
         Stream.changes,
         Stream.runForEach((meta) => storage.saveMetadata(meta)),
         Effect.orDie,
@@ -291,7 +300,10 @@ export const StoreServiceLive = Layer.effect(
           if (!s.activeThread) return;
 
           const { id: tid, messages } = s.activeThread;
-          const lastKey = Object.values(messages).reduce((min, m) => (m.timestamp < min ? m.timestamp : min), Infinity);
+          const msgList = Object.values(messages);
+          if (msgList.length === 0) return;
+
+          const lastKey = Math.min(...msgList.map((m) => m.timestamp));
 
           const more = yield* storage.getMessages(tid, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (more.length === 0) return;
@@ -322,7 +334,10 @@ export const StoreServiceLive = Layer.effect(
       loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
-          const lastKey = Object.values(s.threads).reduce((min, t) => (t.updatedAt < min ? t.updatedAt : min), Infinity);
+          const threadList = Object.values(s.threads);
+          if (threadList.length === 0) return;
+
+          const lastKey = Math.min(...threadList.map((t) => t.updatedAt));
 
           const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (more.length === 0) return;
