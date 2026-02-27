@@ -10,10 +10,13 @@ export interface StorageService {
   readonly getThreadsMetadata: (options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>, Error>;
   readonly searchThreads: (query: string, options?: { limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>, Error>;
   readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null, Error>;
+  readonly getThreadMetadata: (id: string) => Effect.Effect<ThreadMetadata | null, Error>;
   readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void, Error>;
   readonly patchThread: (id: string, patch: Partial<ThreadMetadata>) => Effect.Effect<void, Error>;
   readonly deleteThreads: (ids: Iterable<string>) => Effect.Effect<void, Error>;
 
+  readonly getMessage: (id: string) => Effect.Effect<ThreadMessage | null, Error>;
+  readonly getDescendantIds: (id: string) => Effect.Effect<ReadonlyArray<string>, Error>;
   readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>, Error>;
   readonly paginate: <T>(
     storeName: string,
@@ -44,19 +47,16 @@ const STORES = {
 const connectDB = Effect.promise(() =>
   openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      if (!db.objectStoreNames.contains(STORES.METADATA)) {
-        db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(STORES.THREADS)) {
-        const threadStore = db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
-        threadStore.createIndex('title', 'title');
-        threadStore.createIndex('updatedAt', 'updatedAt');
-      }
-      if (!db.objectStoreNames.contains(STORES.MESSAGES)) {
-        const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
-        messageStore.createIndex('threadId', 'threadId');
-        messageStore.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
-      }
+      db.createObjectStore(STORES.METADATA, { keyPath: 'id' });
+
+      const threadStore = db.createObjectStore(STORES.THREADS, { keyPath: 'id' });
+      threadStore.createIndex('title', 'title');
+      threadStore.createIndex('updatedAt', 'updatedAt');
+
+      const messageStore = db.createObjectStore(STORES.MESSAGES, { keyPath: 'id' });
+      messageStore.createIndex('threadId', 'threadId');
+      messageStore.createIndex('threadId_timestamp', ['threadId', 'timestamp']);
+      messageStore.createIndex('parentId', 'parentId');
     },
   }),
 ).pipe(Effect.cached);
@@ -100,7 +100,9 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const limit = options?.limit ?? 50;
-          const normalizedQuery = query.toLowerCase();
+          const normalizedQuery = query.trim().toLowerCase();
+
+          if (!normalizedQuery) return [];
 
           const tx = db.transaction(STORES.THREADS, 'readonly');
           const index = tx.store.index('updatedAt');
@@ -143,6 +145,13 @@ export const StorageServiceLive = Layer.effect(
           }
 
           return { ...thread, messages: messagesRecord } as Thread;
+        }),
+
+      getThreadMetadata: (id) =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          const meta = yield* Effect.promise(() => db.get(STORES.THREADS, id));
+          return (meta as ThreadMetadata) || null;
         }),
 
       saveThread: (thread) =>
@@ -275,6 +284,30 @@ export const StorageServiceLive = Layer.effect(
             tx.store.delete(id);
           }
           yield* Effect.promise(() => tx.done);
+        }),
+
+      getMessage: (id) =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          const msg = yield* Effect.promise(() => db.get(STORES.MESSAGES, id));
+          return (msg as ThreadMessage) || null;
+        }),
+
+      getDescendantIds: (id) =>
+        Effect.gen(function* () {
+          const db = yield* getDB;
+          const results: string[] = [];
+          const stack = [id];
+
+          while (stack.length > 0) {
+            const currentId = stack.pop()!;
+            results.push(currentId);
+            const children = yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'parentId', currentId));
+            for (let i = 0, len = children.length; i < len; i++) {
+              stack.push(children[i] as string);
+            }
+          }
+          return results;
         }),
 
       deleteDatabase: () =>

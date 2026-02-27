@@ -84,16 +84,21 @@ export const ChatServiceLive = Layer.effect(
         const now = Date.now();
         const s = yield* SubscriptionRef.get(store.state);
 
-        const thread = s.activeThreadId === threadId && s.activeThread?.id === threadId ? s.activeThread : yield* storage.getThread(threadId);
+        const thread =
+          s.activeThreadId === threadId && s.activeThread?.id === threadId
+            ? s.activeThread
+            : options.metadataOnly
+              ? yield* storage.getThreadMetadata(threadId)
+              : yield* storage.getThread(threadId);
 
         if (!thread) return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
 
-        const updated = f(thread, now);
+        const updated = f(thread as Thread, now);
         const finalThread = options.skipUpdateTimestamp ? updated : { ...updated, updatedAt: now };
 
-        yield* store.update((s) => ({
-          ...s,
-          threads: options.skipUpdateTimestamp
+        yield* store.update((s) => {
+          const isTargetActive = s.activeThreadId === threadId;
+          const nextThreads = options.skipUpdateTimestamp
             ? s.threads
             : {
                 ...s.threads,
@@ -105,16 +110,32 @@ export const ChatServiceLive = Layer.effect(
                   activeMessageId: finalThread.activeMessageId,
                   archived: finalThread.archived,
                 } satisfies ThreadMetadata,
-              },
-          activeThread: s.activeThreadId === threadId ? finalThread : s.activeThread,
-        }));
+              };
+
+          if (isTargetActive && s.activeThread === finalThread && s.threads === nextThreads) return s;
+
+          return {
+            ...s,
+            threads: nextThreads,
+            activeThread: isTargetActive ? finalThread : s.activeThread,
+          };
+        });
 
         if (!options.uiOnly) {
-          const finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread).pipe(Effect.orDie);
-          yield* storage.patchThread(threadId, finalMetadata);
+          if (options.metadataOnly) {
+            yield* storage.patchThread(threadId, {
+              title: finalThread.title,
+              updatedAt: finalThread.updatedAt,
+              activeMessageId: finalThread.activeMessageId,
+              archived: finalThread.archived,
+            });
+          } else {
+            const finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread).pipe(Effect.orDie);
+            yield* storage.patchThread(threadId, finalMetadata);
 
-          if (!options.metadataOnly && !options.skipUpdateTimestamp) {
-            yield* storage.saveThread(finalThread);
+            if (!options.skipUpdateTimestamp) {
+              yield* storage.saveThread(finalThread);
+            }
           }
         }
       });
@@ -363,7 +384,9 @@ export const ChatServiceLive = Layer.effect(
           for (const [id, thread] of Object.entries(threads)) {
             metadatas[id] = yield* Schema.decode(ThreadMetadata)(thread).pipe(Effect.orDie);
             saveEffects.push(storage.saveThread(thread));
-            saveEffects.push(storage.saveMessages(id, Object.values(thread.messages)));
+            if (thread.messages) {
+              saveEffects.push(storage.saveMessages(id, Object.values(thread.messages)));
+            }
           }
 
           yield* Effect.all(
@@ -450,46 +473,38 @@ export const ChatServiceLive = Layer.effect(
 
       deleteMessage: (threadId, messageId) =>
         Effect.gen(function* () {
-          let idsToDelete: string[] = [];
+          const idsToDelete = yield* storage.getDescendantIds(messageId);
           let updatedParent: ThreadMessage | undefined;
 
-          yield* updateThread(threadId, (thread) => {
-            const messageToDelete = thread.messages[messageId];
-            if (!messageToDelete) return thread;
+          yield* updateThread(
+            threadId,
+            (thread) => {
+              const messageToDelete = thread.messages[messageId];
+              if (!messageToDelete) return thread;
 
-            const messages = { ...thread.messages };
-            idsToDelete = [];
-            const stack = [messageId];
-            while (stack.length > 0) {
-              const id = stack.pop()!;
-              const msg = messages[id];
-              if (msg) {
-                idsToDelete.push(id);
-                const children = msg.childrenIds;
-                if (children) {
-                  for (let i = 0, cLen = children.length; i < cLen; i++) {
-                    stack.push(children[i]);
-                  }
-                }
+              const messages = { ...thread.messages };
+              for (let i = 0, len = idsToDelete.length; i < len; i++) {
+                delete messages[idsToDelete[i]];
               }
-            }
 
-            idsToDelete.forEach((id) => delete messages[id]);
+              if (messageToDelete.parentId && messages[messageToDelete.parentId]) {
+                const p = messages[messageToDelete.parentId];
+                updatedParent = {
+                  ...p,
+                  childrenIds: p.childrenIds?.filter((id) => id !== messageId),
+                };
+                messages[messageToDelete.parentId] = updatedParent;
+              }
 
-            if (messageToDelete.parentId && messages[messageToDelete.parentId]) {
-              updatedParent = {
-                ...messages[messageToDelete.parentId],
-                childrenIds: messages[messageToDelete.parentId].childrenIds?.filter((id) => id !== messageId),
-              };
-              messages[messageToDelete.parentId] = updatedParent;
-            }
+              const activeMessageId =
+                thread.activeMessageId && idsToDelete.includes(thread.activeMessageId)
+                  ? messageToDelete.parentId || Object.keys(messages).pop()
+                  : thread.activeMessageId;
 
-            const activeMessageId = idsToDelete.includes(thread.activeMessageId || '')
-              ? messageToDelete.parentId || Object.keys(messages).pop()
-              : thread.activeMessageId;
-
-            return { ...thread, messages, activeMessageId };
-          });
+              return { ...thread, messages, activeMessageId };
+            },
+            { metadataOnly: false },
+          );
 
           if (idsToDelete.length > 0) {
             yield* storage.deleteMessages(idsToDelete);
@@ -549,7 +564,7 @@ export const ChatServiceLive = Layer.effect(
         const thread = yield* store.getThread(threadId);
         if (!thread) continue;
 
-        const messages = Object.values(thread.messages).sort((a, b) => b.timestamp - a.timestamp);
+        const messages = thread.messages ? Object.values(thread.messages).sort((a, b) => b.timestamp - a.timestamp) : [];
         const lastMessage = messages[0];
         const lastUserMessage = messages.find((m) => m.role === 'user');
 

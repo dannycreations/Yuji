@@ -9,16 +9,16 @@ export const synthesizeSystemPrompt = (settings: GlobalSetting, thread: Thread):
   const instruction = thread.general.overrideInstruction ? thread.instruction.systemPrompt : settings.instruction.systemPrompt;
   const personalisation = thread.general.overridePersonalisation ? thread.personalisation : settings.personalisation;
 
-  const parts = [instruction, '\n\n', DEFAULT_GUIDE_PROMPT, '\n\n## Personalisation\n\n'];
+  let res = instruction + '\n\n' + DEFAULT_GUIDE_PROMPT + '\n\n## Personalisation\n\n';
 
   const { userName, userOccupation, assistantTraits, additionalContext } = personalisation;
 
-  if (userName) parts.push(`- The user's name is ${userName}.\n`);
-  if (userOccupation?.length) parts.push(`- The user acts as ${userOccupation.join(', ')}.\n`);
-  if (assistantTraits?.length) parts.push(`- You should act ${assistantTraits.join(', ')}.\n`);
-  if (additionalContext) parts.push(`- Additional context: ${additionalContext}\n`);
+  if (userName) res += `- The user's name is ${userName}.\n`;
+  if (userOccupation?.length) res += `- The user acts as ${userOccupation.join(', ')}.\n`;
+  if (assistantTraits?.length) res += `- You should act ${assistantTraits.join(', ')}.\n`;
+  if (additionalContext) res += `- Additional context: ${additionalContext}\n`;
 
-  return parts.join('').trim();
+  return res.trim();
 };
 
 interface LLMModel {

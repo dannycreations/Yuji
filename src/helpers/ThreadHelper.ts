@@ -128,8 +128,6 @@ export type FlattenedThreadItem =
       readonly thread: ThreadMetadata | Thread;
     };
 
-const GROUP_LABELS = ['Pinned', 'Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days'] as const;
-
 export const getFlattenedThreads = (
   threadsList: ReadonlyArray<ThreadMetadata | Thread>,
   searchQuery: string,
@@ -142,45 +140,52 @@ export const getFlattenedThreads = (
   const last7DaysStart = todayStart - 518400000; // 6 * 86400000
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
 
-  const groups: Record<(typeof GROUP_LABELS)[number], Array<ThreadMetadata | Thread>> = {
-    Pinned: [],
-    Today: [],
-    Yesterday: [],
-    'Last 7 Days': [],
-    'Last 30 Days': [],
-  };
+  const pinned: Array<ThreadMetadata | Thread> = [];
+  const today: Array<ThreadMetadata | Thread> = [];
+  const yesterday: Array<ThreadMetadata | Thread> = [];
+  const last7: Array<ThreadMetadata | Thread> = [];
+  const last30: Array<ThreadMetadata | Thread> = [];
 
   for (let i = 0, len = threadsList.length; i < len; i++) {
     const thread = threadsList[i];
     if (thread.archived || (query && !thread.title.toLowerCase().includes(query))) continue;
 
     if (pinnedSet?.has(thread.id)) {
-      groups.Pinned.push(thread);
+      pinned.push(thread);
     } else {
       const ts = thread.updatedAt;
       if (ts >= todayStart) {
-        groups.Today.push(thread);
+        today.push(thread);
       } else if (ts >= yesterdayStart) {
-        groups.Yesterday.push(thread);
+        yesterday.push(thread);
       } else if (ts >= last7DaysStart) {
-        groups['Last 7 Days'].push(thread);
+        last7.push(thread);
       } else {
-        groups['Last 30 Days'].push(thread);
+        last30.push(thread);
       }
     }
   }
 
   const result: FlattenedThreadItem[] = [];
-  for (let i = 0, len = GROUP_LABELS.length; i < len; i++) {
-    const label = GROUP_LABELS[i];
-    const group = groups[label];
-    const gLen = group.length;
-    if (gLen > 0) {
-      result.push({ type: 'label', label });
-      for (let j = 0; j < gLen; j++) {
-        result.push({ type: 'thread', thread: group[j] });
-      }
-    }
+  if (pinned.length > 0) {
+    result.push({ type: 'label', label: 'Pinned' });
+    for (let i = 0, len = pinned.length; i < len; i++) result.push({ type: 'thread', thread: pinned[i] });
+  }
+  if (today.length > 0) {
+    result.push({ type: 'label', label: 'Today' });
+    for (let i = 0, len = today.length; i < len; i++) result.push({ type: 'thread', thread: today[i] });
+  }
+  if (yesterday.length > 0) {
+    result.push({ type: 'label', label: 'Yesterday' });
+    for (let i = 0, len = yesterday.length; i < len; i++) result.push({ type: 'thread', thread: yesterday[i] });
+  }
+  if (last7.length > 0) {
+    result.push({ type: 'label', label: 'Last 7 Days' });
+    for (let i = 0, len = last7.length; i < len; i++) result.push({ type: 'thread', thread: last7[i] });
+  }
+  if (last30.length > 0) {
+    result.push({ type: 'label', label: 'Last 30 Days' });
+    for (let i = 0, len = last30.length; i < len; i++) result.push({ type: 'thread', thread: last30[i] });
   }
   return result;
 };

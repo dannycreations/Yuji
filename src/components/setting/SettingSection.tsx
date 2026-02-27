@@ -378,20 +378,32 @@ export const SettingTable = <T,>({
   );
 };
 
-const exportThreads = (threads: Record<string, ThreadMetadata>, selectedIds: Set<string>, prefix: string) => {
-  let dataToExport = threads;
-  if (selectedIds.size > 0) {
-    dataToExport = Object.fromEntries(Object.entries(threads).filter(([id]) => selectedIds.has(id)));
-  }
-  downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-};
-
 export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
+  const getThread = useStoreAction((s, id: string) => s.getThread(id));
   const onImportThreads = useChatAction((c, newThreads: Record<string, Thread>) => c.importThreads(newThreads));
   const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
+
+  const handleExport = useCallback(
+    (selectedIds: Set<string>, prefix: string) => {
+      YujiRuntime.runPromise(
+        Effect.gen(function* () {
+          const ids = selectedIds.size > 0 ? Array.from(selectedIds) : Object.keys(threads);
+          const dataToExport: Record<string, Thread> = {};
+
+          for (const id of ids) {
+            const thread = yield* Effect.promise(() => getThread(id));
+            if (thread) dataToExport[id] = thread;
+          }
+
+          downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+        }),
+      ).catch(console.error);
+    },
+    [threads, getThread],
+  );
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -442,7 +454,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => exportThreads(threads, selectedIds, 'history')} className="badge-outline">
+          <InputButton onClick={() => handleExport(selectedIds, 'history')} className="badge-outline">
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
@@ -478,6 +490,30 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
   const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
+
+  const handleExport = useCallback(
+    (selectedIds: Set<string>, prefix: string) => {
+      YujiRuntime.runPromise(
+        Effect.gen(function* () {
+          const ids =
+            selectedIds.size > 0
+              ? Array.from(selectedIds)
+              : Object.values(threads)
+                  .filter((t) => t.archived)
+                  .map((t) => t.id);
+          const dataToExport: Record<string, Thread> = {};
+
+          for (const id of ids) {
+            const thread = yield* Effect.promise(() => getThread(id));
+            if (thread) dataToExport[id] = thread;
+          }
+
+          downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+        }),
+      ).catch(console.error);
+    },
+    [threads, getThread],
+  );
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => t.archived)), [threads]);
 
@@ -520,7 +556,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => exportThreads(threads, selectedIds, 'archive')} className="badge-outline">
+          <InputButton onClick={() => handleExport(selectedIds, 'archive')} className="badge-outline">
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>

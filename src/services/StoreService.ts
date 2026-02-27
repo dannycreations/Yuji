@@ -1,7 +1,6 @@
-import { Context, Effect, Either, Fiber, Layer, Schema, Stream, SubscriptionRef } from 'effect';
+import { Context, Effect, Either, Layer, Schema, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
-import { YujiRuntime } from '../app/Runtime';
 import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { getMessagePath } from '../helpers/ThreadHelper';
 import { formatError, randomId } from '../utilities/CommonUtil';
@@ -126,12 +125,25 @@ export const StoreServiceLive = Layer.effect(
     const initialState = yield* loadState;
     const state = yield* SubscriptionRef.make(initialState);
 
+    const listeners = new Set<() => void>();
     const subscribe = (onStoreChange: () => void) => {
-      const fiber = YujiRuntime.runFork(Stream.runForEach(state.changes, () => Effect.sync(onStoreChange)));
+      listeners.add(onStoreChange);
       return () => {
-        YujiRuntime.runFork(Fiber.interrupt(fiber));
+        listeners.delete(onStoreChange);
       };
     };
+
+    // Keep cache fresh on changes and notify listeners immediately
+    yield* Effect.forkDaemon(
+      state.changes.pipe(
+        Stream.runForEach(() =>
+          Effect.sync(() => {
+            snapshotCache = null;
+            listeners.forEach((l) => l());
+          }),
+        ),
+      ),
+    );
 
     // Metadata (Debounced & Differential)
     yield* Effect.forkDaemon(
@@ -144,11 +156,21 @@ export const StoreServiceLive = Layer.effect(
       ),
     );
 
-    const update = (f: (state: AppRuntimeState) => AppRuntimeState) => SubscriptionRef.update(state, f);
+    let snapshotCache: AppRuntimeState | null = null;
+    const update = (f: (state: AppRuntimeState) => AppRuntimeState) =>
+      Effect.sync(() => {
+        snapshotCache = null;
+      }).pipe(Effect.flatMap(() => SubscriptionRef.update(state, f)));
+
+    const getSnapshot = () => {
+      if (snapshotCache) return snapshotCache;
+      snapshotCache = SubscriptionRef.get(state).pipe(Effect.runSync);
+      return snapshotCache;
+    };
 
     return StoreService.of({
       state,
-      getSnapshot: () => SubscriptionRef.get(state).pipe(Effect.runSync),
+      getSnapshot,
       update,
       subscribe,
       patch: (updates) => update((s) => ({ ...s, ...updates })),
@@ -282,20 +304,22 @@ export const StoreServiceLive = Layer.effect(
             }
 
             const list = Object.values(next);
-            if (list.length <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
+            const len = list.length;
+            if (len <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
 
             const final: Record<string, ThreadMessage> = {};
             const activeId = s.activeThread.activeMessageId;
             if (activeId) {
               const path = getMessagePath(s.activeThread, activeId);
-              for (let i = 0, len = path.length; i < len; i++) {
+              for (let i = 0, pLen = path.length; i < pLen; i++) {
                 final[path[i].id] = path[i];
               }
             }
 
             list.sort((a, b) => b.timestamp - a.timestamp);
-            for (let i = 0, len = list.length; i < len && Object.keys(final).length < MAX_MEM_MESSAGES; i++) {
-              final[list[i].id] = list[i];
+            for (let i = 0; i < len && Object.keys(final).length < MAX_MEM_MESSAGES; i++) {
+              const m = list[i];
+              if (!final[m.id]) final[m.id] = m;
             }
 
             return { ...s, activeThread: { ...s.activeThread, messages: final } };
@@ -316,20 +340,23 @@ export const StoreServiceLive = Layer.effect(
             }
 
             const list = Object.values(next);
-            if (list.length <= MAX_MEM_THREADS) return { ...s, threads: next };
+            const len = list.length;
+            if (len <= MAX_MEM_THREADS) return { ...s, threads: next };
 
             const res: Record<string, ThreadMetadata> = {};
             const pinned = s.pinnedThreadIds;
-            for (let i = 0, len = pinned.length; i < len; i++) {
+            for (let i = 0, pLen = pinned.length; i < pLen; i++) {
               const id = pinned[i];
-              if (next[id]) res[id] = next[id];
+              const t = next[id];
+              if (t) res[id] = t;
             }
             const activeId = s.activeThreadId;
             if (activeId && next[activeId]) res[activeId] = next[activeId];
 
             list.sort((a, b) => b.updatedAt - a.updatedAt);
-            for (let i = 0, len = list.length; i < len && Object.keys(res).length < MAX_MEM_THREADS; i++) {
-              res[list[i].id] = list[i];
+            for (let i = 0; i < len && Object.keys(res).length < MAX_MEM_THREADS; i++) {
+              const t = list[i];
+              if (!res[t.id]) res[t.id] = t;
             }
 
             return { ...s, threads: res };
