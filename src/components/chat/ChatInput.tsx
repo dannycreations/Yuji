@@ -38,8 +38,9 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => 
       onStop();
       return;
     }
-    if (!input.trim() && attachments.length === 0) return;
-    onSend(input, [...attachments], { search: isSearchEnabled });
+    const trimmedInput = input.trim();
+    if (!trimmedInput && attachments.length === 0) return;
+    onSend(trimmedInput, [...attachments], { search: isSearchEnabled });
     setInput('');
     clearAttachments();
     setIsSearchEnabled(false);

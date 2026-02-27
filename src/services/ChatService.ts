@@ -361,7 +361,7 @@ export const ChatServiceLive = Layer.effect(
           const idSet = new Set(ids);
           yield* store.update((state) => {
             const threads = { ...state.threads };
-            for (let i = 0; i < len; i++) delete threads[ids[i]];
+            for (const id of ids) delete threads[id];
             const activeId = state.activeThreadId;
             const isActiveDeleted = activeId && idSet.has(activeId);
             return {
@@ -483,9 +483,7 @@ export const ChatServiceLive = Layer.effect(
               if (!messageToDelete) return thread;
 
               const messages = { ...thread.messages };
-              for (let i = 0, len = idsToDelete.length; i < len; i++) {
-                delete messages[idsToDelete[i]];
-              }
+              for (const id of idsToDelete) delete messages[id];
 
               if (messageToDelete.parentId && messages[messageToDelete.parentId]) {
                 const p = messages[messageToDelete.parentId];

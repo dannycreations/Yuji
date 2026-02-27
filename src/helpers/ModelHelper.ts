@@ -16,8 +16,7 @@ export const getFilteredModels = (
   const disabledSet = new Set(disabledModels);
 
   const filtered: Model[] = [];
-  for (let i = 0, len = availableModels.length; i < len; i++) {
-    const m = availableModels[i];
+  for (const m of availableModels) {
     if (!includeDisabled && disabledSet.has(m.id)) continue;
     if (!query || m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) {
       filtered.push(m);
@@ -42,8 +41,7 @@ export const getModelId = (settings: GlobalSetting, availableModels: readonly Mo
   const disabledSet = new Set(settings.disabledModels);
   let firstActiveId = '';
 
-  for (let i = 0, len = availableModels.length; i < len; i++) {
-    const m = availableModels[i];
+  for (const m of availableModels) {
     if (!disabledSet.has(m.id)) {
       if (!firstActiveId) firstActiveId = m.id;
       if (m.id === settings.model) return m.id;
@@ -60,8 +58,7 @@ export const getCurrentModelId = (activeThread: Thread | null, settings: GlobalS
 };
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
-  for (let i = 0, len = availableModels.length; i < len; i++) {
-    const m = availableModels[i];
+  for (const m of availableModels) {
     if (m.id === modelId) return toTitleCase(m.name);
   }
   return 'Yuji';

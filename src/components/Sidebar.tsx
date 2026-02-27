@@ -135,7 +135,7 @@ export const Sidebar: FC = () => {
               const item = flattenedThreads[virtualRow.index];
               if (item.type === 'label') {
                 return (
-                  <h3 key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="label-caps p-2 h-[40px]">
+                  <h3 key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="label-caps p-2">
                     {item.label}
                   </h3>
                 );

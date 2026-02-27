@@ -100,7 +100,7 @@ export const StoreServiceLive = Layer.effect(
       const { metadata, threadHeaders } = result.right;
 
       if (metadata) {
-        const threads: Record<string, ThreadMetadata> = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
+        const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
         const { activeThreadId, settings } = metadata;
         const activeThread = activeThreadId
           ? yield* storage.getThread(activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)))
@@ -299,25 +299,19 @@ export const StoreServiceLive = Layer.effect(
           yield* update((s) => {
             if (s.activeThread?.id !== tid) return s;
             const next = { ...s.activeThread.messages };
-            for (let i = 0, len = more.length; i < len; i++) {
-              next[more[i].id] = more[i];
-            }
+            for (const m of more) next[m.id] = m;
 
             const list = Object.values(next);
-            const len = list.length;
-            if (len <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
+            if (list.length <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
 
             const final: Record<string, ThreadMessage> = {};
             const activeId = s.activeThread.activeMessageId;
             if (activeId) {
-              const path = getMessagePath(s.activeThread, activeId);
-              for (let i = 0, pLen = path.length; i < pLen; i++) {
-                final[path[i].id] = path[i];
-              }
+              for (const m of getMessagePath(s.activeThread, activeId)) final[m.id] = m;
             }
 
             list.sort((a, b) => b.timestamp - a.timestamp);
-            for (let i = 0; i < len && Object.keys(final).length < MAX_MEM_MESSAGES; i++) {
+            for (let i = 0; i < list.length && Object.keys(final).length < MAX_MEM_MESSAGES; i++) {
               const m = list[i];
               if (!final[m.id]) final[m.id] = m;
             }
@@ -335,18 +329,13 @@ export const StoreServiceLive = Layer.effect(
 
           yield* update((s) => {
             const next = { ...s.threads };
-            for (let i = 0, len = more.length; i < len; i++) {
-              next[more[i].id] = more[i];
-            }
+            for (const t of more) next[t.id] = t;
 
             const list = Object.values(next);
-            const len = list.length;
-            if (len <= MAX_MEM_THREADS) return { ...s, threads: next };
+            if (list.length <= MAX_MEM_THREADS) return { ...s, threads: next };
 
             const res: Record<string, ThreadMetadata> = {};
-            const pinned = s.pinnedThreadIds;
-            for (let i = 0, pLen = pinned.length; i < pLen; i++) {
-              const id = pinned[i];
+            for (const id of s.pinnedThreadIds) {
               const t = next[id];
               if (t) res[id] = t;
             }
@@ -354,7 +343,7 @@ export const StoreServiceLive = Layer.effect(
             if (activeId && next[activeId]) res[activeId] = next[activeId];
 
             list.sort((a, b) => b.updatedAt - a.updatedAt);
-            for (let i = 0; i < len && Object.keys(res).length < MAX_MEM_THREADS; i++) {
+            for (let i = 0; i < list.length && Object.keys(res).length < MAX_MEM_THREADS; i++) {
               const t = list[i];
               if (!res[t.id]) res[t.id] = t;
             }

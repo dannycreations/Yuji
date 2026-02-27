@@ -128,13 +128,8 @@ export const StorageServiceLive = Layer.effect(
           if (!thread) return null;
 
           const messages = yield* storage.getMessages(id, options);
-          const messagesRecord: Record<string, ThreadMessage> = {};
+          const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
           const activeId = thread.activeMessageId;
-
-          for (let i = 0, len = messages.length; i < len; i++) {
-            const m = messages[i];
-            messagesRecord[m.id] = m;
-          }
 
           // Ensure the active message is present if a limit was applied
           if (options?.limit && activeId && !messagesRecord[activeId]) {
@@ -303,9 +298,7 @@ export const StorageServiceLive = Layer.effect(
             const currentId = stack.pop()!;
             results.push(currentId);
             const children = yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'parentId', currentId));
-            for (let i = 0, len = children.length; i < len; i++) {
-              stack.push(children[i] as string);
-            }
+            stack.push(...(children as string[]));
           }
           return results;
         }),

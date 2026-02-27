@@ -2,28 +2,13 @@ import { Cause } from 'effect';
 
 import type { ReactNode } from 'react';
 
-const ID_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
-const ID_CHARS_LEN = ID_CHARS.length;
-const MASK = (1 << Math.ceil(Math.log2(ID_CHARS_LEN))) - 1;
-const STEP = Math.ceil((1.6 * MASK * 8) / ID_CHARS_LEN);
-
-export const randomId = (size: number = 8): string => {
-  let id = '';
-  while (id.length < size) {
-    const bytes = crypto.getRandomValues(new Uint8Array(STEP));
-    for (let i = 0; i < STEP && id.length < size; i++) {
-      const value = bytes[i] & MASK;
-      if (value < ID_CHARS_LEN) {
-        id += ID_CHARS[value];
-      }
-    }
-  }
-  return id;
-};
+export const randomId = (size: number = 8): string => crypto.randomUUID().slice(0, size);
 
 export const getFirstChar = (str: string): string => {
   const trimmed = str.trim();
-  return trimmed ? trimmed.charAt(0).toUpperCase() : '';
+  if (!trimmed) return '';
+  const first = trimmed.codePointAt(0);
+  return first ? String.fromCodePoint(first).toUpperCase() : '';
 };
 
 export const truncate = (str: string, length: number): string => {

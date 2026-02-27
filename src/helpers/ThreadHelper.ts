@@ -41,7 +41,8 @@ export const generateThreadTitle = (thread: Thread, message: ThreadMessage): str
 };
 
 export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[]): T[] => {
-  return threads.length <= 1 ? threads : [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
+  if (threads.length <= 1) return threads;
+  return [...threads].sort((a, b) => b.updatedAt - a.updatedAt);
 };
 
 export const filterThreads = <T extends ThreadMetadata | Thread>(threads: T[], query: string): T[] => {
@@ -85,8 +86,7 @@ export const branchThreadPath = (
   const idMap = new Map<string, string>();
 
   // Single pass to clone messages and map IDs
-  for (let i = 0, len = path.length; i < len; i++) {
-    const m = path[i];
+  for (const m of path) {
     const newMsgId = randomId();
     idMap.set(m.id, newMsgId);
 
@@ -146,8 +146,7 @@ export const getFlattenedThreads = (
   const last7: Array<ThreadMetadata | Thread> = [];
   const last30: Array<ThreadMetadata | Thread> = [];
 
-  for (let i = 0, len = threadsList.length; i < len; i++) {
-    const thread = threadsList[i];
+  for (const thread of threadsList) {
     if (thread.archived || (query && !thread.title.toLowerCase().includes(query))) continue;
 
     if (pinnedSet?.has(thread.id)) {
@@ -169,23 +168,23 @@ export const getFlattenedThreads = (
   const result: FlattenedThreadItem[] = [];
   if (pinned.length > 0) {
     result.push({ type: 'label', label: 'Pinned' });
-    for (let i = 0, len = pinned.length; i < len; i++) result.push({ type: 'thread', thread: pinned[i] });
+    for (const t of pinned) result.push({ type: 'thread', thread: t });
   }
   if (today.length > 0) {
     result.push({ type: 'label', label: 'Today' });
-    for (let i = 0, len = today.length; i < len; i++) result.push({ type: 'thread', thread: today[i] });
+    for (const t of today) result.push({ type: 'thread', thread: t });
   }
   if (yesterday.length > 0) {
     result.push({ type: 'label', label: 'Yesterday' });
-    for (let i = 0, len = yesterday.length; i < len; i++) result.push({ type: 'thread', thread: yesterday[i] });
+    for (const t of yesterday) result.push({ type: 'thread', thread: t });
   }
   if (last7.length > 0) {
     result.push({ type: 'label', label: 'Last 7 Days' });
-    for (let i = 0, len = last7.length; i < len; i++) result.push({ type: 'thread', thread: last7[i] });
+    for (const t of last7) result.push({ type: 'thread', thread: t });
   }
   if (last30.length > 0) {
     result.push({ type: 'label', label: 'Last 30 Days' });
-    for (let i = 0, len = last30.length; i < len; i++) result.push({ type: 'thread', thread: last30[i] });
+    for (const t of last30) result.push({ type: 'thread', thread: t });
   }
   return result;
 };

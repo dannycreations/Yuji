@@ -50,11 +50,7 @@ export const ChatInterface: FC = () => {
     count: visibleMessages.length,
     getScrollElement: () => scrollAreaRef.current,
     estimateSize: () => 150,
-    getItemKey: (index) => {
-      // In case of race conditions during transition, ensure index is safe
-      const msg = visibleMessages[index];
-      return msg ? msg.id : `empty-${index}`;
-    },
+    getItemKey: (index) => visibleMessages[index]?.id ?? `empty-${index}`,
     overscan: 10,
   });
 
