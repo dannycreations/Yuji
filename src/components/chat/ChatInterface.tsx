@@ -21,6 +21,8 @@ export const ChatInterface: FC = () => {
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 
+  const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
+
   const isLoading = useStore(
     (s) => (s.activeThreadId ? s.backgroundThreadIds.includes(s.activeThreadId) : false),
     (a, b) => a === b,
@@ -145,7 +147,7 @@ export const ChatInterface: FC = () => {
                     }[suggestion.icon] || Bot;
 
                   return (
-                    <button key={idx} onClick={() => onSend(suggestion.prompt)} className="suggestion-item">
+                    <button key={idx} onClick={() => setPendingInput(suggestion.prompt)} className="suggestion-item">
                       <IconComponent size={20} className="suggestion-item-icon text-text-tertiary" />
                       <div className="suggestion-item-label">{suggestion.label}</div>
                       <div className="suggestion-item-prompt">{suggestion.prompt}</div>
@@ -188,7 +190,15 @@ export const ChatInterface: FC = () => {
         )}
       </div>
 
-      <ChatInput onSend={onSend} onStop={onStop} isLoading={isLoading} />
+      <ChatInput
+        onSend={(...args) => {
+          setPendingInput(undefined);
+          onSend(...args);
+        }}
+        onStop={onStop}
+        isLoading={isLoading}
+        initialInput={pendingInput}
+      />
     </div>
   );
 };

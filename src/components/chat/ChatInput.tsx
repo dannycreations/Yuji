@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { ArrowUp, Globe, Square } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useAttachment } from '../../hooks/useAttachment';
 import { useStore } from '../../hooks/useStore';
@@ -15,10 +15,19 @@ interface ChatInputProps {
   readonly onSend: (text: string, attachments: Attachment[], options?: { readonly search?: boolean }) => void;
   readonly onStop: () => void;
   readonly isLoading: boolean;
+  readonly initialInput?: string;
 }
 
-export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading }) => {
+export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initialInput }) => {
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    if (initialInput) {
+      setInput(initialInput);
+      textareaRef.current?.focus();
+    }
+  }, [initialInput]);
+
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
   const { attachments, onFileSelect, onPaste, removeAttachment, clearAttachments } = useAttachment();
 
