@@ -105,10 +105,11 @@ export const ChatInterface: FC = () => {
     const [firstItem] = virtualItems;
     if (!firstItem) return;
 
-    if (firstItem.index <= 0 && !isLoading && !isEmpty && isReady) {
+    // Allow loading previous messages even during streaming or background tasks
+    if (firstItem.index <= 0 && !isEmpty && isReady) {
       loadMoreMessages();
     }
-  }, [virtualItems, isLoading, isEmpty, loadMoreMessages, isReady]);
+  }, [virtualItems, isEmpty, loadMoreMessages, isReady]);
 
   return (
     <div className="main-layout">

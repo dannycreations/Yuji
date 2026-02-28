@@ -454,7 +454,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => handleExport(selectedIds, 'history')} className="badge-outline">
+          <InputButton onClick={() => handleExport(selectedIds, 'history')} className="badge-outline" disabled={sortedThreads.length === 0}>
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
@@ -556,7 +556,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </InputButton>
           )}
-          <InputButton onClick={() => handleExport(selectedIds, 'archive')} className="badge-outline">
+          <InputButton onClick={() => handleExport(selectedIds, 'archive')} className="badge-outline" disabled={sortedThreads.length === 0}>
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </InputButton>
