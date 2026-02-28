@@ -199,7 +199,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
       }
       headerActions={() => (
         <InputButton
-          className={clsx('badge-outline', refreshState === 'success' && '!text-emerald-500')}
+          className={clsx('badge-outline ml-2', refreshState === 'success' && '!text-emerald-500')}
           onClick={handleRefreshModels}
           disabled={refreshState === 'loading'}
           title="Refresh Library"

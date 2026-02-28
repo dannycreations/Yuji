@@ -6,23 +6,39 @@ import TextareaAutosize from 'react-textarea-autosize';
 import { useLocalValue } from '../../hooks/useLocalValue';
 
 import type { LucideIcon } from 'lucide-react';
-import type { ComponentProps, FC } from 'react';
+import type { ChangeEvent, ComponentProps, FC } from 'react';
 import type { TextareaAutosizeProps } from 'react-textarea-autosize';
 
 interface InputWrapperProps {
   readonly leftIcon?: LucideIcon;
   readonly rightIcon?: LucideIcon;
+  readonly onRightIconClick?: () => void;
   readonly containerClassName?: string;
   readonly children: React.ReactNode;
   readonly disabled?: boolean;
 }
 
-export const InputWrapper: FC<InputWrapperProps> = ({ leftIcon: LeftIcon, rightIcon: RightIcon, containerClassName, children, disabled }) => {
+export const InputWrapper: FC<InputWrapperProps> = ({
+  leftIcon: LeftIcon,
+  rightIcon: RightIcon,
+  onRightIconClick,
+  containerClassName,
+  children,
+  disabled,
+}) => {
   return (
     <div className={clsx('input-wrapper', containerClassName, disabled && 'disabled')}>
       {LeftIcon && <LeftIcon size={14} className="input-icon left" />}
       {children}
-      {RightIcon && <RightIcon size={14} className="input-icon right" />}
+      {RightIcon && (
+        <RightIcon
+          size={14}
+          className={clsx('input-icon right', onRightIconClick && 'clickable')}
+          onClick={onRightIconClick}
+          role={onRightIconClick ? 'button' : undefined}
+          tabIndex={onRightIconClick ? 0 : undefined}
+        />
+      )}
     </div>
   );
 };
@@ -30,19 +46,20 @@ export const InputWrapper: FC<InputWrapperProps> = ({ leftIcon: LeftIcon, rightI
 interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
   readonly leftIcon?: LucideIcon;
   readonly rightIcon?: LucideIcon;
+  readonly onRightIconClick?: () => void;
   readonly containerClassName?: string;
   readonly debounceMs?: number;
 }
 
 export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
-  ({ className, containerClassName, leftIcon, rightIcon, value, onChange, debounceMs, ...props }, ref) => {
+  ({ className, containerClassName, leftIcon, rightIcon, onRightIconClick, value, onChange, debounceMs, ...props }, ref) => {
     const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
     return (
-      <InputWrapper leftIcon={leftIcon} rightIcon={rightIcon} containerClassName={containerClassName}>
+      <InputWrapper leftIcon={leftIcon} rightIcon={rightIcon} onRightIconClick={onRightIconClick} containerClassName={containerClassName}>
         <input
           ref={ref}
-          className={clsx('input-base', leftIcon && 'pl-9', rightIcon && 'pr-9', className)}
+          className={clsx('input-base', className, leftIcon && 'pl-9', rightIcon && 'pr-9')}
           value={localValue}
           onChange={handleChange}
           {...props}
@@ -52,8 +69,29 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
   },
 );
 
-export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>((props, ref) => {
-  return <InputText ref={ref} leftIcon={Search} debounceMs={0} {...props} />;
+export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>(({ value, onChange, ...props }, ref) => {
+  const handleClear = () => {
+    if (onChange) {
+      const event = {
+        target: { value: '' },
+        currentTarget: { value: '' },
+      } as ChangeEvent<HTMLInputElement>;
+      onChange(event);
+    }
+  };
+
+  return (
+    <InputText
+      ref={ref}
+      leftIcon={Search}
+      rightIcon={value ? X : undefined}
+      onRightIconClick={handleClear}
+      debounceMs={0}
+      value={value}
+      onChange={onChange}
+      {...props}
+    />
+  );
 });
 
 interface InputSelectProps extends ComponentProps<'select'> {

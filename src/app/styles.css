@@ -318,6 +318,9 @@
     &.right {
       @apply right-3;
     }
+    &.clickable {
+      @apply pointer-events-auto cursor-pointer hover:text-text-primary rounded-md outline-none;
+    }
   }
 
   .input-switch {
@@ -717,7 +720,7 @@
   }
 
   .model-picker-item {
-    @apply w-full flex items-start gap-3 p-2 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover;
+    @apply w-full flex items-start gap-3 p-2 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover outline-none;
     & .model-picker-item-title {
       @apply text-sm font-medium truncate text-text-secondary transition-colors;
     }
@@ -824,11 +827,14 @@
   }
 
   .settings-table-empty {
-    @apply flex-center flex-col h-full text-text-tertiary gap-2 min-h-[200px];
+    @apply flex-center flex-col h-full text-text-tertiary gap-2 min-h-[200px] px-6 text-center;
+    & p {
+      @apply w-full break-words;
+    }
   }
 
   .settings-search-input {
-    @apply px-3 py-2 text-xs bg-primary/10 hover:bg-surface focus:bg-surface mr-2;
+    @apply px-3 py-2 text-xs bg-primary/10 hover:bg-surface focus:bg-surface;
   }
 
   .settings-footer-note {
