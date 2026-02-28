@@ -24,7 +24,14 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
-      let lastValue = getSnapshot();
+      let lastValue: T;
+      try {
+        lastValue = getSnapshot();
+      } catch {
+        // Fallback for edge cases during hydration/unmount
+        return store.subscribe(onStoreChange);
+      }
+
       return store.subscribe(() => {
         const nextValue = getSnapshot();
         if (!isEqual(lastValue, nextValue)) {

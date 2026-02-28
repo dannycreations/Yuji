@@ -98,19 +98,29 @@ export const ChatServiceLive = Layer.effect(
 
         yield* store.update((s) => {
           const isTargetActive = s.activeThreadId === threadId;
-          const nextThreads = options.skipUpdateTimestamp
-            ? s.threads
-            : {
-                ...s.threads,
-                [threadId]: {
-                  id: finalThread.id,
-                  title: finalThread.title,
-                  createdAt: finalThread.createdAt,
-                  updatedAt: finalThread.updatedAt,
-                  activeMessageId: finalThread.activeMessageId,
-                  archived: finalThread.archived,
-                } satisfies ThreadMetadata,
-              };
+          const prevMeta = s.threads[threadId];
+          const isMetadataChanged =
+            !options.skipUpdateTimestamp ||
+            !prevMeta ||
+            finalThread.title !== prevMeta.title ||
+            finalThread.activeMessageId !== prevMeta.activeMessageId ||
+            finalThread.archived !== prevMeta.archived ||
+            finalThread.updatedAt !== prevMeta.updatedAt;
+
+          let nextThreads = s.threads;
+          if (isMetadataChanged) {
+            nextThreads = {
+              ...s.threads,
+              [threadId]: {
+                id: finalThread.id,
+                title: finalThread.title,
+                createdAt: finalThread.createdAt,
+                updatedAt: finalThread.updatedAt,
+                activeMessageId: finalThread.activeMessageId,
+                archived: finalThread.archived,
+              } satisfies ThreadMetadata,
+            };
+          }
 
           if (isTargetActive && s.activeThread === finalThread && s.threads === nextThreads) return s;
 
@@ -130,11 +140,14 @@ export const ChatServiceLive = Layer.effect(
               archived: finalThread.archived,
             });
           } else {
-            const finalMetadata = yield* Schema.decode(ThreadMetadata)(finalThread).pipe(Effect.orDie);
-            yield* storage.patchThread(threadId, finalMetadata);
-
             if (!options.skipUpdateTimestamp) {
               yield* storage.saveThread(finalThread);
+            } else {
+              yield* storage.patchThread(threadId, {
+                title: finalThread.title,
+                activeMessageId: finalThread.activeMessageId,
+                archived: finalThread.archived,
+              });
             }
           }
         }
@@ -214,11 +227,10 @@ export const ChatServiceLive = Layer.effect(
           let fullContent = '';
           let lastSavedContent = '';
           let lastUISaveContent = '';
-          let lastUITime = performance.now();
-          let lastSaveTime = performance.now();
+          let lastUITime = 0;
+          let lastSaveTime = 0;
 
-          // ~20fps for smoother scrolling while still feeling responsive
-          const UI_UPDATE_INTERVAL = 50;
+          const UI_UPDATE_INTERVAL = 50; // ~20fps
           const STORAGE_SAVE_INTERVAL = 2000;
 
           yield* Stream.runForEach(stream, (token) =>
@@ -226,14 +238,12 @@ export const ChatServiceLive = Layer.effect(
               fullContent += token;
               const now = performance.now();
 
-              // Throttle UI updates to prevent React reconciliation bottleneck
               if (now - lastUITime >= UI_UPDATE_INTERVAL) {
                 lastUITime = now;
                 lastUISaveContent = fullContent;
                 yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
               }
 
-              // Throttle Storage updates to prevent IDB write bottleneck
               if (now - lastSaveTime >= STORAGE_SAVE_INTERVAL) {
                 lastSaveTime = now;
                 lastSavedContent = fullContent;

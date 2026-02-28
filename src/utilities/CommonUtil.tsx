@@ -16,20 +16,58 @@ export const truncate = (str: string, length: number): string => {
 };
 
 export const toTitleCase = (str: string): string => {
-  return str
-    .split(/[-_ ]+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+  let result = '';
+  let capitalizeNext = true;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (char === '-' || char === '_' || char === ' ') {
+      if (result.length > 0 && result[result.length - 1] !== ' ') {
+        result += ' ';
+      }
+      capitalizeNext = true;
+    } else {
+      result += capitalizeNext ? char.toUpperCase() : char.toLowerCase();
+      capitalizeNext = false;
+    }
+  }
+
+  return result;
 };
 
 export const parseBoldText = (text: string): (string | ReactNode)[] => {
-  if (text.length < 5 || !text.includes('**')) return [text];
-  return text.split(/(\*\*.*?\*\*)/).map((part, i) => {
-    if (part.length > 4 && part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+  const len = text.length;
+  if (len < 5) return [text];
+
+  const firstIdx = text.indexOf('**');
+  if (firstIdx === -1 || firstIdx > len - 4) return [text];
+
+  const results: (string | ReactNode)[] = [];
+  let lastIndex = 0;
+
+  // Manual fast-path iteration instead of regex split + map
+  while (lastIndex < len) {
+    const start = text.indexOf('**', lastIndex);
+    if (start === -1 || start > len - 4) {
+      results.push(text.slice(lastIndex));
+      break;
     }
-    return part;
-  });
+
+    const end = text.indexOf('**', start + 2);
+    if (end === -1) {
+      results.push(text.slice(lastIndex));
+      break;
+    }
+
+    if (start > lastIndex) {
+      results.push(text.slice(lastIndex, start));
+    }
+
+    results.push(<strong key={start}>{text.slice(start + 2, end)}</strong>);
+    lastIndex = end + 2;
+  }
+
+  return results;
 };
 
 export const formatError = (err: unknown): string => {

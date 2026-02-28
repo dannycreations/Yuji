@@ -8,22 +8,14 @@ export const processImageFile = (file: File): Promise<Attachment> => {
       return reject(new Error('File is not an image'));
     }
 
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      if (loadEvent.target?.result) {
-        const newAttachment: Attachment = {
-          id: randomId(),
-          type: 'image',
-          url: loadEvent.target.result as string,
-          name: file.name || 'Pasted Image',
-        };
-        resolve(newAttachment);
-      } else {
-        reject(new Error('Failed to read file content'));
-      }
+    const url = URL.createObjectURL(file);
+    const newAttachment: Attachment = {
+      id: randomId(),
+      type: 'image',
+      url,
+      name: file.name || 'Pasted Image',
     };
-    reader.onerror = () => reject(new Error('File reader error'));
-    reader.readAsDataURL(file);
+    resolve(newAttachment);
   });
 };
 

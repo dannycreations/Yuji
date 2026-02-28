@@ -1,5 +1,5 @@
 import { Check, ChevronDown, PanelLeftOpen } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { startTransition, useMemo, useRef, useState } from 'react';
 
 import { getCurrentModelId, getFilteredModels, getModelName } from '../helpers/ModelHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
@@ -88,12 +88,12 @@ export const Header: FC = () => {
     setShowModelPicker(false);
 
     // 2. Defer heavy store mutations (Low Priority)
-    setTimeout(() => {
+    startTransition(() => {
       updateSetting({ model: modelId });
       if (activeThreadId) {
         updateThreadModel(modelId);
       }
-    }, 0);
+    });
   };
 
   if (optimisticModelId && optimisticModelId === currentModelId && optimisticModelId !== null) {

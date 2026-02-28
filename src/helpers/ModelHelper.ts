@@ -31,7 +31,11 @@ export const getFilteredModels = (
         const bDisabled = disabledSet.has(b.id) ? 1 : 0;
         if (aDisabled !== bDisabled) return aDisabled - bDisabled;
       }
-      return a.name.localeCompare(b.name);
+
+      // Avoid overhead of localeCompare if possible
+      const an = a.name;
+      const bn = b.name;
+      return an < bn ? -1 : an > bn ? 1 : 0;
     });
   }
 

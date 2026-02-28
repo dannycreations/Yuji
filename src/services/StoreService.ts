@@ -36,19 +36,18 @@ export const StoreService = Context.GenericTag<StoreService>('@services/StoreSer
 const createNotification = (
   type: 'error' | 'warning' | 'info' | 'success',
   message: string,
-  existingNotifications: readonly AppRuntimeState['notifications'][number][],
+  existing: readonly AppRuntimeState['notifications'][number][],
 ): AppRuntimeState['notifications'] => {
-  const filtered = existingNotifications.filter((n) => n.message !== message || n.type !== type);
+  const next: AppRuntimeState['notifications'][number][] = [{ id: randomId(8), type, message, timestamp: Date.now() }];
 
-  return [
-    {
-      id: randomId(8),
-      type,
-      message,
-      timestamp: Date.now(),
-    },
-    ...filtered,
-  ];
+  for (let i = 0; i < existing.length; i++) {
+    const n = existing[i];
+    if (n.message !== message || n.type !== type) {
+      next.push(n);
+    }
+  }
+
+  return next;
 };
 
 const INITIAL_STATE: AppRuntimeState = {
@@ -216,11 +215,12 @@ export const StoreServiceLive = Layer.effect(
           settings: typeof updates === 'function' ? updates(s.settings) : { ...s.settings, ...updates },
         })),
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
-      togglePin: (threadId) =>
+      togglePin: (id) =>
         update((s) => {
-          const idx = s.pinnedThreadIds.indexOf(threadId);
-          const pinnedThreadIds = idx !== -1 ? s.pinnedThreadIds.filter((_, i) => i !== idx) : [...s.pinnedThreadIds, threadId];
-          return { ...s, pinnedThreadIds };
+          const list = s.pinnedThreadIds;
+          const idx = list.indexOf(id);
+          const next = idx !== -1 ? list.filter((item) => item !== id) : [...list, id];
+          return { ...s, pinnedThreadIds: next };
         }),
       toggleArchive: (threadId) =>
         Effect.gen(function* () {
@@ -311,7 +311,10 @@ export const StoreServiceLive = Layer.effect(
           yield* update((s) => {
             if (s.activeThread?.id !== tid) return s;
             const next = { ...s.activeThread.messages };
-            for (const m of more) next[m.id] = m;
+            for (let i = 0; i < more.length; i++) {
+              const m = more[i];
+              next[m.id] = m;
+            }
 
             const list = Object.values(next);
             if (list.length <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
@@ -319,7 +322,10 @@ export const StoreServiceLive = Layer.effect(
             const final: Record<string, ThreadMessage> = {};
             const activeId = s.activeThread.activeMessageId;
             if (activeId) {
-              for (const m of getMessagePath(s.activeThread, activeId)) final[m.id] = m;
+              const path = getMessagePath(s.activeThread, activeId);
+              for (let i = 0; i < path.length; i++) {
+                final[path[i].id] = path[i];
+              }
             }
 
             list.sort((a, b) => b.timestamp - a.timestamp);
@@ -344,13 +350,17 @@ export const StoreServiceLive = Layer.effect(
 
           yield* update((s) => {
             const next = { ...s.threads };
-            for (const t of more) next[t.id] = t;
+            for (let i = 0; i < more.length; i++) {
+              const t = more[i];
+              next[t.id] = t;
+            }
 
             const list = Object.values(next);
             if (list.length <= MAX_MEM_THREADS) return { ...s, threads: next };
 
             const res: Record<string, ThreadMetadata> = {};
-            for (const id of s.pinnedThreadIds) {
+            for (let i = 0; i < s.pinnedThreadIds.length; i++) {
+              const id = s.pinnedThreadIds[i];
               const t = next[id];
               if (t) res[id] = t;
             }

@@ -200,7 +200,6 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const { lastKey, limit = 20, indexName, indexValue, direction = 'prev' } = options;
-          const results: T[] = [];
           const tx = db.transaction(storeName, 'readonly');
           const source = indexName ? tx.store.index(indexName) : tx.store;
 
@@ -220,12 +219,11 @@ export const StorageServiceLive = Layer.effect(
             range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
           }
 
+          const results: T[] = [];
           let cursor = yield* Effect.promise(() => source.openCursor(range, direction));
 
           while (cursor && results.length < limit) {
             const val = cursor.value;
-            // If using compound index but range isn't strictly 'only' on the first part (e.g. upperBound)
-            // we must manually verify the prefix to avoid bleeding into other threads.
             if (indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue) {
               break;
             }
@@ -274,37 +272,45 @@ export const StorageServiceLive = Layer.effect(
       getDescendantIds: (id, threadId) =>
         Effect.gen(function* () {
           const db = yield* getDB;
+          const results: string[] = [];
+          const stack = [id];
 
           if (threadId) {
-            const allMessages = (yield* storage.getMessages(threadId)) as (ThreadMessage & { parentId?: string })[];
-            const parentToChildren = new Map<string, string[]>();
+            const messages = (yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId))) as ThreadMessage[];
 
-            for (const m of allMessages) {
+            const parentToChildren = new Map<string, string[]>();
+            for (let i = 0; i < messages.length; i++) {
+              const m = messages[i];
               if (m.parentId) {
-                const children = parentToChildren.get(m.parentId) || [];
-                children.push(m.id);
-                parentToChildren.set(m.parentId, children);
+                let list = parentToChildren.get(m.parentId);
+                if (!list) {
+                  list = [];
+                  parentToChildren.set(m.parentId, list);
+                }
+                list.push(m.id);
               }
             }
 
-            const results: string[] = [];
-            const stack = [id];
             while (stack.length > 0) {
               const currentId = stack.pop()!;
               results.push(currentId);
               const children = parentToChildren.get(currentId);
-              if (children) stack.push(...children);
+              if (children) {
+                for (let i = 0; i < children.length; i++) {
+                  stack.push(children[i]);
+                }
+              }
             }
             return results;
           }
 
-          const results: string[] = [];
-          const stack = [id];
           while (stack.length > 0) {
             const currentId = stack.pop()!;
             results.push(currentId);
-            const children = yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'parentId', currentId));
-            stack.push(...(children as string[]));
+            const children = (yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'parentId', currentId))) as string[];
+            for (let i = 0; i < children.length; i++) {
+              stack.push(children[i]);
+            }
           }
           return results;
         }),
