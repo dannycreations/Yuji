@@ -34,7 +34,7 @@ jobs:
           cp -r dist/* public
 
       - name: Deploy to GitHub Pages
-        uses: crazy-max/ghaction-github-pages@v4
+        uses: crazy-max/ghaction-github-pages@v5
         with:
           build_dir: public
           target_branch: gh-pages
