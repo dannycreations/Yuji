@@ -104,7 +104,7 @@ export const StorageServiceLive = Layer.effect(
           const results: ThreadMetadata[] = [];
           while (cursor) {
             const thread = cursor.value as ThreadMetadata;
-            if (thread.title.toLowerCase().includes(normalizedQuery)) {
+            if (thread.title.toLowerCase().indexOf(normalizedQuery) !== -1) {
               results.push(thread);
               if (results.length >= limit) break;
             }
@@ -121,7 +121,11 @@ export const StorageServiceLive = Layer.effect(
           if (!thread) return null;
 
           const messages = yield* storage.getMessages(id, options);
-          const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
+          const messagesRecord: Record<string, ThreadMessage> = {};
+          for (let i = 0; i < messages.length; i++) {
+            const m = messages[i];
+            messagesRecord[m.id] = m;
+          }
           const activeId = thread.activeMessageId;
 
           // Ensure the active path is present if a limit was applied
@@ -257,8 +261,9 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const tx = db.transaction(STORES.MESSAGES, 'readwrite');
+          const store = tx.store;
           for (const m of messages) {
-            tx.store.put({ ...m, threadId });
+            store.put({ ...m, threadId });
           }
           yield* Effect.promise(() => tx.done);
         }),
@@ -287,10 +292,11 @@ export const StorageServiceLive = Layer.effect(
           const stack = [id];
 
           if (threadId) {
-            const messages = (yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId))) as ThreadMessage[];
+            const tx = db.transaction(STORES.MESSAGES, 'readonly');
+            const messages = (yield* Effect.promise(() => tx.store.index('threadId').getAll(threadId))) as ThreadMessage[];
 
             const parentToChildren = new Map<string, string[]>();
-            for (let i = 0; i < messages.length; i++) {
+            for (let i = 0, len = messages.length; i < len; i++) {
               const m = messages[i];
               if (m.parentId) {
                 let list = parentToChildren.get(m.parentId);
@@ -307,7 +313,7 @@ export const StorageServiceLive = Layer.effect(
               results.push(currentId);
               const children = parentToChildren.get(currentId);
               if (children) {
-                for (let i = 0; i < children.length; i++) {
+                for (let i = 0, len = children.length; i < len; i++) {
                   stack.push(children[i]);
                 }
               }

@@ -108,6 +108,13 @@ export const ChatServiceLive = Layer.effect(
 
         yield* store.update((s) => {
           const isTargetActive = s.activeThreadId === threadId;
+
+          // Fast-path for UI-only updates to active thread (common during streaming)
+          if (options.uiOnly && isTargetActive && options.skipUpdateTimestamp) {
+            if (s.activeThread === finalThread) return s;
+            return { ...s, activeThread: finalThread };
+          }
+
           const prevMeta = s.threads[threadId];
           const isMetadataChanged =
             !options.skipUpdateTimestamp ||
@@ -138,6 +145,7 @@ export const ChatServiceLive = Layer.effect(
             ...s,
             threads: nextThreads,
             activeThread: isTargetActive ? finalThread : s.activeThread,
+            settings: isTargetActive ? { ...s.settings, model: finalThread.general.model || s.settings.model } : s.settings,
           };
         });
 
@@ -245,15 +253,17 @@ export const ChatServiceLive = Layer.effect(
           let lastUITime = 0;
           let lastSaveTime = 0;
 
-          const UI_UPDATE_INTERVAL = 50; // ~20fps
-          const STORAGE_SAVE_INTERVAL = 2000;
+          const UI_UPDATE_INTERVAL = 60; // ~16fps
+          const STORAGE_SAVE_INTERVAL = 3000;
 
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {
               fullContent += token;
               const now = performance.now();
 
-              if (now - lastUITime >= UI_UPDATE_INTERVAL) {
+              const isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
+
+              if (isVisible && now - lastUITime >= UI_UPDATE_INTERVAL) {
                 lastUITime = now;
                 lastUISaveContent = fullContent;
                 yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
@@ -509,7 +519,10 @@ export const ChatServiceLive = Layer.effect(
                 },
               };
             },
-            { skipUpdateTimestamp: options.skipUpdateTimestamp },
+            {
+              skipUpdateTimestamp: options.skipUpdateTimestamp,
+              uiOnly: options.uiOnly,
+            },
           );
 
           if (!updatedMessage) {

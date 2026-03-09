@@ -32,19 +32,21 @@ const mapAttachment = (att: Attachment): OpenAIContent => {
 };
 
 const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: string): OpenAIMessage[] => {
-  const system: OpenAIMessage = { role: 'system', content: systemPrompt };
-  const userMessages = messages.map((m): OpenAIMessage => {
+  const result: OpenAIMessage[] = [{ role: 'system', content: systemPrompt }];
+  for (let i = 0, len = messages.length; i < len; i++) {
+    const m = messages[i];
     if (!m.attachments || m.attachments.length === 0) {
-      return { role: m.role, content: m.content };
+      result.push({ role: m.role, content: m.content });
+      continue;
     }
     const textContent: OpenAIContent = { type: 'text', text: m.content || ' ' };
     const attachmentContents = m.attachments.map(mapAttachment);
-    return {
+    result.push({
       role: m.role,
       content: [textContent, ...attachmentContents],
-    };
-  });
-  return [system, ...userMessages];
+    });
+  }
+  return result;
 };
 
 export const OpenAIProviderLive = Layer.effect(

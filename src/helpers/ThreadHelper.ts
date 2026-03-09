@@ -86,30 +86,29 @@ export const getBlockVersions = (thread: Thread, messageId: string): string[] =>
   let rootId = messageId;
   while (true) {
     const current = thread.messages[rootId];
-    if (!current || !current.parentId) break;
+    if (!current?.parentId) break;
     const parent = thread.messages[current.parentId];
-    if (!parent || parent.role !== msg.role) break;
+    if (parent?.role !== msg.role) break;
     rootId = parent.id;
   }
 
   const versions: string[] = [];
-  const queue = [rootId];
-  while (queue.length > 0) {
-    const currId = queue.shift()!;
+  const stack = [rootId];
+  while (stack.length > 0) {
+    const currId = stack.pop()!;
     const curr = thread.messages[currId];
-    if (curr && curr.role === msg.role) {
+    if (curr?.role === msg.role) {
       versions.push(currId);
-      if (curr.childrenIds) {
-        queue.push(...curr.childrenIds);
+      const children = curr.childrenIds;
+      if (children) {
+        for (let i = children.length - 1; i >= 0; i--) {
+          stack.push(children[i]);
+        }
       }
     }
   }
 
-  return versions.sort((a, b) => {
-    const msgA = thread.messages[a];
-    const msgB = thread.messages[b];
-    return (msgA?.timestamp || 0) - (msgB?.timestamp || 0);
-  });
+  return versions.sort((a, b) => (thread.messages[a]?.timestamp || 0) - (thread.messages[b]?.timestamp || 0));
 };
 
 export const findVersionLeaf = (thread: Thread, versionId: string): string => {
@@ -122,28 +121,27 @@ export const findVersionLeaf = (thread: Thread, versionId: string): string => {
 
   while (true) {
     const msg = thread.messages[currentId];
-    if (!msg || !msg.childrenIds || msg.childrenIds.length === 0) break;
+    const children = msg?.childrenIds;
+    if (!children || children.length === 0) break;
 
-    let validChildren = msg.childrenIds;
-    if (isFirstStep) {
-      validChildren = validChildren.filter((id) => {
-        const child = thread.messages[id];
-        return child && child.role !== roleToAvoid;
-      });
-      isFirstStep = false;
-    } else {
-      validChildren = validChildren.filter((id) => thread.messages[id] !== undefined);
+    let bestChildId: string | undefined;
+    let maxTimestamp = -1;
+
+    for (let i = 0; i < children.length; i++) {
+      const childId = children[i];
+      const child = thread.messages[childId];
+      if (!child) continue;
+      if (isFirstStep && child.role === roleToAvoid) continue;
+
+      if (child.timestamp > maxTimestamp) {
+        maxTimestamp = child.timestamp;
+        bestChildId = childId;
+      }
     }
 
-    if (validChildren.length === 0) break;
-
-    validChildren = [...validChildren].sort((a, b) => {
-      const ta = thread.messages[a]?.timestamp || 0;
-      const tb = thread.messages[b]?.timestamp || 0;
-      return ta - tb;
-    });
-
-    currentId = validChildren[validChildren.length - 1];
+    if (!bestChildId) break;
+    currentId = bestChildId;
+    isFirstStep = false;
   }
 
   return currentId;
@@ -171,7 +169,8 @@ export const branchThreadPath = (
   const idMap = new Map<string, string>();
 
   // Single pass to clone messages and map IDs
-  for (const m of path) {
+  for (let i = 0; i < path.length; i++) {
+    const m = path[i];
     const newMsgId = randomId();
     idMap.set(m.id, newMsgId);
 
@@ -185,14 +184,11 @@ export const branchThreadPath = (
 
     branchedMessages[newMsgId] = branchedMsg;
 
-    // Link current message to its new parent's childrenIds
     if (newParentId) {
       const parent = branchedMessages[newParentId];
       if (parent) {
-        branchedMessages[newParentId] = {
-          ...parent,
-          childrenIds: [...(parent.childrenIds || []), newMsgId],
-        };
+        const next = parent.childrenIds ? [...parent.childrenIds, newMsgId] : [newMsgId];
+        branchedMessages[newParentId] = { ...parent, childrenIds: next };
       }
     }
   }
@@ -221,22 +217,23 @@ export const getFlattenedThreads = (
   const query = searchQuery.trim().toLowerCase();
   const todayStart = new Date().setHours(0, 0, 0, 0);
   const yesterdayStart = todayStart - 86400000;
-  const last7DaysStart = todayStart - 518400000; // 6 * 86400000
+  const last7DaysStart = todayStart - 518400000;
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
 
-  const groups: Record<string, (ThreadMetadata | Thread)[]> = {
-    Pinned: [],
-    Today: [],
-    Yesterday: [],
-    'Last 7 Days': [],
-    'Last 30 Days': [],
-  };
-
   const labels = ['Pinned', 'Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days'];
+  const groups = labels.reduce(
+    (acc, label) => {
+      acc[label] = [];
+      return acc;
+    },
+    {} as Record<string, (ThreadMetadata | Thread)[]>,
+  );
 
   for (let i = 0; i < threadsList.length; i++) {
     const thread = threadsList[i];
-    if (thread.archived || (query && !thread.title.toLowerCase().includes(query))) continue;
+    if (thread.archived) continue;
+
+    if (query && !thread.title.toLowerCase().includes(query)) continue;
 
     if (pinnedSet?.has(thread.id)) {
       groups.Pinned.push(thread);
@@ -251,7 +248,8 @@ export const getFlattenedThreads = (
   }
 
   const result: FlattenedThreadItem[] = [];
-  for (const label of labels) {
+  for (let i = 0; i < labels.length; i++) {
+    const label = labels[i];
     const group = groups[label];
     if (group.length > 0) {
       result.push({ type: 'label', label });

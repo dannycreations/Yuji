@@ -413,7 +413,8 @@
   }
 
   .sidebar-activity-indicator {
-    @apply w-1.5 h-1.5 rounded-full bg-primary animate-pulse;
+    @apply w-1.5 h-1.5 rounded-full bg-primary;
+    animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
   .sidebar-thread-action-btn {
@@ -529,7 +530,8 @@
   }
 
   .message-thinking-dot {
-    @apply w-2 bg-text-primary/40 rounded-full animate-pulse aspect-square;
+    @apply w-2 bg-text-primary/40 rounded-full aspect-square;
+    animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
   .message-thinking-dot-delay-1 {

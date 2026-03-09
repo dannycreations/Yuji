@@ -36,15 +36,21 @@ const createNotification = (
   message: string,
   existing: readonly AppRuntimeState['notifications'][number][],
 ): AppRuntimeState['notifications'] => {
+  // Check for duplicate to avoid unnecessary state update
+  if (existing.length > 0 && existing[0].message === message && existing[0].type === type) {
+    return existing as AppRuntimeState['notifications'];
+  }
+
   const next: AppRuntimeState['notifications'][number][] = [{ id: randomId(8), type, message, timestamp: Date.now() }];
 
-  for (let i = 0; i < existing.length; i++) {
+  for (let i = 0, len = existing.length; i < len; i++) {
     const n = existing[i];
     if (n.message !== message || n.type !== type) {
       next.push(n);
     }
   }
 
+  if (next.length > 5) return next.slice(0, 5);
   return next;
 };
 
@@ -177,7 +183,17 @@ export const StoreServiceLive = Layer.effect(
       getSnapshot,
       update,
       subscribe,
-      patch: (updates) => update((s) => ({ ...s, ...updates })),
+      patch: (updates) =>
+        update((s) => {
+          let changed = false;
+          for (const key in updates) {
+            if (s[key as keyof typeof s] !== updates[key as keyof typeof updates]) {
+              changed = true;
+              break;
+            }
+          }
+          return changed ? { ...s, ...updates } : s;
+        }),
       getThread: (id) =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
@@ -296,7 +312,11 @@ export const StoreServiceLive = Layer.effect(
           const threadList = Object.values(s.threads);
           if (threadList.length === 0) return;
 
-          const lastKey = Math.min(...threadList.map((t) => t.updatedAt));
+          let lastKey = Infinity;
+          for (let i = 0, len = threadList.length; i < len; i++) {
+            const t = threadList[i];
+            if (t.updatedAt < lastKey) lastKey = t.updatedAt;
+          }
 
           const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (more.length === 0) return;
@@ -312,8 +332,9 @@ export const StoreServiceLive = Layer.effect(
             if (list.length <= MAX_MEM_THREADS) return { ...s, threads: next };
 
             const res: Record<string, ThreadMetadata> = {};
-            for (let i = 0; i < s.pinnedThreadIds.length; i++) {
-              const id = s.pinnedThreadIds[i];
+            const pinnedIds = s.pinnedThreadIds;
+            for (let i = 0, len = pinnedIds.length; i < len; i++) {
+              const id = pinnedIds[i];
               const t = next[id];
               if (t) res[id] = t;
             }
