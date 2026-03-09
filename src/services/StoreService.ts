@@ -1,8 +1,7 @@
 import { Context, Effect, Either, Layer, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
-import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
-import { getMessagePath } from '../helpers/ThreadHelper';
+import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMetadata } from '../app/Schema';
 import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
@@ -23,7 +22,6 @@ export interface StoreService {
   readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void, never>;
   readonly clearNotification: (id: string) => Effect.Effect<void, never>;
   readonly loadMessages: (threadId: string) => Effect.Effect<void, never>;
-  readonly loadMoreMessages: () => Effect.Effect<void, never>;
   readonly loadMoreThreads: () => Effect.Effect<void, never>;
   readonly searchThreads: (query: string) => Effect.Effect<void, never>;
   readonly deleteDatabase: () => Effect.Effect<void, Error>;
@@ -70,7 +68,7 @@ const INITIAL_STATE: AppRuntimeState = {
   initializationError: undefined,
 };
 
-export const MAX_MEM_MESSAGES = 50;
+export const MAX_MEM_MESSAGES = 1000;
 export const MAX_MEM_THREADS = 100;
 
 const OnConfirmStore = new Map<string, () => void>();
@@ -101,9 +99,7 @@ export const StoreServiceLive = Layer.effect(
       if (metadata) {
         const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
         const { activeThreadId, settings } = metadata;
-        const activeThread = activeThreadId
-          ? yield* storage.getThread(activeThreadId, { limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed(null)))
-          : null;
+        const activeThread = activeThreadId ? yield* storage.getThread(activeThreadId).pipe(Effect.catchAll(() => Effect.succeed(null))) : null;
 
         return {
           ...INITIAL_STATE,
@@ -277,7 +273,7 @@ export const StoreServiceLive = Layer.effect(
             return;
           }
 
-          const thread = yield* storage.getThread(threadId, { limit: MAX_MEM_MESSAGES }).pipe(Effect.catchAll(() => Effect.succeed(null)));
+          const thread = yield* storage.getThread(threadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
           if (!thread) return;
 
           yield* update((s) => {
@@ -294,49 +290,6 @@ export const StoreServiceLive = Layer.effect(
             };
           });
         }).pipe(Effect.orDie),
-      loadMoreMessages: () =>
-        Effect.gen(function* () {
-          const s = yield* SubscriptionRef.get(state);
-          if (!s.activeThread) return;
-
-          const { id: tid, messages } = s.activeThread;
-          const msgList = Object.values(messages);
-          if (msgList.length === 0) return;
-
-          const lastKey = Math.min(...msgList.map((m) => m.timestamp));
-
-          const more = yield* storage.getMessages(tid, { lastKey, limit: 20 }).pipe(Effect.catchAll(() => Effect.succeed([])));
-          if (more.length === 0) return;
-
-          yield* update((s) => {
-            if (s.activeThread?.id !== tid) return s;
-            const next = { ...s.activeThread.messages };
-            for (let i = 0; i < more.length; i++) {
-              const m = more[i];
-              next[m.id] = m;
-            }
-
-            const list = Object.values(next);
-            if (list.length <= MAX_MEM_MESSAGES) return { ...s, activeThread: { ...s.activeThread, messages: next } };
-
-            const final: Record<string, ThreadMessage> = {};
-            const activeId = s.activeThread.activeMessageId;
-            if (activeId) {
-              const path = getMessagePath(s.activeThread, activeId);
-              for (let i = 0; i < path.length; i++) {
-                final[path[i].id] = path[i];
-              }
-            }
-
-            list.sort((a, b) => b.timestamp - a.timestamp);
-            for (let i = 0; i < list.length && Object.keys(final).length < MAX_MEM_MESSAGES; i++) {
-              const m = list[i];
-              if (!final[m.id]) final[m.id] = m;
-            }
-
-            return { ...s, activeThread: { ...s.activeThread, messages: final } };
-          });
-        }),
       loadMoreThreads: () =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);

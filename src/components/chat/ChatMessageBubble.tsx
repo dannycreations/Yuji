@@ -21,6 +21,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { SEARCH_INSTRUCTION } from '../../app/Constant';
+import { findVersionLeaf } from '../../helpers/ThreadHelper';
 import { useAttachment } from '../../hooks/useAttachment';
 import { useCopy } from '../../hooks/useCopy';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
@@ -66,13 +67,14 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const regenerateTriggerRef = useRef<HTMLButtonElement>(null);
 
   const onBranch = useChatAction((c, tid: string, mid: string) => c.branchChat(tid, mid));
-  const onSwitch = useChatAction((c, _tid: string, mid: string) => c.updateActiveThread((t) => ({ ...t, activeMessageId: mid })));
+  const onSwitch = useChatAction((c, _tid: string, mid: string) => c.updateActiveThread((t) => ({ ...t, activeMessageId: findVersionLeaf(t, mid) })));
   const onDeleteMessage = useChatAction((c, tid: string, mid: string) => c.deleteMessage(tid, mid));
   const onRegenerate = useChatAction((c, tid: string, mid: string, options?: { instruction?: string; search?: boolean }) =>
     c.regenerateMessage(tid, mid, options),
   );
-  const onUpdateMessage = useChatAction((c, tid: string, mid: string, content: string, attachments?: readonly Attachment[]) =>
-    c.updateMessage(tid, mid, content, { attachments }),
+  const onEditMessage = useChatAction(
+    (c, tid: string, mid: string, content: string, options?: { attachments?: readonly Attachment[]; generateNext?: boolean; instruction?: string }) =>
+      c.editMessage(tid, mid, content, options),
   );
 
   // Logic to find siblings for navigation
@@ -96,10 +98,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       attachments.some((a, i) => a.id !== currentAttachments[i]?.id || a.url !== currentAttachments[i]?.url);
 
     if (contentChanged || attachmentsChanged) {
-      onUpdateMessage(threadId, message.id, editContent, [...attachments]);
-    }
-
-    if (!saveAfterEditing) {
+      onEditMessage(threadId, message.id, editContent, {
+        attachments: [...attachments],
+        generateNext: !saveAfterEditing,
+        instruction: isSearchEnabled ? SEARCH_INSTRUCTION : undefined,
+      });
+    } else if (!saveAfterEditing) {
       onRegenerate(threadId, message.id, isSearchEnabled ? { instruction: SEARCH_INSTRUCTION } : undefined);
     }
 
@@ -113,7 +117,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
     message.attachments,
     threadId,
     message.id,
-    onUpdateMessage,
+    onEditMessage,
     onRegenerate,
     saveAfterEditing,
   ]);

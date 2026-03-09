@@ -2,7 +2,7 @@ import { Context, Effect, Fiber, Layer, Schema, Stream, SubscriptionRef } from '
 
 import { MessageNotFoundError, ThreadNotFoundError } from '../app/Error';
 import { Attachment, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
-import { branchThreadPath, createInitialThread, generateThreadTitle, getMessagePath } from '../helpers/ThreadHelper';
+import { branchThreadPath, createInitialThread, generateThreadTitle, getEffectiveMessages, getMessagePath } from '../helpers/ThreadHelper';
 import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
 import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
@@ -59,6 +59,16 @@ export interface ChatService {
       readonly instruction?: string;
     },
   ) => Effect.Effect<void>;
+  readonly editMessage: (
+    threadId: string,
+    messageId: string,
+    content: string,
+    options?: {
+      readonly attachments?: ReadonlyArray<Attachment>;
+      readonly generateNext?: boolean;
+      readonly instruction?: string;
+    },
+  ) => Effect.Effect<void, Error>;
 }
 
 export const ChatService = Context.GenericTag<ChatService>('@services/ChatService');
@@ -213,8 +223,13 @@ export const ChatServiceLive = Layer.effect(
 
           const model = thread.general.model || settings.model;
 
+          let effectiveForLLM = getEffectiveMessages(messagesToProcess);
+          if (effectiveForLLM.length > 0 && effectiveForLLM[effectiveForLLM.length - 1].role === 'assistant') {
+            effectiveForLLM = effectiveForLLM.slice(0, -1);
+          }
+
           const stream = yield* llm.streamCompletion(
-            messagesToProcess,
+            effectiveForLLM,
             settings,
             {
               provider: 'openai',
@@ -331,18 +346,43 @@ export const ChatServiceLive = Layer.effect(
           const originalMessage = activeThread.messages[messageId];
           if (!originalMessage) return;
 
-          const history =
-            originalMessage.role === 'assistant'
-              ? originalMessage.parentId
-                ? yield* chat.getThreadPath(threadId, originalMessage.parentId)
-                : []
-              : yield* chat.getThreadPath(threadId, messageId);
+          const history = yield* chat.getThreadPath(threadId, messageId);
 
           yield* chat.generate(threadId, history, options);
         }).pipe(
           Effect.catchAll((err) => store.notify('error', `Failed to regenerate: ${formatError(err)}`)),
           Effect.orDie,
         ),
+      editMessage: (threadId, messageId, content, options) =>
+        Effect.gen(function* () {
+          const { activeThread } = yield* SubscriptionRef.get(store.state);
+          if (!activeThread || activeThread.id !== threadId) return;
+
+          const oldMessage = activeThread.messages[messageId];
+          if (!oldMessage) return;
+
+          const newMsgId = randomId();
+          const newMessage: ThreadMessage = {
+            ...oldMessage,
+            id: newMsgId,
+            content,
+            attachments: options?.attachments ? [...options.attachments] : oldMessage.attachments,
+            timestamp: Date.now(),
+            parentId: messageId,
+            childrenIds: [],
+          };
+
+          yield* chat.addMessage(threadId, newMessage);
+
+          if (options?.generateNext) {
+            const history = yield* chat.getThreadPath(threadId, newMsgId);
+            yield* chat.generate(threadId, history, options);
+          }
+        }).pipe(
+          Effect.catchAll((err) => store.notify('error', `Failed to edit message: ${formatError(err)}`)),
+          Effect.orDie,
+        ),
+
       createThread: () =>
         Effect.gen(function* () {
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);

@@ -124,11 +124,15 @@ export const StorageServiceLive = Layer.effect(
           const messagesRecord = Object.fromEntries(messages.map((m) => [m.id, m]));
           const activeId = thread.activeMessageId;
 
-          // Ensure the active message is present if a limit was applied
+          // Ensure the active path is present if a limit was applied
           if (options?.limit && activeId && !messagesRecord[activeId]) {
-            const activeMsg = yield* Effect.promise(() => db.get(STORES.MESSAGES, activeId));
-            if (activeMsg) {
-              messagesRecord[activeMsg.id] = activeMsg as ThreadMessage;
+            let currentId: string | undefined = activeId;
+            while (currentId && !messagesRecord[currentId]) {
+              const fetchId = currentId;
+              const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, fetchId))) as ThreadMessage | undefined;
+              if (!msg) break;
+              messagesRecord[msg.id] = msg;
+              currentId = msg.parentId;
             }
           }
 
@@ -235,11 +239,18 @@ export const StorageServiceLive = Layer.effect(
         }),
 
       getMessages: (threadId, options) =>
-        storage.paginate<ThreadMessage>(STORES.MESSAGES, {
-          ...options,
-          indexName: 'threadId_timestamp',
-          indexValue: threadId,
-          direction: 'prev',
+        Effect.gen(function* () {
+          if (!options || !options.limit) {
+            const db = yield* getDB;
+            const messages = yield* Effect.promise(() => db.getAllFromIndex(STORES.MESSAGES, 'threadId', threadId));
+            return messages as ThreadMessage[];
+          }
+          return yield* storage.paginate<ThreadMessage>(STORES.MESSAGES, {
+            ...options,
+            indexName: 'threadId_timestamp',
+            indexValue: threadId,
+            direction: 'prev',
+          });
         }),
 
       saveMessages: (threadId, messages) =>

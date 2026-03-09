@@ -4,7 +4,7 @@ import { Bot, Code, Compass, Network, Sparkles } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS, SEARCH_INSTRUCTION } from '../../app/Constant';
-import { getVisibleMessages } from '../../helpers/ThreadHelper';
+import { getBlockVersions, getVisibleMessages } from '../../helpers/ThreadHelper';
 import { getGreeting } from '../../helpers/UserHelper';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
@@ -34,7 +34,6 @@ export const ChatInterface: FC = () => {
   const onStop = useChatAction((c) => c.stop(activeThreadId || undefined));
 
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
-  const loadMoreMessages = useStoreAction((s) => s.loadMoreMessages());
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { height: containerHeight } = useResizeObserver(scrollAreaRef);
@@ -102,17 +101,6 @@ export const ChatInterface: FC = () => {
     virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
   }, [totalSize, visibleMessages.length, isReady, isTransitioning, virtualizer]);
 
-  // Auto-load more messages when scrolling to top
-  useEffect(() => {
-    const [firstItem] = virtualItems;
-    if (!firstItem) return;
-
-    // Allow loading previous messages even during streaming or background tasks
-    if (firstItem.index <= 0 && !isEmpty && isReady) {
-      loadMoreMessages();
-    }
-  }, [virtualItems, isEmpty, loadMoreMessages, isReady]);
-
   return (
     <div className="main-layout">
       <Header />
@@ -171,7 +159,7 @@ export const ChatInterface: FC = () => {
               >
                 {virtualItems.map((virtualRow) => {
                   const message = visibleMessages[virtualRow.index];
-                  const siblings = message.parentId ? activeThread.messages[message.parentId]?.childrenIds : undefined;
+                  const siblings = getBlockVersions(activeThread, message.id);
 
                   return (
                     <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="w-full">

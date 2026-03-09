@@ -68,13 +68,95 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
   return path.reverse();
 };
 
+export const getEffectiveMessages = (path: ReadonlyArray<ThreadMessage>): ThreadMessage[] => {
+  const result: ThreadMessage[] = [];
+  for (let i = 0; i < path.length; i++) {
+    const msg = path[i];
+    if (i === path.length - 1 || path[i + 1].role !== msg.role) {
+      result.push(msg);
+    }
+  }
+  return result;
+};
+
+export const getBlockVersions = (thread: Thread, messageId: string): string[] => {
+  const msg = thread.messages[messageId];
+  if (!msg) return [];
+
+  let rootId = messageId;
+  while (true) {
+    const current = thread.messages[rootId];
+    if (!current || !current.parentId) break;
+    const parent = thread.messages[current.parentId];
+    if (!parent || parent.role !== msg.role) break;
+    rootId = parent.id;
+  }
+
+  const versions: string[] = [];
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const currId = queue.shift()!;
+    const curr = thread.messages[currId];
+    if (curr && curr.role === msg.role) {
+      versions.push(currId);
+      if (curr.childrenIds) {
+        queue.push(...curr.childrenIds);
+      }
+    }
+  }
+
+  return versions.sort((a, b) => {
+    const msgA = thread.messages[a];
+    const msgB = thread.messages[b];
+    return (msgA?.timestamp || 0) - (msgB?.timestamp || 0);
+  });
+};
+
+export const findVersionLeaf = (thread: Thread, versionId: string): string => {
+  const versionMsg = thread.messages[versionId];
+  if (!versionMsg) return versionId;
+
+  const roleToAvoid = versionMsg.role;
+  let currentId = versionId;
+  let isFirstStep = true;
+
+  while (true) {
+    const msg = thread.messages[currentId];
+    if (!msg || !msg.childrenIds || msg.childrenIds.length === 0) break;
+
+    let validChildren = msg.childrenIds;
+    if (isFirstStep) {
+      validChildren = validChildren.filter((id) => {
+        const child = thread.messages[id];
+        return child && child.role !== roleToAvoid;
+      });
+      isFirstStep = false;
+    } else {
+      validChildren = validChildren.filter((id) => thread.messages[id] !== undefined);
+    }
+
+    if (validChildren.length === 0) break;
+
+    validChildren = [...validChildren].sort((a, b) => {
+      const ta = thread.messages[a]?.timestamp || 0;
+      const tb = thread.messages[b]?.timestamp || 0;
+      return ta - tb;
+    });
+
+    currentId = validChildren[validChildren.length - 1];
+  }
+
+  return currentId;
+};
+
 export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage> => {
   const { activeMessageId, messages } = thread;
   if (activeMessageId) {
-    return getMessagePath(thread, activeMessageId);
+    const path = getMessagePath(thread, activeMessageId);
+    return getEffectiveMessages(path);
   }
   const vals = Object.values(messages);
-  return vals.length <= 1 ? vals : vals.sort((a, b) => a.timestamp - b.timestamp);
+  return getEffectiveMessages(vals.length <= 1 ? vals : vals.sort((a, b) => a.timestamp - b.timestamp));
 };
 
 export const branchThreadPath = (
