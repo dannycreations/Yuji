@@ -9,5 +9,5 @@
 
 ```cmd
 # Check for compilation errors
-bun run build
+bun run check
 ```

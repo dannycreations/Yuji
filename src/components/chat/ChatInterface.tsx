@@ -13,7 +13,31 @@ import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
 
 import type { FC } from 'react';
-import type { Attachment } from '../../app/Schema';
+import type { Attachment, Thread, ThreadMessage } from '../../app/Schema';
+
+interface MessageItemProps {
+  readonly index: number;
+  readonly message: ThreadMessage;
+  readonly activeThread: Thread;
+  readonly isLoading: boolean;
+  readonly isLast: boolean;
+  readonly measureElement: (el: HTMLElement | null) => void;
+}
+
+const MessageItem: FC<MessageItemProps> = ({ index, message, activeThread, isLoading, isLast, measureElement }) => {
+  const siblings = useMemo(() => getBlockVersions(activeThread, message.id), [activeThread.messages, message.id]);
+
+  return (
+    <div ref={measureElement} data-index={index} className="w-full">
+      <ChatMessageBubble
+        message={message}
+        threadId={activeThread.id}
+        siblings={siblings}
+        isThinking={isLoading && isLast && message.role === 'assistant'}
+      />
+    </div>
+  );
+};
 
 export const ChatInterface: FC = () => {
   const activeThreadId = useStore((s) => s.activeThreadId);
@@ -157,21 +181,17 @@ export const ChatInterface: FC = () => {
                   transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
                 }}
               >
-                {virtualItems.map((virtualRow) => {
-                  const message = visibleMessages[virtualRow.index];
-                  const siblings = getBlockVersions(activeThread, message.id);
-
-                  return (
-                    <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="w-full">
-                      <ChatMessageBubble
-                        message={message}
-                        threadId={activeThread.id}
-                        siblings={siblings}
-                        isThinking={isLoading && virtualRow.index === visibleMessages.length - 1 && message.role === 'assistant'}
-                      />
-                    </div>
-                  );
-                })}
+                {virtualItems.map((virtualRow) => (
+                  <MessageItem
+                    key={virtualRow.key}
+                    index={virtualRow.index}
+                    message={visibleMessages[virtualRow.index]}
+                    activeThread={activeThread!}
+                    isLoading={isLoading}
+                    isLast={virtualRow.index === visibleMessages.length - 1}
+                    measureElement={virtualizer.measureElement}
+                  />
+                ))}
               </div>
             </div>
           </div>

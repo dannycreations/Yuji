@@ -9,7 +9,13 @@ export interface StorageService {
 
   readonly getThreadsMetadata: (options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>, Error>;
   readonly searchThreads: (query: string, options?: { limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMetadata>, Error>;
-  readonly getThread: (id: string, options?: { limit?: number }) => Effect.Effect<Thread | null, Error>;
+  readonly getThread: (
+    id: string,
+    options?: {
+      readonly limit?: number;
+      readonly loadSiblings?: boolean;
+    },
+  ) => Effect.Effect<Thread | null, Error>;
   readonly getThreadMetadata: (id: string) => Effect.Effect<ThreadMetadata | null, Error>;
   readonly saveThread: (thread: Thread | ThreadMetadata) => Effect.Effect<void, Error>;
   readonly patchThread: (id: string, patch: Partial<ThreadMetadata>) => Effect.Effect<void, Error>;
@@ -128,15 +134,39 @@ export const StorageServiceLive = Layer.effect(
           }
           const activeId = thread.activeMessageId;
 
-          // Ensure the active path is present if a limit was applied
-          if (options?.limit && activeId && !messagesRecord[activeId]) {
+          // Ensure the active path and their siblings are present if a limit was applied
+          if (options?.limit && activeId) {
+            const pathIds: string[] = [];
             let currentId: string | undefined = activeId;
-            while (currentId && !messagesRecord[currentId]) {
-              const fetchId = currentId;
-              const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, fetchId))) as ThreadMessage | undefined;
-              if (!msg) break;
-              messagesRecord[msg.id] = msg;
-              currentId = msg.parentId;
+
+            while (currentId) {
+              pathIds.push(currentId);
+              if (!messagesRecord[currentId]) {
+                const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, currentId!))) as ThreadMessage | undefined;
+                if (!msg) break;
+                messagesRecord[msg.id] = msg;
+                currentId = msg.parentId;
+              } else {
+                currentId = messagesRecord[currentId].parentId;
+              }
+            }
+
+            if (options.loadSiblings) {
+              // Load siblings of every message in the active path
+              // This ensures version navigation works even in large threads with lazy loading
+              for (const mid of pathIds) {
+                const msg = messagesRecord[mid];
+                if (!msg?.parentId) continue;
+
+                const siblings = (yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'parentId', msg.parentId!))) as string[];
+
+                for (const sid of siblings) {
+                  if (!messagesRecord[sid]) {
+                    const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, sid))) as ThreadMessage | undefined;
+                    if (smsg) messagesRecord[sid] = smsg;
+                  }
+                }
+              }
             }
           }
 

@@ -83,28 +83,23 @@ export const getBlockVersions = (thread: Thread, messageId: string): string[] =>
   const msg = thread.messages[messageId];
   if (!msg) return [];
 
-  let rootId = messageId;
-  while (true) {
-    const current = thread.messages[rootId];
-    if (!current?.parentId) break;
-    const parent = thread.messages[current.parentId];
-    if (parent?.role !== msg.role) break;
-    rootId = parent.id;
-  }
+  const parentId = msg.parentId;
+  if (!parentId) return [messageId];
 
+  const parent = thread.messages[parentId];
+  if (!parent) return [messageId];
+
+  const siblings = parent.childrenIds || [];
+  if (siblings.length <= 1) return [messageId];
+
+  // Just return children of the parent that share the same role
+  // This avoids deep tree traversal since the UI only shows siblings in the same branch point
   const versions: string[] = [];
-  const stack = [rootId];
-  while (stack.length > 0) {
-    const currId = stack.pop()!;
-    const curr = thread.messages[currId];
-    if (curr?.role === msg.role) {
-      versions.push(currId);
-      const children = curr.childrenIds;
-      if (children) {
-        for (let i = children.length - 1; i >= 0; i--) {
-          stack.push(children[i]);
-        }
-      }
+  for (let i = 0, len = siblings.length; i < len; i++) {
+    const sid = siblings[i];
+    const smsg = thread.messages[sid];
+    if (smsg?.role === msg.role) {
+      versions.push(sid);
     }
   }
 

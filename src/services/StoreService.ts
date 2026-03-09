@@ -289,22 +289,45 @@ export const StoreServiceLive = Layer.effect(
             return;
           }
 
-          const thread = yield* storage.getThread(threadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
-          if (!thread) return;
+          // PHASE 1: Fast load of active path + siblings for immediate interaction
+          const partialThread = yield* storage
+            .getThread(threadId, { limit: 20, loadSiblings: true })
+            .pipe(Effect.catchAll(() => Effect.succeed(null)));
 
-          yield* update((s) => {
-            if (s.activeThreadId !== threadId) return s;
-            // Final check: if the thread became active and populated while we were loading, don't overwrite.
-            if (s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > Object.keys(thread.messages).length) {
-              return s;
-            }
+          if (partialThread) {
+            yield* update((s) => {
+              if (s.activeThreadId !== threadId) return s;
+              // If we already have more data (maybe from a previous full load or streaming), don't downgrade
+              if (s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length >= Object.keys(partialThread.messages).length) {
+                return s;
+              }
 
-            return {
-              ...s,
-              activeThread: thread,
-              settings: { ...s.settings, model: thread.general.model || s.settings.model },
-            };
-          });
+              return {
+                ...s,
+                activeThread: partialThread,
+                settings: { ...s.settings, model: partialThread.general.model || s.settings.model },
+              };
+            });
+          }
+
+          // PHASE 2: Background load of everything else to ensure full history availability
+          yield* Effect.gen(function* () {
+            const fullThread = yield* storage.getThread(threadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
+            if (!fullThread) return;
+
+            yield* update((s) => {
+              if (s.activeThreadId !== threadId) return s;
+              // If streaming happened during load, preserve those new messages
+              const currentMessages = s.activeThread?.id === threadId ? s.activeThread.messages : {};
+              const mergedMessages = { ...fullThread.messages, ...currentMessages };
+
+              return {
+                ...s,
+                activeThread: { ...fullThread, messages: mergedMessages },
+                settings: { ...s.settings, model: fullThread.general.model || s.settings.model },
+              };
+            });
+          }).pipe(Effect.forkDaemon);
         }).pipe(Effect.orDie),
       loadMoreThreads: () =>
         Effect.gen(function* () {
