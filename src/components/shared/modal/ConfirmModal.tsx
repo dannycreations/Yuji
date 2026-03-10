@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 
 import { useStore, useStoreAction } from '../../../hooks/useStore';
 import { parseBoldText } from '../../../utilities/CommonUtil';
-import { InputButton } from '../InputArea';
+import { ButtonInput } from '../InputArea';
 import { Modal, ModalFooter, ModalHeader } from './Modal';
 
 import type { FC } from 'react';
@@ -32,12 +32,12 @@ export const ConfirmModal: FC = () => {
       </div>
 
       <ModalFooter className="confirm-modal-actions">
-        <InputButton variant="secondary" onClick={handleCancel}>
+        <ButtonInput variant="secondary" onClick={handleCancel}>
           {cancelLabel}
-        </InputButton>
-        <InputButton variant={variant === 'info' ? 'primary' : variant} onClick={handleConfirm}>
+        </ButtonInput>
+        <ButtonInput variant={variant === 'info' ? 'primary' : variant} onClick={handleConfirm}>
           {confirmLabel}
-        </InputButton>
+        </ButtonInput>
       </ModalFooter>
     </Modal>
   );

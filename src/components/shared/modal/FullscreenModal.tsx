@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { X } from 'lucide-react';
 
-import { InputButton } from '../InputArea';
+import { ButtonInput } from '../InputArea';
 import { Modal } from './Modal';
 
 import type { FC, ReactNode } from 'react';
@@ -42,9 +42,9 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
         <div className="flex items-center gap-2">
           {headerActions}
           {headerActions && <div className="w-px h-4 bg-separator/50 mx-1" />}
-          <InputButton onClick={onClose} title="Close">
+          <ButtonInput onClick={onClose} title="Close">
             <X size={18} />
-          </InputButton>
+          </ButtonInput>
         </div>
       </div>
       <div className={clsx('fullscreen-modal-body', bodyClassName)} onMouseDown={(e) => e.stopPropagation()}>

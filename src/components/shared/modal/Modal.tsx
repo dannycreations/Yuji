@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useClickOutside } from '../../../hooks/useClickOutside';
-import { InputButton } from '../InputArea';
+import { ButtonInput } from '../InputArea';
 
 import type { FC, ReactNode } from 'react';
 
@@ -12,9 +12,9 @@ export const ModalHeader: FC<{ readonly title: ReactNode; readonly onClose?: () 
   <div className="modal-header">
     <div className="header-title">{title}</div>
     {onClose && (
-      <InputButton onClick={onClose} className="ml-auto">
+      <ButtonInput onClick={onClose} className="ml-auto">
         <X size={18} />
-      </InputButton>
+      </ButtonInput>
     )}
   </div>
 );

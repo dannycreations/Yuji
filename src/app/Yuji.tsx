@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 
 import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
-import { InputButton } from '../components/shared/InputArea';
+import { ButtonInput } from '../components/shared/InputArea';
 import { ConfirmModal } from '../components/shared/modal/ConfirmModal';
-import { NotificationToast } from '../components/shared/NotificationToast';
+import { Notification } from '../components/shared/Notification';
 import { Sidebar } from '../components/Sidebar';
 import { StoreContext, useStore, useStoreAction } from '../hooks/useStore';
 import { StoreService } from '../services/StoreService';
@@ -53,9 +53,9 @@ const DatabaseErrorView = ({ error }: { error: string }) => {
         )}
 
         <div>
-          <InputButton onClick={handleDeleteDatabase} variant="primary" className="w-full p-3! rounded-lg!">
+          <ButtonInput onClick={handleDeleteDatabase} variant="primary" className="w-full p-3! rounded-lg!">
             Delete Database & Reload
-          </InputButton>
+          </ButtonInput>
           <p className="mt-2 text-xs text-text-tertiary">Warning: This will permanently delete all your local chat history and settings.</p>
         </div>
       </div>
@@ -85,7 +85,7 @@ const YujiLayout = () => {
           </main>
           <GlobalSettingModal />
           <ConfirmModal />
-          <NotificationToast />
+          <Notification />
         </>
       )}
     </div>

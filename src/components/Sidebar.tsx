@@ -9,7 +9,7 @@ import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
-import { InputButton, InputSearch } from './shared/InputArea';
+import { ButtonInput, SearchInput } from './shared/InputArea';
 
 import type { FC } from 'react';
 import type { ConfirmOptions } from '../app/Schema';
@@ -81,24 +81,24 @@ export const Sidebar: FC = () => {
   return (
     <div className={clsx('sidebar-container', !isSidebarOpen && 'hidden')}>
       <div className="sidebar-header relative">
-        <InputButton onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
+        <ButtonInput onClick={toggleSidebar} className="z-chat-input" title="Close Sidebar">
           <PanelLeftClose size={20} />
-        </InputButton>
+        </ButtonInput>
 
         <div className="abs-center pointer-events-none">
-          <InputButton variant="logo" onClick={() => setActiveThread(null)}>
+          <ButtonInput variant="logo" onClick={() => setActiveThread(null)}>
             <Bot size={20} className="text-primary" />
             <div className="header-title">Yuji</div>
-          </InputButton>
+          </ButtonInput>
         </div>
 
-        <InputButton onClick={onCreateThread} className="z-chat-input" title="New Chat">
+        <ButtonInput onClick={onCreateThread} className="z-chat-input" title="New Chat">
           <SquarePen size={20} />
-        </InputButton>
+        </ButtonInput>
       </div>
 
       <div className="px-2 mb-2">
-        <InputSearch
+        <SearchInput
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           debounceMs={150}
@@ -170,7 +170,7 @@ export const Sidebar: FC = () => {
                         </div>
                       )
                     )}
-                    <InputButton
+                    <ButtonInput
                       ref={menuOpenId === thread.id ? menuTriggerRef : null}
                       className={clsx('sidebar-thread-action-btn', menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
                       onClick={(e) => {
@@ -179,7 +179,7 @@ export const Sidebar: FC = () => {
                       }}
                     >
                       <MoreHorizontal size={16} />
-                    </InputButton>
+                    </ButtonInput>
                   </div>
                 </div>
               );
@@ -189,7 +189,7 @@ export const Sidebar: FC = () => {
       </div>
 
       <div className="sidebar-footer">
-        <InputButton variant="sidebar" onClick={toggleSetting}>
+        <ButtonInput variant="sidebar" onClick={toggleSetting}>
           <div className="avatar-sm">{getFirstChar(userName) || <User size={12} />}</div>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-medium truncate">{userName || 'User'}</div>
@@ -197,7 +197,7 @@ export const Sidebar: FC = () => {
           <div className="text-text-tertiary flex items-center">
             <Settings size={16} />
           </div>
-        </InputButton>
+        </ButtonInput>
       </div>
       {settingsOpenId && <ThreadSettingModal threadId={settingsOpenId} onClose={() => setSettingsOpenId(null)} />}
 

@@ -43,7 +43,7 @@ export const InputWrapper: FC<InputWrapperProps> = ({
   );
 };
 
-interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
+interface TextInputProps extends Omit<ComponentProps<'input'>, 'prefix'> {
   readonly leftIcon?: LucideIcon;
   readonly rightIcon?: LucideIcon;
   readonly onRightIconClick?: () => void;
@@ -51,7 +51,7 @@ interface InputTextProps extends Omit<ComponentProps<'input'>, 'prefix'> {
   readonly debounceMs?: number;
 }
 
-export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
+export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
   ({ className, containerClassName, leftIcon, rightIcon, onRightIconClick, value, onChange, debounceMs, ...props }, ref) => {
     const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
@@ -69,7 +69,7 @@ export const InputText = forwardRef<HTMLInputElement, InputTextProps>(
   },
 );
 
-export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>(({ value, onChange, ...props }, ref) => {
+export const SearchInput = forwardRef<HTMLInputElement, TextInputProps>(({ value, onChange, ...props }, ref) => {
   const handleClear = () => {
     if (onChange) {
       const event = {
@@ -81,7 +81,7 @@ export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>(({ value
   };
 
   return (
-    <InputText
+    <TextInput
       ref={ref}
       leftIcon={Search}
       rightIcon={value ? X : undefined}
@@ -94,11 +94,11 @@ export const InputSearch = forwardRef<HTMLInputElement, InputTextProps>(({ value
   );
 });
 
-interface InputSelectProps extends ComponentProps<'select'> {
+interface SelectInputProps extends ComponentProps<'select'> {
   readonly containerClassName?: string;
 }
 
-export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ className, containerClassName, children, disabled, ...props }, ref) => {
+export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(({ className, containerClassName, children, disabled, ...props }, ref) => {
   return (
     <InputWrapper rightIcon={ChevronDown} containerClassName={containerClassName} disabled={disabled}>
       <select ref={ref} className={clsx('select-base', className)} disabled={disabled} {...props}>
@@ -108,24 +108,24 @@ export const InputSelect = forwardRef<HTMLSelectElement, InputSelectProps>(({ cl
   );
 });
 
-interface InputTextareaProps extends TextareaAutosizeProps {
+interface TextareaInputProps extends TextareaAutosizeProps {
   readonly debounceMs?: number;
 }
 
-export const InputTextarea = forwardRef<HTMLTextAreaElement, InputTextareaProps>(({ className, value, onChange, debounceMs = 0, ...props }, ref) => {
+export const TextareaInput = forwardRef<HTMLTextAreaElement, TextareaInputProps>(({ className, value, onChange, debounceMs = 0, ...props }, ref) => {
   const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
   return <TextareaAutosize ref={ref} className={clsx('input-base resize-none', className)} value={localValue} onChange={handleChange} {...props} />;
 });
 
-interface InputTagProps {
+interface TagInputProps {
   readonly tags: ReadonlyArray<string>;
   readonly onChange: (tags: string[]) => void;
   readonly placeholder?: string;
   readonly maxLength?: number;
 }
 
-export const InputTag: FC<InputTagProps> = ({ tags, onChange, placeholder, maxLength = 100 }) => {
+export const TagInput: FC<TagInputProps> = ({ tags, onChange, placeholder, maxLength = 100 }) => {
   const removeTag = (tag: string) => {
     onChange(tags.filter((t) => t !== tag));
   };
@@ -178,11 +178,11 @@ const BUTTON_VARIANT = {
   sidebar: 'btn-sidebar',
 } as const;
 
-interface InputButtonProps extends ComponentProps<'button'> {
+interface ButtonInputProps extends ComponentProps<'button'> {
   readonly variant?: keyof typeof BUTTON_VARIANT;
 }
 
-export const InputButton = forwardRef<HTMLButtonElement, InputButtonProps>(({ className, variant = 'ghost', children, ...props }, ref) => {
+export const ButtonInput = forwardRef<HTMLButtonElement, ButtonInputProps>(({ className, variant = 'ghost', children, ...props }, ref) => {
   return (
     <button ref={ref} className={clsx(BUTTON_VARIANT[variant], className)} {...props}>
       {children}
@@ -190,14 +190,14 @@ export const InputButton = forwardRef<HTMLButtonElement, InputButtonProps>(({ cl
   );
 });
 
-interface InputSwitchProps {
+interface SwitchInputProps {
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
   readonly disabled?: boolean;
   readonly className?: string;
 }
 
-export const InputSwitch: FC<InputSwitchProps> = ({ checked, onChange, disabled = false, className }) => {
+export const SwitchInput: FC<SwitchInputProps> = ({ checked, onChange, disabled = false, className }) => {
   return (
     <button
       type="button"

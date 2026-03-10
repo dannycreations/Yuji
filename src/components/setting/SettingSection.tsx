@@ -29,9 +29,9 @@ import { downloadFile, formatError } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { ChatMessageBubble } from '../chat/ChatMessageBubble';
 import { Checkbox } from '../shared/Checkbox';
-import { InputButton, InputSearch, InputSelect, InputSwitch, InputTag, InputText, InputTextarea } from '../shared/InputArea';
+import { ButtonInput, SearchInput, SelectInput, SwitchInput, TagInput, TextareaInput, TextInput } from '../shared/InputArea';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
-import { ModelItem } from '../shared/ModelItem';
+import { ModelItem } from '../shared/PickerArea';
 
 import type { LucideIcon } from 'lucide-react';
 import type { ChangeEvent, FC, ReactNode } from 'react';
@@ -72,30 +72,30 @@ export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) 
   return (
     <SectionWrapper className="scrollable-section">
       <SettingItem label="Appearance">
-        <InputSelect
+        <SelectInput
           value={settings.theme}
           onChange={(e) => onChange({ theme: e.target.value as 'dark' | 'light' })}
           className="py-2 text-xs min-w-[100px]"
         >
           <option value="dark">Dark</option>
           <option value="light">Light</option>
-        </InputSelect>
+        </SelectInput>
       </SettingItem>
 
       <SettingItem label="Enter to send" description="Send the message by pressing the Enter key.">
-        <InputSwitch checked={settings.enterToSend} onChange={(checked) => onChange({ enterToSend: checked })} />
+        <SwitchInput checked={settings.enterToSend} onChange={(checked) => onChange({ enterToSend: checked })} />
       </SettingItem>
 
       <SettingItem label="Expand code blocks" description="Automatically expand code blocks to show full content.">
-        <InputSwitch checked={settings.expandCodeblock} onChange={(checked) => onChange({ expandCodeblock: checked })} />
+        <SwitchInput checked={settings.expandCodeblock} onChange={(checked) => onChange({ expandCodeblock: checked })} />
       </SettingItem>
 
       <SettingItem label="Show suggestions" description="Show prompt suggestions on the initial chat page.">
-        <InputSwitch checked={settings.showSuggestions} onChange={(checked) => onChange({ showSuggestions: checked })} />
+        <SwitchInput checked={settings.showSuggestions} onChange={(checked) => onChange({ showSuggestions: checked })} />
       </SettingItem>
 
       <SettingItem label="Save after editing" description="If disabled, the save button will be changed to regenerate.">
-        <InputSwitch checked={settings.saveAfterEditing} onChange={(checked) => onChange({ saveAfterEditing: checked })} />
+        <SwitchInput checked={settings.saveAfterEditing} onChange={(checked) => onChange({ saveAfterEditing: checked })} />
       </SettingItem>
     </SectionWrapper>
   );
@@ -105,13 +105,13 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
   return (
     <SectionWrapper className="space-y-3 scrollable-section">
       <SettingField label="API Provider">
-        <InputSelect value="openai" disabled>
+        <SelectInput value="openai" disabled>
           <option value="openai">OpenAI Compatible</option>
-        </InputSelect>
+        </SelectInput>
       </SettingField>
 
       <SettingField label="Base URL">
-        <InputText
+        <TextInput
           leftIcon={Link}
           value={settings.baseUrl}
           onChange={(e) => onChange({ baseUrl: e.target.value })}
@@ -120,7 +120,7 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
       </SettingField>
 
       <SettingField label="API Key">
-        <InputText
+        <TextInput
           type="password"
           leftIcon={Key}
           value={settings.apiKey}
@@ -190,7 +190,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
       size={10}
       hideCheckbox
       headerLabel={
-        <InputSearch
+        <SearchInput
           value={modelSearch}
           onChange={(e) => setModelSearch(e.target.value)}
           placeholder="Search models..."
@@ -198,7 +198,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         />
       }
       headerActions={() => (
-        <InputButton
+        <ButtonInput
           className={clsx('badge-outline ml-2', refreshState === 'success' && '!text-emerald-500')}
           onClick={handleRefreshModels}
           disabled={refreshState === 'loading'}
@@ -210,7 +210,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
             <RefreshCw size={14} className={clsx(refreshState === 'loading' && 'animate-spin-once')} />
           )}
           <span>{refreshState === 'success' ? 'Updated' : 'Refresh'}</span>
-        </InputButton>
+        </ButtonInput>
       )}
       renderRow={(model) => {
         const isEnabled = !settings.disabledModels.includes(model.id);
@@ -222,7 +222,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
               isEnabled={isEnabled}
               isDefault={effectiveModelId === model.id}
               className="flex-1 p-1 cursor-default border-none! bg-transparent!"
-              rightContent={<InputSwitch checked={isEnabled} onChange={() => toggleModel(model.id)} />}
+              rightContent={<SwitchInput checked={isEnabled} onChange={() => toggleModel(model.id)} />}
             />
           </div>
         );
@@ -353,7 +353,7 @@ export const SettingTable = <T,>({
             Page {currentPage + 1} of {totalPages}
           </div>
           <div className="flex gap-2">
-            <InputButton
+            <ButtonInput
               onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
               disabled={currentPage === 0}
               variant="secondary"
@@ -361,8 +361,8 @@ export const SettingTable = <T,>({
             >
               <ChevronLeft size={12} />
               Prev
-            </InputButton>
-            <InputButton
+            </ButtonInput>
+            <ButtonInput
               onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
               disabled={currentPage >= totalPages - 1}
               variant="secondary"
@@ -370,7 +370,7 @@ export const SettingTable = <T,>({
             >
               Next
               <ChevronRight size={12} />
-            </InputButton>
+            </ButtonInput>
           </div>
         </div>
       )}
@@ -449,19 +449,19 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       headerActions={(selectedIds, resetSelection) => (
         <>
           {selectedIds.size > 0 && (
-            <InputButton onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
+            <ButtonInput onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
               <Trash2 size={12} />
               Delete ({selectedIds.size})
-            </InputButton>
+            </ButtonInput>
           )}
-          <InputButton onClick={() => handleExport(selectedIds, 'history')} className="badge-outline" disabled={sortedThreads.length === 0}>
+          <ButtonInput onClick={() => handleExport(selectedIds, 'history')} className="badge-outline" disabled={sortedThreads.length === 0}>
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
-          </InputButton>
-          <InputButton onClick={() => fileInputRef.current?.click()} className="badge-outline">
+          </ButtonInput>
+          <ButtonInput onClick={() => fileInputRef.current?.click()} className="badge-outline">
             <Download size={12} />
             Import
-          </InputButton>
+          </ButtonInput>
         </>
       )}
       renderRow={(thread, _, selection) => (
@@ -551,15 +551,15 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
       headerActions={(selectedIds, resetSelection) => (
         <>
           {selectedIds.size > 0 && (
-            <InputButton onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
+            <ButtonInput onClick={() => handleDeleteSelected(selectedIds, resetSelection)} className="badge-outline danger">
               <Trash2 size={12} />
               Delete ({selectedIds.size})
-            </InputButton>
+            </ButtonInput>
           )}
-          <InputButton onClick={() => handleExport(selectedIds, 'archive')} className="badge-outline" disabled={sortedThreads.length === 0}>
+          <ButtonInput onClick={() => handleExport(selectedIds, 'archive')} className="badge-outline" disabled={sortedThreads.length === 0}>
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
-          </InputButton>
+          </ButtonInput>
         </>
       )}
       renderRow={(thread, _, selection) => (
@@ -574,14 +574,14 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
             <div className="text-xs text-text-tertiary mt-1">{timeAgo(thread.updatedAt)}</div>
           </div>
           <div className="flex items-center gap-2">
-            <InputButton onClick={() => toggleArchive(thread.id)} className="badge-outline" title="Unarchive">
+            <ButtonInput onClick={() => toggleArchive(thread.id)} className="badge-outline" title="Unarchive">
               <ArchiveRestore size={12} />
               Restore
-            </InputButton>
-            <InputButton onClick={() => handlePreview(thread.id)} className="badge-outline" title="View Conversation">
+            </ButtonInput>
+            <ButtonInput onClick={() => handlePreview(thread.id)} className="badge-outline" title="View Conversation">
               <Maximize2 size={12} />
               View
-            </InputButton>
+            </ButtonInput>
           </div>
         </div>
       )}
@@ -593,7 +593,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           title={previewThread.title}
           subtitle={`${timeAgo(previewThread.updatedAt)} • ${previewMessages.length} messages`}
           headerActions={
-            <InputButton
+            <ButtonInput
               onClick={() => {
                 toggleArchive(previewThread.id);
                 setPreviewThread(null);
@@ -602,7 +602,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
             >
               <ArchiveRestore size={14} />
               Restore
-            </InputButton>
+            </ButtonInput>
           }
           bodyClassName="bg-surface/30 overflow-y-auto"
         >
@@ -626,7 +626,7 @@ interface InstructionSectionProps {
 export const InstructionSection: FC<InstructionSectionProps> = ({ instruction, onChange, footer }) => (
   <div className="space-y-2">
     <label className="settings-label">System Instruction</label>
-    <InputTextarea
+    <TextareaInput
       value={instruction.systemPrompt || ''}
       onChange={(e) => onChange({ systemPrompt: e.target.value })}
       placeholder="Enter system instructions..."
@@ -645,7 +645,7 @@ interface PersonalisationSectionProps {
 export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ personalisation, onChange }) => (
   <div className="space-y-3">
     <SettingField label="What should Yuji call you?">
-      <InputText
+      <TextInput
         value={personalisation.userName || ''}
         onChange={(e) => onChange({ userName: e.target.value.slice(0, 50) })}
         placeholder="Enter your name..."
@@ -653,21 +653,21 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
       />
     </SettingField>
     <SettingField label="What do you do?">
-      <InputTag
+      <TagInput
         tags={personalisation.userOccupation || []}
         onChange={(userOccupation) => onChange({ userOccupation })}
         placeholder="Type a job and press Enter..."
       />
     </SettingField>
     <SettingField label="What traits should Yuji have?">
-      <InputTag
+      <TagInput
         tags={personalisation.assistantTraits || []}
         onChange={(assistantTraits) => onChange({ assistantTraits })}
         placeholder="Type a trait and press Enter..."
       />
     </SettingField>
     <SettingField label="Anything else Yuji should know about you?">
-      <InputTextarea
+      <TextareaInput
         value={personalisation.additionalContext || ''}
         onChange={(e) => onChange({ additionalContext: e.target.value.slice(0, 3000) })}
         placeholder="Interests, values, or preferences to keep in mind..."
@@ -692,9 +692,9 @@ export const OverrideSection = <T,>({ description, checked, onChange, children, 
       <div className="override-empty-state">
         <Lock size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
-        <InputButton onClick={() => onChange(true)} className="override-enable-btn">
+        <ButtonInput onClick={() => onChange(true)} className="override-enable-btn">
           Enable Override
-        </InputButton>
+        </ButtonInput>
       </div>
     );
   }

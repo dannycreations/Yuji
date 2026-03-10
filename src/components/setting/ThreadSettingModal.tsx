@@ -2,7 +2,7 @@ import { Settings, Terminal, User } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
-import { InputSwitch, InputText } from '../shared/InputArea';
+import { SwitchInput, TextInput } from '../shared/InputArea';
 import { SettingModal } from '../shared/modal/SettingModal';
 import { InstructionSection, OverrideSection, PersonalisationSection, SectionWrapper, SettingField, SettingItem } from './SettingSection';
 
@@ -65,7 +65,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
         return (
           <SectionWrapper className="space-y-3">
             <SettingField label="Chat Title">
-              <InputText
+              <TextInput
                 value={thread.title}
                 onChange={(e) => patchThread((s) => ({ ...s, title: e.target.value }), true)}
                 placeholder="Enter chat title..."
@@ -73,11 +73,11 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
             </SettingField>
 
             <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group pt-2">
-              <InputSwitch checked={!!thread.general.overrideInstruction} onChange={(checked) => handleGeneral({ overrideInstruction: checked })} />
+              <SwitchInput checked={!!thread.general.overrideInstruction} onChange={(checked) => handleGeneral({ overrideInstruction: checked })} />
             </SettingItem>
 
             <SettingItem label="Override Personalization" description="Ignore global user persona." className="panel-section-group pt-2">
-              <InputSwitch
+              <SwitchInput
                 checked={!!thread.general.overridePersonalisation}
                 onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
               />

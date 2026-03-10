@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: GlobalSetting = {
   apiKey: '',
   baseUrl: 'http://localhost:11434/v1',
   model: '',
+  mode: 'chat',
   theme: 'dark',
   enterToSend: true,
   expandCodeblock: true,

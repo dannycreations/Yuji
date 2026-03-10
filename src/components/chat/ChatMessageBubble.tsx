@@ -27,8 +27,8 @@ import { useCopy } from '../../hooks/useCopy';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
-import { FilePicker } from '../shared/FilePicker';
-import { InputButton, InputTextarea } from '../shared/InputArea';
+import { ButtonInput, TextareaInput } from '../shared/InputArea';
+import { FilePicker } from '../shared/PickerArea';
 import { ChatMessageBlock } from './ChatMessageBlock';
 
 import type { FC } from 'react';
@@ -184,7 +184,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   itemClassName="chat-input-attachment-item"
                   imgClassName="chat-input-attachment-img"
                 />
-                <InputTextarea
+                <TextareaInput
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   onPaste={onPaste}
@@ -202,21 +202,21 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 <div className="chat-input-edit-actions flex-between">
                   <div className="flex gap-1">
                     <FilePicker multiple accept="image/*" onFileSelect={onFileSelect} title="Attach Image" />
-                    <InputButton
+                    <ButtonInput
                       onClick={() => setIsSearchEnabled(!isSearchEnabled)}
                       title="Search"
                       className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
                     >
                       <Globe size={18} />
-                    </InputButton>
+                    </ButtonInput>
                   </div>
                   <div className="flex gap-2">
-                    <InputButton variant="secondary" onClick={() => setIsEditing(false)}>
+                    <ButtonInput variant="secondary" onClick={() => setIsEditing(false)}>
                       Cancel
-                    </InputButton>
-                    <InputButton variant="primary" onClick={handleSaveEdit}>
+                    </ButtonInput>
+                    <ButtonInput variant="primary" onClick={handleSaveEdit}>
                       {saveAfterEditing ? 'Save' : 'Regenerate'}
-                    </InputButton>
+                    </ButtonInput>
                   </div>
                 </div>
               </div>
@@ -240,32 +240,32 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
               <div className="message-actions">
                 {siblingsList.length > 1 && (
                   <div className="message-branch-navigation">
-                    <InputButton disabled={currentIndex === 0} onClick={() => handleSwitch(siblingsList[currentIndex - 1])} title="Previous">
+                    <ButtonInput disabled={currentIndex === 0} onClick={() => handleSwitch(siblingsList[currentIndex - 1])} title="Previous">
                       <ChevronLeft size={16} />
-                    </InputButton>
+                    </ButtonInput>
                     <div className="message-branch-indicator">
                       {currentIndex + 1}
                       <span className="message-branch-indicator-slash">/</span>
                       {siblingsList.length}
                     </div>
-                    <InputButton
+                    <ButtonInput
                       disabled={currentIndex === siblingsList.length - 1}
                       onClick={() => handleSwitch(siblingsList[currentIndex + 1])}
                       title="Next"
                     >
                       <ChevronRight size={16} />
-                    </InputButton>
+                    </ButtonInput>
                   </div>
                 )}
 
-                <InputButton onClick={() => onBranch(threadId, message.id)} title="Branch">
+                <ButtonInput onClick={() => onBranch(threadId, message.id)} title="Branch">
                   <GitFork size={16} />
-                </InputButton>
+                </ButtonInput>
 
                 <div className="relative">
-                  <InputButton ref={regenerateTriggerRef} onClick={() => setIsRegenerateDropdownOpen(true)} title="Regenerate">
+                  <ButtonInput ref={regenerateTriggerRef} onClick={() => setIsRegenerateDropdownOpen(true)} title="Regenerate">
                     <RefreshCw size={16} />
-                  </InputButton>
+                  </ButtonInput>
 
                   <Dropdown
                     isOpen={isRegenerateDropdownOpen}
@@ -357,11 +357,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   </Dropdown>
                 </div>
 
-                <InputButton onClick={handleCopy} title="Copy">
+                <ButtonInput onClick={handleCopy} title="Copy">
                   {copied ? <Check size={16} /> : <Copy size={16} />}
-                </InputButton>
+                </ButtonInput>
 
-                <InputButton
+                <ButtonInput
                   onClick={() => {
                     setEditContent(message.content);
                     setAttachments(message.attachments || []);
@@ -370,16 +370,16 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   title="Edit"
                 >
                   <Pencil size={16} />
-                </InputButton>
+                </ButtonInput>
 
-                <InputButton
+                <ButtonInput
                   onClick={handleDelete}
                   variant="danger"
                   className="bg-transparent! text-text-secondary! hover:text-danger!"
                   title="Delete"
                 >
                   <Trash2 size={16} />
-                </InputButton>
+                </ButtonInput>
               </div>
             </div>
           )}

@@ -1,15 +1,17 @@
 import clsx from 'clsx';
-import { ArrowUp, Globe, Square } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowUp, ChevronUp, Globe, Square } from 'lucide-react';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 
+import { getCurrentModelId, getModelName } from '../../helpers/ModelHelper';
 import { useAttachment } from '../../hooks/useAttachment';
-import { useStore } from '../../hooks/useStore';
+import { useClickOutside } from '../../hooks/useClickOutside';
+import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
-import { FilePicker } from '../shared/FilePicker';
-import { InputButton, InputTextarea } from '../shared/InputArea';
+import { ButtonInput, TextareaInput } from '../shared/InputArea';
+import { FilePicker, ModelPicker } from '../shared/PickerArea';
 
 import type { FC, KeyboardEvent } from 'react';
-import type { Attachment } from '../../app/Schema';
+import type { Attachment, GlobalSetting } from '../../app/Schema';
 
 interface ChatInputProps {
   readonly onSend: (text: string, attachments: Attachment[], options?: { readonly search?: boolean }) => void;
@@ -32,6 +34,41 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
   const { attachments, onFileSelect, onPaste, removeAttachment, clearAttachments } = useAttachment();
 
   const settings = useStore((s) => s.settings);
+  const activeThreadId = useStore((s) => s.activeThreadId);
+  const activeThread = useStore((s) => s.activeThread);
+  const availableModels = useStore((s) => s.availableModels);
+
+  const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
+  const updateThreadModel = useChatAction((c, model: string) =>
+    c.updateActiveThread((s) => ({
+      ...s,
+      general: { ...s.general, model },
+    })),
+  );
+
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [optimisticModelId, setOptimisticModelId] = useState<string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(pickerRef, () => setShowModelPicker(false));
+
+  const currentModelId = useMemo(() => getCurrentModelId(activeThread, settings, availableModels), [settings, availableModels, activeThread]);
+
+  const handleModelSelect = (modelId: string) => {
+    setOptimisticModelId(modelId);
+    setShowModelPicker(false);
+
+    startTransition(() => {
+      updateSetting({ model: modelId });
+      if (activeThreadId) {
+        updateThreadModel(modelId);
+      }
+    });
+  };
+
+  if (optimisticModelId && optimisticModelId === currentModelId && optimisticModelId !== null) {
+    setOptimisticModelId(null);
+  }
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -66,7 +103,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
           imgClassName="chat-input-attachment-img"
         />
 
-        <InputTextarea
+        <TextareaInput
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -80,15 +117,32 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
 
         <div className="chat-input-actions">
           <div className="chat-input-action-group">
+            <div className="relative" ref={pickerRef}>
+              <ButtonInput onClick={() => setShowModelPicker(!showModelPicker)} title="Select Model" className="p-1! gap-1">
+                <span className="text-xs font-bold text-text-secondary pl-1 truncate max-w-[120px]">
+                  {getModelName(availableModels, optimisticModelId || currentModelId)}
+                </span>
+                <ChevronUp size={14} className="text-text-secondary" />
+              </ButtonInput>
+
+              <ModelPicker
+                isOpen={showModelPicker}
+                triggerRef={pickerRef}
+                currentModel={currentModelId}
+                onSelect={handleModelSelect}
+                onClose={() => setShowModelPicker(false)}
+              />
+            </div>
+
             <FilePicker multiple accept="image/*" onFileSelect={onFileSelect} title="Attach Image" />
 
-            <InputButton
+            <ButtonInput
               onClick={() => setIsSearchEnabled(!isSearchEnabled)}
               title="Search"
               className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
             >
               <Globe size={18} />
-            </InputButton>
+            </ButtonInput>
           </div>
 
           <button

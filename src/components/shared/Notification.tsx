@@ -5,9 +5,9 @@ import { useEffect } from 'react';
 import { useStore, useStoreAction } from '../../hooks/useStore';
 
 import type { CSSProperties } from 'react';
-import type { Notification } from '../../app/Schema';
+import type { Notification as NotificationSchema } from '../../app/Schema';
 
-const TOAST_VARIANTS = {
+const TOAST_VARIANT = {
   error: {
     icon: AlertCircle,
     variantClass: 'toast-variant-error',
@@ -26,9 +26,9 @@ const TOAST_VARIANTS = {
   },
 } as const;
 
-const ToastItem = ({ notification, onDismiss }: { notification: Notification; onDismiss: (id: string) => void }) => {
+const ToastItem = ({ notification, onDismiss }: { notification: NotificationSchema; onDismiss: (id: string) => void }) => {
   const duration = 5000;
-  const { icon: IconComponent, variantClass } = TOAST_VARIANTS[notification.type];
+  const { icon: IconComponent, variantClass } = TOAST_VARIANT[notification.type];
   const handleClose = () => onDismiss(notification.id);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: Notification; on
   );
 };
 
-export const NotificationToast = () => {
+export const Notification = () => {
   const notifications = useStore((s) => s.notifications);
   const clearNotification = useStoreAction((s, id: string) => s.clearNotification(id));
 

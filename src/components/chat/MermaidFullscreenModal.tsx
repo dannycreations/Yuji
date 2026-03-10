@@ -1,7 +1,7 @@
 import { RefreshCw, ZoomIn, ZoomOut } from 'lucide-react';
 import { useRef, useState } from 'react';
 
-import { InputButton } from '../shared/InputArea';
+import { ButtonInput } from '../shared/InputArea';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
 
 import type { FC } from 'react';
@@ -90,15 +90,15 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
       title="Diagram Preview"
       headerActions={
         <>
-          <InputButton onClick={resetZoom} title="Reset Zoom">
+          <ButtonInput onClick={resetZoom} title="Reset Zoom">
             <RefreshCw size={18} />
-          </InputButton>
-          <InputButton onClick={() => handleZoom(1.2)} title="Zoom In">
+          </ButtonInput>
+          <ButtonInput onClick={() => handleZoom(1.2)} title="Zoom In">
             <ZoomIn size={18} />
-          </InputButton>
-          <InputButton onClick={() => handleZoom(0.8)} title="Zoom Out">
+          </ButtonInput>
+          <ButtonInput onClick={() => handleZoom(0.8)} title="Zoom Out">
             <ZoomOut size={18} />
-          </InputButton>
+          </ButtonInput>
         </>
       }
       bodyClassName="cursor-grab active:cursor-grabbing select-none"

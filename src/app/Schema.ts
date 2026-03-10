@@ -31,6 +31,7 @@ export const GlobalSetting = Schema.Struct({
   apiKey: Schema.String,
   baseUrl: Schema.String,
   model: Schema.String,
+  mode: Schema.Literal('chat', 'agent'),
   theme: Schema.Literal('dark', 'light'),
   enterToSend: Schema.Boolean,
   expandCodeblock: Schema.Boolean,

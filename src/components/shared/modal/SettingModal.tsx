@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { X } from 'lucide-react';
 
-import { InputButton } from '../InputArea';
+import { ButtonInput } from '../InputArea';
 import { Modal, ModalHeader } from './Modal';
 
 import type { LucideIcon } from 'lucide-react';
@@ -32,9 +32,9 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
       {/* Sidebar */}
       <div className="settings-sidebar">
         <div className="flex-between px-1 mb-2">
-          <InputButton onClick={onClose}>
+          <ButtonInput onClick={onClose}>
             <X size={18} />
-          </InputButton>
+          </ButtonInput>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1">
           {tabs.map((tab) => (
