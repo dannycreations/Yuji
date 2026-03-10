@@ -21,16 +21,6 @@ type OpenAIContent =
       readonly image_url: { readonly url: string };
     };
 
-const mapAttachment = (att: Attachment): OpenAIContent => {
-  switch (att.type) {
-    case 'image':
-      return {
-        type: 'image_url',
-        image_url: { url: att.url },
-      };
-  }
-};
-
 const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: string): OpenAIMessage[] => {
   const result: OpenAIMessage[] = [{ role: 'system', content: systemPrompt }];
   for (let i = 0, len = messages.length; i < len; i++) {
@@ -39,8 +29,17 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
       result.push({ role: m.role, content: m.content });
       continue;
     }
+
     const textContent: OpenAIContent = { type: 'text', text: m.content || ' ' };
-    const attachmentContents = m.attachments.map(mapAttachment);
+    const attachmentContents = m.attachments.map((att: Attachment): OpenAIContent => {
+      switch (att.type) {
+        case 'image':
+          return {
+            type: 'image_url',
+            image_url: { url: att.url },
+          };
+      }
+    });
     result.push({
       role: m.role,
       content: [textContent, ...attachmentContents],

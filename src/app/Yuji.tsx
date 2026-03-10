@@ -40,7 +40,7 @@ const DatabaseErrorView = ({ error }: { error: string }) => {
           </div>
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Database Conflict Detected</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Database Error</h1>
           <p className="text-text-secondary">
             Yuji encountered a problem while loading your database. This usually happens after an update or if the database was manually modified.
           </p>
