@@ -84,7 +84,11 @@ export const getBlockVersions = (thread: Thread, messageId: string): string[] =>
   if (!msg) return [];
 
   const parentId = msg.parentId;
-  if (!parentId) return [messageId];
+  if (!parentId) {
+    const roots = Object.values(thread.messages).filter((m) => !m.parentId && m.role === msg.role);
+    if (roots.length <= 1) return [messageId];
+    return roots.map((m) => m.id).sort((a, b) => (thread.messages[a]?.timestamp || 0) - (thread.messages[b]?.timestamp || 0));
+  }
 
   const parent = thread.messages[parentId];
   if (!parent) return [messageId];

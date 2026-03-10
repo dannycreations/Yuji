@@ -209,12 +209,13 @@ export const ChatServiceLive = Layer.effect(
         }));
 
         const id = randomId();
+        const lastMsg = messagesToProcess[messagesToProcess.length - 1];
         const assistantMessage: ThreadMessage = {
           id,
           role: 'assistant',
           content: '',
           timestamp: Date.now(),
-          parentId: messagesToProcess[messagesToProcess.length - 1]?.id,
+          parentId: lastMsg?.role === 'assistant' ? lastMsg.parentId : lastMsg?.id,
         };
 
         const streamEffect = Effect.gen(function* () {
@@ -378,7 +379,7 @@ export const ChatServiceLive = Layer.effect(
             content,
             attachments: options?.attachments ? [...options.attachments] : oldMessage.attachments,
             timestamp: Date.now(),
-            parentId: messageId,
+            parentId: oldMessage.parentId,
             childrenIds: [],
           };
 
