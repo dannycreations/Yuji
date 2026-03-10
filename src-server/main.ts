@@ -3,7 +3,7 @@ import { BunFileSystem, BunHttpServer } from '@effect/platform-bun';
 import { Effect, Layer, Schema } from 'effect';
 
 import { ExecuteToolRequest } from './core/Schema.js';
-import { tools } from './tools/index.js';
+import { TOOL_LIST } from './tools/index.js';
 
 import type { RequestError } from '@effect/platform/HttpClientError';
 import type { ParseError } from 'effect/ParseResult';
@@ -12,7 +12,7 @@ const router = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/tools',
     Effect.gen(function* () {
-      const toolDefinitions = Object.values(tools).map((t) => t.definition);
+      const toolDefinitions = Object.values(TOOL_LIST).map((t) => t.definition);
       return yield* HttpServerResponse.json(toolDefinitions);
     }),
   ),
@@ -21,14 +21,13 @@ const router = HttpRouter.empty.pipe(
     Effect.gen(function* () {
       const request = yield* HttpServerRequest.HttpServerRequest;
       const body = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknown(ExecuteToolRequest)));
-      const tool = tools[body.name];
+      const tool = TOOL_LIST[body.name];
 
       if (!tool) {
         return yield* HttpServerResponse.json({ error: `Tool not found: ${body.name}` }, { status: 404 });
       }
 
       const result = yield* tool.execute(body.arguments);
-
       return yield* HttpServerResponse.json({ result });
     }).pipe(
       Effect.catchTags({
