@@ -54,6 +54,7 @@ interface ChatMessageBubbleProps {
 
 export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, threadId, siblings, isThinking, readOnly }) => {
   const isUser = message.role === 'user';
+  const isTool = message.role === 'tool';
   const saveAfterEditing = useStore((s) => s.settings.saveAfterEditing);
 
   const [copied, setCopy] = useCopy();
@@ -176,9 +177,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   return (
     <div className="group w-full" data-message-id={message.id}>
-      <div className={clsx('message-row', isUser ? 'user' : 'assistant')}>
-        <div className={clsx('message-container', isUser ? 'user' : 'assistant', readOnly && 'no-actions')}>
-          <div className={clsx('message-content-wrapper', isUser ? 'user' : 'assistant')}>
+      <div className={clsx('message-row', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
+        <div className={clsx('message-container', isUser ? 'user' : isTool ? 'tool' : 'assistant', readOnly && 'no-actions')}>
+          <div className={clsx('message-content-wrapper', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
             {!isEditing && <AttachmentGrid attachments={message.attachments || []} className="message-attachment-grid mb-2" />}
 
             {isEditing ? (
@@ -227,7 +228,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 </div>
               </div>
             ) : (
-              <div className={clsx(isUser ? 'message-bubble-user' : 'message-bubble-assistant')}>
+              <div className={clsx(isUser ? 'message-bubble-user' : isTool ? 'message-bubble-tool' : 'message-bubble-assistant')}>
                 {isThinking && !message.content ? (
                   <div className="message-thinking-container">
                     <div className="message-thinking-dot" />

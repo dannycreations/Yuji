@@ -106,7 +106,7 @@ export type ThreadMetadata = Schema.Schema.Type<typeof ThreadMetadata>;
 
 export const ThreadMessage = Schema.Struct({
   id: Schema.String,
-  role: Schema.Literal('system', 'user', 'assistant'),
+  role: Schema.Literal('system', 'user', 'assistant', 'tool'),
   content: Schema.String,
   attachments: Schema.optional(Schema.Array(Attachment)),
   timestamp: Schema.Number,

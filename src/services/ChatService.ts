@@ -2,7 +2,7 @@ import { Context, Effect, Fiber, Layer, Schema, Stream, SubscriptionRef } from '
 
 import { MessageNotFoundError, ThreadNotFoundError } from '../app/Error';
 import { Attachment, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
-import { branchThreadPath, createInitialThread, generateThreadTitle, getEffectiveMessages, getMessagePath } from '../helpers/ThreadHelper';
+import { branchThreadPath, createInitialThread, generateThreadTitle, getMessagePath } from '../helpers/ThreadHelper';
 import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
 import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
@@ -210,178 +210,196 @@ export const ChatServiceLive = Layer.effect(
           backgroundThreadIds: [...new Set([...s.backgroundThreadIds, threadId])],
         }));
 
-        const id = randomId();
-        const lastMsg = messagesToProcess[messagesToProcess.length - 1];
-        const assistantMessage: ThreadMessage = {
-          id,
-          role: 'assistant',
-          content: '',
-          timestamp: Date.now(),
-          parentId: lastMsg?.role === 'assistant' ? lastMsg.parentId : lastMsg?.id,
-        };
-
         const streamEffect = Effect.gen(function* () {
-          yield* chat.addMessage(threadId, assistantMessage);
+          let currentPath = messagesToProcess;
+          let turnCount = 0;
+          const MAX_TURNS = 20;
 
-          const thread = yield* storage.getThread(threadId);
-          if (!thread) return;
-
-          let systemPrompt = synthesizeSystemPrompt(settings, thread);
-
-          if (options.instruction) {
-            systemPrompt += `\n\n## Priority instruction for this response\n\n${options.instruction}`;
-          }
-
-          const model = thread.general.model || settings.model;
-
-          let effectiveForLLM = getEffectiveMessages(messagesToProcess);
-          if (effectiveForLLM.length > 0 && effectiveForLLM[effectiveForLLM.length - 1].role === 'assistant') {
-            effectiveForLLM = effectiveForLLM.slice(0, -1);
-          }
-
-          const activeTools =
-            settings.mode === 'agent'
-              ? state.availableTools.filter((t) => t.function && !settings.disabledTools.includes(t.function.name))
-              : undefined;
-
-          const stream = yield* llm.streamCompletion(
-            effectiveForLLM,
-            settings,
-            {
-              provider: 'openai',
-              model,
-              temperature: 0.7,
-              tools: activeTools,
-            },
-            systemPrompt,
-          );
-
-          let fullContent = '';
-          let toolCallsAccumulator: ToolCall[] = [];
-          let lastSavedContent = '';
-          let lastUISaveContent = '';
-          let lastUITime = 0;
-          let lastSaveTime = 0;
-
-          const UI_UPDATE_INTERVAL = 60; // ~16fps
-          const STORAGE_SAVE_INTERVAL = 3000;
-
-          yield* Stream.runForEach(stream, (token) =>
-            Effect.gen(function* () {
-              if (token.startsWith('TOOL_CALLS:')) {
-                const delta = JSON.parse(token.slice(11));
-                for (const d of delta) {
-                  if (d.index === undefined) continue;
-
-                  const idx = d.index;
-                  const current = toolCallsAccumulator[idx];
-                  if (!current) {
-                    toolCallsAccumulator[idx] = {
-                      id: d.id ?? '',
-                      type: 'function',
-                      function: {
-                        name: d.function?.name ?? '',
-                        arguments: d.function?.arguments ?? '',
-                      },
-                    };
-                  } else {
-                    toolCallsAccumulator[idx] = {
-                      ...current,
-                      id: d.id ?? current.id,
-                      function: {
-                        ...current.function,
-                        name: current.function.name + (d.function?.name ?? ''),
-                        arguments: current.function.arguments + (d.function?.arguments ?? ''),
-                      },
-                    };
-                  }
-                }
-                return;
-              }
-              fullContent += token;
-              const now = performance.now();
-
-              const isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
-
-              if (isVisible && now - lastUITime >= UI_UPDATE_INTERVAL) {
-                lastUITime = now;
-                lastUISaveContent = fullContent;
-                yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
-              }
-
-              if (now - lastSaveTime >= STORAGE_SAVE_INTERVAL) {
-                lastSaveTime = now;
-                lastSavedContent = fullContent;
-                yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
-              }
-            }),
-          );
-
-          // Ensure final state is synchronized to both UI and Storage
-          if (fullContent !== lastUISaveContent) {
-            yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
-          }
-          if (fullContent !== lastSavedContent) {
-            yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
-          }
-
-          // Update timestamp once when stream is finished
-          yield* chat.updateMessage(threadId, id, fullContent, { metadataOnly: true });
-
-          if (toolCallsAccumulator.length === 0) return;
-
-          const cleanToolCalls = toolCallsAccumulator.filter(Boolean);
-          yield* chat.updateMessage(threadId, id, fullContent, {
-            skipUpdateTimestamp: true,
-            uiOnly: false,
-          });
-
-          // Update with tool calls
-          yield* updateThread(threadId, (t) => {
-            const msg = t.messages[id];
-            if (!msg) return t;
-            return {
-              ...t,
-              messages: {
-                ...t.messages,
-                [id]: { ...msg, toolCalls: cleanToolCalls },
-              },
-            };
-          });
-
-          // Execute tools and generate next message
-          const toolRequests = cleanToolCalls.map((call) => ({
-            id: call.id,
-            name: call.function.name,
-            arguments: JSON.parse(call.function.arguments),
-          }));
-
-          const toolResults = yield* tools.execute(toolRequests, settings);
-
-          for (const res of toolResults) {
-            const toolMessage: ThreadMessage = {
-              id: randomId(),
-              role: 'assistant', // Use assistant role but marked as tool response via toolCallId
-              content: res.error ? `Error: ${res.error}` : typeof res.result === 'string' ? res.result : JSON.stringify(res.result),
+          while (turnCount < MAX_TURNS) {
+            turnCount++;
+            const id = randomId();
+            const lastMsg = currentPath[currentPath.length - 1];
+            const assistantMessage: ThreadMessage = {
+              id,
+              role: 'assistant',
+              content: '',
               timestamp: Date.now(),
-              parentId: id,
-              toolCallId: res.id,
+              parentId: lastMsg?.id,
             };
 
-            yield* chat.addMessage(threadId, toolMessage);
+            yield* chat.addMessage(threadId, assistantMessage);
+
+            const thread = yield* storage.getThread(threadId);
+            if (!thread) return;
+
+            let systemPrompt = synthesizeSystemPrompt(settings, thread);
+            if (options.instruction) {
+              systemPrompt += `\n\n## Priority instruction for this response\n\n${options.instruction}`;
+            }
+
+            const model = thread.general.model || settings.model;
+
+            const activeTools =
+              settings.mode === 'agent'
+                ? state.availableTools.filter((t) => t.function && !settings.disabledTools.includes(t.function.name))
+                : undefined;
+
+            const stream = yield* llm.streamCompletion(
+              currentPath,
+              settings,
+              {
+                provider: 'openai',
+                model,
+                temperature: 0.7,
+                tools: activeTools,
+              },
+              systemPrompt,
+            );
+
+            let fullContent = '';
+            let toolCallsAccumulator: ToolCall[] = [];
+            let lastSavedContent = '';
+            let lastUISaveContent = '';
+            let lastUITime = 0;
+            let lastSaveTime = 0;
+
+            const UI_UPDATE_INTERVAL = 60;
+            const STORAGE_SAVE_INTERVAL = 3000;
+
+            yield* Stream.runForEach(stream, (token) =>
+              Effect.gen(function* () {
+                if (token.startsWith('TOOL_CALLS:')) {
+                  const delta = JSON.parse(token.slice(11));
+                  for (const d of delta) {
+                    if (d.index === undefined) continue;
+                    const idx = d.index;
+                    const current = toolCallsAccumulator[idx];
+                    if (!current) {
+                      toolCallsAccumulator[idx] = {
+                        id: d.id ?? '',
+                        type: 'function',
+                        function: {
+                          name: d.function?.name ?? '',
+                          arguments: d.function?.arguments ?? '',
+                        },
+                      };
+                    } else {
+                      toolCallsAccumulator[idx] = {
+                        ...current,
+                        id: d.id ?? current.id,
+                        function: {
+                          ...current.function,
+                          name: current.function.name + (d.function?.name ?? ''),
+                          arguments: current.function.arguments + (d.function?.arguments ?? ''),
+                        },
+                      };
+                    }
+                  }
+                  return;
+                }
+                fullContent += token;
+                const now = performance.now();
+                const isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
+
+                if (isVisible && now - lastUITime >= UI_UPDATE_INTERVAL) {
+                  lastUITime = now;
+                  lastUISaveContent = fullContent;
+                  yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
+                }
+
+                if (now - lastSaveTime >= STORAGE_SAVE_INTERVAL) {
+                  lastSaveTime = now;
+                  lastSavedContent = fullContent;
+                  yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
+                }
+              }),
+            );
+
+            if (fullContent !== lastUISaveContent) {
+              yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true, uiOnly: true });
+            }
+            if (fullContent !== lastSavedContent) {
+              yield* chat.updateMessage(threadId, id, fullContent, { skipUpdateTimestamp: true });
+            }
+
+            yield* chat.updateMessage(threadId, id, fullContent, { metadataOnly: true });
+
+            if (toolCallsAccumulator.length === 0) break;
+
+            const cleanToolCalls = toolCallsAccumulator.filter(Boolean);
+            yield* chat.updateMessage(threadId, id, fullContent, {
+              skipUpdateTimestamp: true,
+              uiOnly: false,
+            });
+
+            yield* updateThread(threadId, (t) => {
+              const msg = t.messages[id];
+              if (!msg) return t;
+              return {
+                ...t,
+                messages: {
+                  ...t.messages,
+                  [id]: { ...msg, toolCalls: cleanToolCalls },
+                },
+              };
+            });
+
+            const toolRequests = cleanToolCalls.map((call) => {
+              try {
+                return {
+                  id: call.id,
+                  name: call.function.name,
+                  arguments: JSON.parse(call.function.arguments || '{}'),
+                };
+              } catch (e) {
+                return {
+                  id: call.id,
+                  name: call.function.name,
+                  arguments: {},
+                  parseError: `Invalid JSON in arguments: ${formatError(e)}`,
+                };
+              }
+            });
+
+            const validRequests = toolRequests.filter((r) => !('parseError' in r));
+            const failedRequests = toolRequests.filter((r) => 'parseError' in r);
+
+            const toolResults = yield* tools.execute(validRequests, settings);
+            const finalResults = [...toolResults, ...failedRequests.map((r) => ({ id: r.id, error: r.parseError }))];
+
+            let lastToolMsgId = id;
+            for (const res of finalResults) {
+              const toolMessage: ThreadMessage = {
+                id: randomId(),
+                role: 'tool',
+                content:
+                  'error' in res
+                    ? `Error: ${res.error}`
+                    : typeof (res as { result: unknown }).result === 'string'
+                      ? (res as { result: string }).result
+                      : JSON.stringify((res as { result: unknown }).result),
+                timestamp: Date.now(),
+                parentId: lastToolMsgId,
+                toolCallId: res.id,
+              };
+
+              yield* chat.addMessage(threadId, toolMessage);
+              lastToolMsgId = toolMessage.id;
+            }
+
+            const updatedThread = yield* storage.getThread(threadId);
+            if (!updatedThread) return;
+            currentPath = getMessagePath(updatedThread, lastToolMsgId);
           }
-
-          // After all tools executed, trigger next generation
-          const updatedThread = yield* storage.getThread(threadId);
-          if (!updatedThread) return;
-
-          const nextHistory = getMessagePath(updatedThread, updatedThread.activeMessageId!);
-          yield* chat.generate(threadId, nextHistory, options);
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
               const msg = formatError(err);
-              yield* chat.updateMessage(threadId, id, `*[Error: ${msg}]*`, { isError: true });
+              const { activeThread } = yield* SubscriptionRef.get(store.state);
+              const lastMsgId = activeThread?.id === threadId ? activeThread.activeMessageId : undefined;
+              if (lastMsgId) {
+                yield* chat.updateMessage(threadId, lastMsgId, `*[Error: ${msg}]*`, { isError: true });
+              }
               yield* store.notify('error', `Chat error: ${msg}`);
             }),
           ),

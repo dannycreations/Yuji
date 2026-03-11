@@ -68,17 +68,6 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
   return path.reverse();
 };
 
-export const getEffectiveMessages = (path: ReadonlyArray<ThreadMessage>): ThreadMessage[] => {
-  const result: ThreadMessage[] = [];
-  for (let i = 0; i < path.length; i++) {
-    const msg = path[i];
-    if (i === path.length - 1 || path[i + 1].role !== msg.role) {
-      result.push(msg);
-    }
-  }
-  return result;
-};
-
 export const getBlockVersions = (thread: Thread, messageId: string): string[] => {
   const msg = thread.messages[messageId];
   if (!msg) return [];
@@ -149,11 +138,11 @@ export const findVersionLeaf = (thread: Thread, versionId: string): string => {
 export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage> => {
   const { activeMessageId, messages } = thread;
   if (activeMessageId) {
-    const path = getMessagePath(thread, activeMessageId);
-    return getEffectiveMessages(path);
+    return getMessagePath(thread, activeMessageId);
   }
+
   const vals = Object.values(messages);
-  return getEffectiveMessages(vals.length <= 1 ? vals : vals.sort((a, b) => a.timestamp - b.timestamp));
+  return vals.length <= 1 ? vals : vals.sort((a, b) => a.timestamp - b.timestamp);
 };
 
 export const branchThreadPath = (

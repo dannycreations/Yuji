@@ -513,6 +513,10 @@
     @apply message-bubble-base prose-chat;
   }
 
+  .message-bubble-tool {
+    @apply message-bubble-base prose-chat p-2 bg-surface-hover/30 rounded-lg border border-line/50 text-xs text-text-secondary font-mono overflow-x-auto;
+  }
+
   .message-attachment-grid {
     @apply flex flex-wrap gap-2 mb-3 last:mb-0;
   }

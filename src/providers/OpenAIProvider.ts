@@ -28,7 +28,7 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
   for (let i = 0, len = messages.length; i < len; i++) {
     const m = messages[i];
 
-    if (m.toolCallId) {
+    if (m.role === 'tool' || m.toolCallId) {
       result.push({
         role: 'tool',
         content: m.content,
