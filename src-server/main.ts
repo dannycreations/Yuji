@@ -1,11 +1,12 @@
-import { ToolExecute } from '@client/app/Schema.js';
+import { ToolExecuteRequest } from '@client/app/Schema.js';
 import { HttpMiddleware, HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import { BunFileSystem, BunHttpServer } from '@effect/platform-bun';
 import { Effect, Layer, Schema } from 'effect';
 
 import { TOOL_LIST } from './tools/index.js';
 
-import type { RequestError } from '@effect/platform/HttpClientError';
+import type { ToolDefinition, ToolExecuteResponse } from '@client/app/Schema.js';
+import type { RequestError } from '@effect/platform/HttpServerError';
 import type { ParseError } from 'effect/ParseResult';
 
 const router = HttpRouter.empty
@@ -14,22 +15,34 @@ const router = HttpRouter.empty
       '/tools',
       Effect.gen(function* () {
         const toolDefinitions = Object.values(TOOL_LIST).map((t) => t.definition);
-        return yield* HttpServerResponse.json(toolDefinitions);
+        return yield* HttpServerResponse.json(toolDefinitions as ToolDefinition[]);
       }),
     ),
     HttpRouter.post(
       '/tools/execute',
       Effect.gen(function* () {
         const request = yield* HttpServerRequest.HttpServerRequest;
-        const body = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknown(ToolExecute)));
-        const tool = TOOL_LIST[body.name];
+        const calls = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknown(ToolExecuteRequest)));
 
-        if (!tool) {
-          return yield* HttpServerResponse.json({ error: `Tool not found: ${body.name}` }, { status: 404 });
-        }
+        const results = yield* Effect.all(
+          calls.map((item) =>
+            Effect.gen(function* () {
+              const tool = TOOL_LIST[item.name];
+              if (!tool) {
+                return { id: item.id, error: `Tool not found: ${item.name}` };
+              }
 
-        const result = yield* tool.execute(body.arguments);
-        return yield* HttpServerResponse.json({ result });
+              const result = yield* tool.execute(item.arguments).pipe(
+                Effect.catchAll((e) => Effect.succeed({ error: String(e) })),
+                Effect.map((res) => ({ id: item.id, result: res })),
+              );
+              return result;
+            }),
+          ),
+          { concurrency: 'inherit' },
+        );
+
+        return yield* HttpServerResponse.json(results as ToolExecuteResponse);
       }).pipe(
         Effect.catchTags({
           ParseError: (error: ParseError) => HttpServerResponse.json({ error: 'Invalid input', details: error }, { status: 400 }),

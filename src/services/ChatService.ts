@@ -9,6 +9,8 @@ import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
 import { ToolService } from './ToolService';
 
+import type { ToolCall } from '../app/Schema';
+
 export interface ChatService {
   readonly createThread: () => Effect.Effect<ThreadMetadata, Error>;
   readonly deleteThreads: (ids: string | Iterable<string>) => Effect.Effect<void, Error>;
@@ -255,7 +257,7 @@ export const ChatServiceLive = Layer.effect(
           );
 
           let fullContent = '';
-          let toolCallsAccumulator: any[] = [];
+          let toolCallsAccumulator: ToolCall[] = [];
           let lastSavedContent = '';
           let lastUISaveContent = '';
           let lastUITime = 0;
@@ -272,13 +274,27 @@ export const ChatServiceLive = Layer.effect(
                   if (d.index === undefined) continue;
 
                   const idx = d.index;
-                  if (!toolCallsAccumulator[idx]) {
-                    toolCallsAccumulator[idx] = { id: d.id, type: 'function', function: { name: '', arguments: '' } };
+                  const current = toolCallsAccumulator[idx];
+                  if (!current) {
+                    toolCallsAccumulator[idx] = {
+                      id: d.id ?? '',
+                      type: 'function',
+                      function: {
+                        name: d.function?.name ?? '',
+                        arguments: d.function?.arguments ?? '',
+                      },
+                    };
+                  } else {
+                    toolCallsAccumulator[idx] = {
+                      ...current,
+                      id: d.id ?? current.id,
+                      function: {
+                        ...current.function,
+                        name: current.function.name + (d.function?.name ?? ''),
+                        arguments: current.function.arguments + (d.function?.arguments ?? ''),
+                      },
+                    };
                   }
-
-                  if (d.id) toolCallsAccumulator[idx].id = d.id;
-                  if (d.function?.name) toolCallsAccumulator[idx].function.name += d.function.name;
-                  if (d.function?.arguments) toolCallsAccumulator[idx].function.arguments += d.function.arguments;
                 }
                 return;
               }
@@ -334,16 +350,22 @@ export const ChatServiceLive = Layer.effect(
           });
 
           // Execute tools and generate next message
-          for (const call of cleanToolCalls) {
-            const toolResult = yield* tools.execute(call.function.name, JSON.parse(call.function.arguments), settings);
+          const toolRequests = cleanToolCalls.map((call) => ({
+            id: call.id,
+            name: call.function.name,
+            arguments: JSON.parse(call.function.arguments),
+          }));
 
+          const toolResults = yield* tools.execute(toolRequests, settings);
+
+          for (const res of toolResults) {
             const toolMessage: ThreadMessage = {
               id: randomId(),
               role: 'assistant', // Use assistant role but marked as tool response via toolCallId
-              content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
+              content: res.error ? `Error: ${res.error}` : typeof res.result === 'string' ? res.result : JSON.stringify(res.result),
               timestamp: Date.now(),
               parentId: id,
-              toolCallId: call.id,
+              toolCallId: res.id,
             };
 
             yield* chat.addMessage(threadId, toolMessage);

@@ -75,6 +75,25 @@ export const OpenAIProviderLive = Layer.effect(
     const client = yield* HttpClient.HttpClient;
 
     return LLMProvider.of({
+      fetchModels: (settings) =>
+        HttpClientRequest.get(`${settings.baseUrl}/models`).pipe(
+          HttpClientRequest.setHeader('Content-Type', 'application/json'),
+          HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`),
+          (req) => client.execute(req),
+          Effect.mapError((e) => new LLMProviderError({ message: 'Failed to connect to LLM API', cause: e })),
+          Effect.flatMap((response: HttpClientResponse.HttpClientResponse) => {
+            if (response.status !== 200) {
+              return response.text.pipe(
+                Effect.orElseSucceed(() => 'Unknown API Error'),
+                Effect.flatMap((errorText) => Effect.fail(new LLMProviderError({ message: `API Error ${response.status}: ${errorText}` }))),
+              );
+            }
+            return HttpClientResponse.schemaBodyJson(Schema.Struct({ data: Schema.Array(Schema.Struct({ id: Schema.String })) }))(response).pipe(
+              Effect.mapError((e) => new LLMProviderError({ message: 'Failed to parse models response', cause: e })),
+            );
+          }),
+        ),
+
       streamCompletion: (messages, settings, config, systemPrompt) => {
         const body = {
           model: config.model,
@@ -142,25 +161,6 @@ export const OpenAIProviderLive = Layer.effect(
           ),
         );
       },
-
-      fetchModels: (settings) =>
-        HttpClientRequest.get(`${settings.baseUrl}/models`).pipe(
-          HttpClientRequest.setHeader('Content-Type', 'application/json'),
-          HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`),
-          (req) => client.execute(req),
-          Effect.mapError((e) => new LLMProviderError({ message: 'Failed to connect to LLM API', cause: e })),
-          Effect.flatMap((response: HttpClientResponse.HttpClientResponse) => {
-            if (response.status !== 200) {
-              return response.text.pipe(
-                Effect.orElseSucceed(() => 'Unknown API Error'),
-                Effect.flatMap((errorText) => Effect.fail(new LLMProviderError({ message: `API Error ${response.status}: ${errorText}` }))),
-              );
-            }
-            return HttpClientResponse.schemaBodyJson(Schema.Struct({ data: Schema.Array(Schema.Struct({ id: Schema.String })) }))(response).pipe(
-              Effect.mapError((e) => new LLMProviderError({ message: 'Failed to parse models response', cause: e })),
-            );
-          }),
-        ),
     });
   }),
 );

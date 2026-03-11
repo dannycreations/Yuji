@@ -3,7 +3,7 @@ import { Context, Effect, Stream } from 'effect';
 import { DEFAULT_GUIDE_PROMPT } from '../app/Constant';
 import { LLMProviderError } from '../app/Error';
 
-import type { GlobalSetting, Thread, ThreadMessage } from '../app/Schema';
+import type { GlobalSetting, Thread, ThreadMessage, ToolDefinition } from '../app/Schema';
 
 export const synthesizeSystemPrompt = (settings: GlobalSetting, thread: Thread): string => {
   const instruction = thread.general.overrideInstruction ? thread.instruction.systemPrompt : settings.instruction.systemPrompt;
@@ -26,6 +26,7 @@ interface LLMModel {
 }
 
 export interface LLMProvider {
+  readonly fetchModels: (settings: GlobalSetting) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
   readonly streamCompletion: (
     messages: ReadonlyArray<ThreadMessage>,
     settings: GlobalSetting,
@@ -35,11 +36,10 @@ export interface LLMProvider {
       readonly temperature: number;
       readonly maxTokens?: number;
       readonly topP?: number;
-      readonly tools?: readonly any[];
+      readonly tools?: ReadonlyArray<ToolDefinition>;
     },
     systemPrompt: string,
   ) => Effect.Effect<Stream.Stream<string, LLMProviderError>, LLMProviderError>;
-  readonly fetchModels: (settings: GlobalSetting) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
 }
 
 export const LLMProvider = Context.GenericTag<LLMProvider>('@providers/LLMProvider');
