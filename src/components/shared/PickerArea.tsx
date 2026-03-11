@@ -69,21 +69,29 @@ interface ModeItemProps {
 }
 
 export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, onSelect, onClose, className }) => {
+  const availableTools = useStore((s) => s.availableTools);
+  const hasTools = availableTools.length > 0;
+
   return (
     <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={clsx('w-[200px]', className)}>
-      {MODE_LIST.map((mode) => (
-        <DropdownItem
-          key={mode.id}
-          icon={mode.icon}
-          label={mode.title}
-          description={mode.description}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            onSelect(mode.id);
-            onClose();
-          }}
-        />
-      ))}
+      {MODE_LIST.map((mode) => {
+        const isDisabled = mode.id === 'agent' && !hasTools;
+        return (
+          <DropdownItem
+            key={mode.id}
+            icon={mode.icon}
+            label={mode.title}
+            description={isDisabled ? 'No tools available' : mode.description}
+            disabled={isDisabled}
+            onMouseDown={(e) => {
+              if (isDisabled) return;
+              e.preventDefault();
+              onSelect(mode.id);
+              onClose();
+            }}
+          />
+        );
+      })}
     </Dropdown>
   );
 };

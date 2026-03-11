@@ -505,8 +505,11 @@ export const ChatServiceLive = Layer.effect(
 
       createThread: (mode) =>
         Effect.gen(function* () {
-          const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
-          const newThread = createInitialThread({ ...settings, mode: mode ?? settings.mode }, availableModels);
+          const { settings, availableModels, availableTools } = yield* SubscriptionRef.get(store.state);
+          const targetMode = mode ?? settings.mode;
+          const finalMode = targetMode === 'agent' && availableTools.length === 0 ? 'chat' : targetMode;
+
+          const newThread = createInitialThread({ ...settings, mode: finalMode }, availableModels);
           const metadata = yield* Schema.decode(ThreadMetadata)(newThread).pipe(Effect.orDie);
 
           yield* store.update((state) => ({

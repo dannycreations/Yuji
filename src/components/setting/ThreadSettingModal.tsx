@@ -23,7 +23,10 @@ const THREAD_SETTING_TABS: SettingTabItem[] = [
 
 export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onClose }) => {
   const activeThread = useStore((s) => s.activeThread);
+  const availableTools = useStore((s) => s.availableTools);
   const [localThread, setLocalThread] = useState<Thread | null>(null);
+
+  const hasTools = availableTools.length > 0;
 
   const onUpdateThread = useChatAction((c, tid: string, f: (thread: Thread, now: number) => Thread, options?: { metadataOnly?: boolean }) =>
     c.updateThread(tid, f, options),
@@ -74,8 +77,16 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
               />
             </SettingField>
 
-            <SettingItem label="Agentic Mode" description="Enable autonomous task execution with tools." className="panel-section-group pt-2">
-              <SwitchInput checked={thread.mode === 'agent'} onChange={(checked) => handleModeChange(checked ? 'agent' : 'chat')} />
+            <SettingItem
+              label="Agentic Mode"
+              description={hasTools ? 'Enable autonomous task execution with tools.' : 'No tools available.'}
+              className="panel-section-group pt-2"
+            >
+              <SwitchInput
+                checked={thread.mode === 'agent'}
+                onChange={(checked) => handleModeChange(checked ? 'agent' : 'chat')}
+                disabled={!hasTools && thread.mode !== 'agent'}
+              />
             </SettingItem>
 
             <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group pt-2">

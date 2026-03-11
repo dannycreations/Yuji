@@ -14,6 +14,7 @@ export interface DropdownItemProps {
   readonly description?: string;
   readonly onClick?: () => void;
   readonly onMouseDown?: (e: React.MouseEvent) => void;
+  readonly disabled?: boolean;
   readonly variant?: 'default' | 'danger';
   readonly className?: string;
 }
@@ -25,18 +26,22 @@ export const DropdownItem: FC<DropdownItemProps> = ({
   description,
   onClick,
   onMouseDown,
+  disabled,
   variant = 'default',
   className,
 }) => {
   return (
     <button
       type="button"
-      className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', className)}
+      disabled={disabled}
+      className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', disabled && 'opacity-50 cursor-not-allowed', className)}
       onMouseDown={(e) => {
+        if (disabled) return;
         e.stopPropagation();
         onMouseDown?.(e);
       }}
       onClick={(e) => {
+        if (disabled) return;
         e.stopPropagation();
         onClick?.();
       }}

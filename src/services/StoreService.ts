@@ -170,7 +170,20 @@ export const StoreServiceLive = Layer.effect(
     const update = (f: (state: AppRuntimeState) => AppRuntimeState) =>
       Effect.sync(() => {
         snapshotCache = null;
-      }).pipe(Effect.flatMap(() => SubscriptionRef.update(state, f)));
+      }).pipe(
+        Effect.flatMap(() =>
+          SubscriptionRef.update(state, (s) => {
+            const next = f(s);
+            if (next.availableTools.length === 0 && next.settings.mode === 'agent') {
+              return {
+                ...next,
+                settings: { ...next.settings, mode: 'chat' as const },
+              };
+            }
+            return next;
+          }),
+        ),
+      );
 
     const getSnapshot = () => {
       if (snapshotCache) return snapshotCache;
