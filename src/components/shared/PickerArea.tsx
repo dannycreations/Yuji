@@ -12,20 +12,23 @@ import type { LucideIcon } from 'lucide-react';
 import type { ChangeEvent, ComponentProps, FC, RefObject } from 'react';
 import type { Model } from '../../app/Schema';
 
+interface ModeItemProps {
+  readonly isOpen: boolean;
+  readonly triggerRef: RefObject<HTMLElement | null>;
+  readonly className?: string;
+  readonly currentMode: 'chat' | 'agent';
+  readonly onSelect: (mode: 'chat' | 'agent') => void;
+  readonly onClose: () => void;
+}
+
 const MODE_LIST = [
   { id: 'chat', icon: MessageSquare, description: 'Standard conversation mode' },
   { id: 'agent', icon: Zap, description: 'Autonomous task execution' },
 ] as const;
 
-export const ModePicker: FC<{
-  readonly isOpen: boolean;
-  readonly triggerRef: RefObject<HTMLElement | null>;
-  readonly currentMode: 'chat' | 'agent';
-  readonly onSelect: (mode: 'chat' | 'agent') => void;
-  readonly onClose: () => void;
-}> = ({ isOpen, triggerRef, currentMode, onSelect, onClose }) => {
+export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, currentMode, onSelect, onClose, className }) => {
   return (
-    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className="model-picker-dropdown">
+    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={className || 'model-picker-dropdown'}>
       <div className="model-picker-list">
         {MODE_LIST.map((mode) => (
           <button
@@ -118,7 +121,7 @@ export const ModelPicker: FC<ModelPickerProps> = ({ isOpen, triggerRef, currentM
         <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search models..." className="input-sm" autoFocus />
       </div>
 
-      <div className="model-picker-list">
+      <div className="model-picker-list h-[320px]">
         {filtered.map((model) => (
           <ModelItem
             key={model.id}

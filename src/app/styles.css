@@ -706,7 +706,7 @@
   }
 
   .model-picker-dropdown {
-    @apply dropdown-menu-base top-full left-0 mt-2 w-[280px] origin-top-left;
+    @apply dropdown-menu-base top-full left-0 mt-2 w-[280px] origin-top-left py-0! border border-separator/50 focus-within:border-line;
   }
 
   .model-picker-header {

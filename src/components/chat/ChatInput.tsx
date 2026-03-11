@@ -50,7 +50,14 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
   const [optimisticModelId, setOptimisticModelId] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(pickerRef, () => setShowModelPicker(false));
+  useClickOutside(pickerRef, (e) => {
+    // If we click inside the portal (Dropdown), don't close
+    const target = e.target as Node;
+    const dropdown = document.querySelector('.model-picker-dropdown');
+    if (dropdown?.contains(target)) return;
+
+    setShowModelPicker(false);
+  });
 
   const currentModelId = useMemo(() => getCurrentModelId(activeThread, settings, availableModels), [settings, availableModels, activeThread]);
 
@@ -128,6 +135,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
               <ModelPicker
                 isOpen={showModelPicker}
                 triggerRef={pickerRef}
+                className="model-picker-dropdown -translate-y-3"
                 currentModel={currentModelId}
                 onSelect={handleModelSelect}
                 onClose={() => setShowModelPicker(false)}
