@@ -8,7 +8,6 @@ import { getBlockVersions, getVisibleMessages } from '../../helpers/ThreadHelper
 import { getGreeting } from '../../helpers/UserHelper';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
-import { Header } from '../Header';
 import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
 
@@ -125,7 +124,6 @@ export const ChatInterface: FC = () => {
 
   return (
     <div className="main-layout">
-      <Header />
       <div
         className={clsx('chat-scroll-area', (!containerHeight || (!isReady && !isEmpty)) && 'opacity-0')}
         ref={scrollAreaRef}

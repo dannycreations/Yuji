@@ -4,19 +4,22 @@ import { Archive, Bot, MoreHorizontal, PanelLeftClose, Pin, Settings, SquarePen,
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
+import { useClickOutside } from '../hooks/useClickOutside';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
 import { getFirstChar } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
 import { ButtonInput, SearchInput } from './shared/InputArea';
+import { ModePicker } from './shared/PickerArea';
 
 import type { FC } from 'react';
-import type { ConfirmOptions } from '../app/Schema';
+import type { ConfirmOptions, GlobalSetting } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const threads = useStore((s) => s.threads);
-  const userName = useStore((s) => s.settings.personalisation.userName);
+  const settings = useStore((s) => s.settings);
+  const userName = settings.personalisation.userName;
   const activeThreadId = useStore((s) => s.activeThreadId);
   const pinnedThreadIds = useStore((s) => s.pinnedThreadIds);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
@@ -28,12 +31,32 @@ export const Sidebar: FC = () => {
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
+  const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
 
   const onCreateThread = useChatAction((c) => c.createThread());
   const onDeleteThreads = useChatAction((c, id: string) => c.deleteThreads(id));
 
   const handleTogglePin = useStoreAction((s, id: string) => s.togglePin(id));
   const handleToggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
+
+  const [showModePicker, setShowModePicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(pickerRef, (e) => {
+    const target = e.target as Node;
+    const dropdowns = document.querySelectorAll('.model-picker-dropdown');
+    for (const dropdown of Array.from(dropdowns)) {
+      if (dropdown.contains(target)) return;
+    }
+
+    setShowModePicker(false);
+  });
+
+  const handleModeSelect = (mode: 'chat' | 'agent') => {
+    updateSetting({ mode });
+    setShowModePicker(false);
+    onCreateThread();
+  };
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [settingsOpenId, setSettingsOpenId] = useState<string | null>(null);
@@ -92,9 +115,20 @@ export const Sidebar: FC = () => {
           </ButtonInput>
         </div>
 
-        <ButtonInput onClick={onCreateThread} className="z-chat-input" title="New Chat">
-          <SquarePen size={20} />
-        </ButtonInput>
+        <div className="relative" ref={pickerRef}>
+          <ButtonInput onClick={() => setShowModePicker(!showModePicker)} className="z-chat-input" title="New Chat">
+            <SquarePen size={20} />
+          </ButtonInput>
+
+          <ModePicker
+            isOpen={showModePicker}
+            triggerRef={pickerRef}
+            className="model-picker-dropdown -translate-y-2 left-auto right-0 origin-top-right"
+            currentMode={settings.mode}
+            onSelect={handleModeSelect}
+            onClose={() => setShowModePicker(false)}
+          />
+        </div>
       </div>
 
       <div className="px-2 mb-2">
