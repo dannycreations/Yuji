@@ -130,43 +130,49 @@ export const StorageServiceLive = Layer.effect(
             const m = messages[i];
             messagesRecord[m.id] = m;
           }
+
           const activeId = thread.activeMessageId;
 
           // Ensure the active path and their siblings are present if a limit was applied
-          if (options?.limit && activeId) {
-            const pathIds: string[] = [];
-            let currentId: string | undefined = activeId;
+          if (!options?.limit || !activeId) {
+            return { ...thread, messages: messagesRecord } as Thread;
+          }
 
-            while (currentId) {
-              pathIds.push(currentId);
-              if (!messagesRecord[currentId]) {
-                const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, [id, currentId!]))) as ThreadMessage | undefined;
-                if (!msg) break;
-                messagesRecord[msg.id] = msg;
-                currentId = msg.parentId;
-              } else {
-                currentId = messagesRecord[currentId].parentId;
-              }
+          const pathIds: string[] = [];
+          let currentId: string | undefined = activeId;
+
+          while (currentId) {
+            pathIds.push(currentId);
+            const existing = messagesRecord[currentId];
+            if (existing) {
+              currentId = existing.parentId;
+              continue;
             }
 
-            if (options.loadSiblings) {
-              // Load siblings of every message in the active path
-              // This ensures version navigation works even in large threads with lazy loading
-              for (const mid of pathIds) {
-                const msg = messagesRecord[mid];
-                if (!msg?.parentId) continue;
+            const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, [id, currentId!]))) as ThreadMessage | undefined;
+            if (!msg) break;
 
-                const siblingsKeys = (yield* Effect.promise(() =>
-                  db.getAllKeysFromIndex(STORES.MESSAGES, 'threadId_parentId', [id, msg.parentId!]),
-                )) as [string, string][];
+            messagesRecord[msg.id] = msg;
+            currentId = msg.parentId;
+          }
 
-                for (const skey of siblingsKeys) {
-                  const sid = skey[1];
-                  if (!messagesRecord[sid]) {
-                    const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, skey))) as ThreadMessage | undefined;
-                    if (smsg) messagesRecord[sid] = smsg;
-                  }
-                }
+          if (options.loadSiblings) {
+            // Load siblings of every message in the active path
+            // This ensures version navigation works even in large threads with lazy loading
+            for (const mid of pathIds) {
+              const msg = messagesRecord[mid];
+              if (!msg?.parentId) continue;
+
+              const siblingsKeys = (yield* Effect.promise(() =>
+                db.getAllKeysFromIndex(STORES.MESSAGES, 'threadId_parentId', [id, msg.parentId!]),
+              )) as [string, string][];
+
+              for (const skey of siblingsKeys) {
+                const sid = skey[1];
+                if (messagesRecord[sid]) continue;
+
+                const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, skey))) as ThreadMessage | undefined;
+                if (smsg) messagesRecord[sid] = smsg;
               }
             }
           }
@@ -235,17 +241,12 @@ export const StorageServiceLive = Layer.effect(
           const source = indexName ? tx.store.index(indexName) : tx.store;
 
           let range: IDBKeyRange | null = null;
-          if (indexValue !== undefined) {
-            if (lastKey !== undefined) {
-              // For compound indexes like [threadId, timestamp]
-              if (direction === 'prev') {
-                range = IDBKeyRange.bound([indexValue, 0], [indexValue, lastKey], false, true);
-              } else {
-                range = IDBKeyRange.bound([indexValue, lastKey], [indexValue, Number.MAX_SAFE_INTEGER], true, false);
-              }
-            } else {
-              range = IDBKeyRange.bound([indexValue, 0], [indexValue, Number.MAX_SAFE_INTEGER]);
-            }
+          if (indexValue !== undefined && lastKey === undefined) {
+            range = IDBKeyRange.bound([indexValue, 0], [indexValue, Number.MAX_SAFE_INTEGER]);
+          } else if (indexValue !== undefined && direction === 'prev') {
+            range = IDBKeyRange.bound([indexValue, 0], [indexValue, lastKey], false, true);
+          } else if (indexValue !== undefined) {
+            range = IDBKeyRange.bound([indexValue, lastKey], [indexValue, Number.MAX_SAFE_INTEGER], true, false);
           } else if (lastKey !== undefined) {
             range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
           }
@@ -315,9 +316,8 @@ export const StorageServiceLive = Layer.effect(
           for (let i = 0, len = messages.length; i < len; i++) {
             const m = messages[i];
             if (m.parentId) {
-              let list = parentToChildren.get(m.parentId);
-              if (!list) {
-                list = [];
+              const list = parentToChildren.get(m.parentId) ?? [];
+              if (!parentToChildren.has(m.parentId)) {
                 parentToChildren.set(m.parentId, list);
               }
               list.push(m.id);

@@ -113,8 +113,7 @@ export const ChatServiceLive = Layer.effect(
 
           // Fast-path for UI-only updates to active thread (common during streaming)
           if (options.uiOnly && isTargetActive && options.skipUpdateTimestamp) {
-            if (s.activeThread === finalThread) return s;
-            return { ...s, activeThread: finalThread };
+            return s.activeThread === finalThread ? s : { ...s, activeThread: finalThread };
           }
 
           const prevMeta = s.threads[threadId];
@@ -126,20 +125,19 @@ export const ChatServiceLive = Layer.effect(
             finalThread.archived !== prevMeta.archived ||
             finalThread.updatedAt !== prevMeta.updatedAt;
 
-          let nextThreads = s.threads;
-          if (isMetadataChanged) {
-            nextThreads = {
-              ...s.threads,
-              [threadId]: {
-                id: finalThread.id,
-                title: finalThread.title,
-                createdAt: finalThread.createdAt,
-                updatedAt: finalThread.updatedAt,
-                activeMessageId: finalThread.activeMessageId,
-                archived: finalThread.archived,
-              } satisfies ThreadMetadata,
-            };
-          }
+          const nextThreads = isMetadataChanged
+            ? {
+                ...s.threads,
+                [threadId]: {
+                  id: finalThread.id,
+                  title: finalThread.title,
+                  createdAt: finalThread.createdAt,
+                  updatedAt: finalThread.updatedAt,
+                  activeMessageId: finalThread.activeMessageId,
+                  archived: finalThread.archived,
+                } satisfies ThreadMetadata,
+              }
+            : s.threads;
 
           if (isTargetActive && s.activeThread === finalThread && s.threads === nextThreads) return s;
 
@@ -151,26 +149,26 @@ export const ChatServiceLive = Layer.effect(
           };
         });
 
-        if (!options.uiOnly) {
-          if (options.metadataOnly) {
-            yield* storage.patchThread(threadId, {
-              title: finalThread.title,
-              updatedAt: finalThread.updatedAt,
-              activeMessageId: finalThread.activeMessageId,
-              archived: finalThread.archived,
-            });
-          } else {
-            if (!options.skipUpdateTimestamp) {
-              yield* storage.saveThread(finalThread);
-            } else {
-              yield* storage.patchThread(threadId, {
-                title: finalThread.title,
-                activeMessageId: finalThread.activeMessageId,
-                archived: finalThread.archived,
-              });
-            }
-          }
+        if (options.uiOnly) return;
+
+        if (options.metadataOnly) {
+          return yield* storage.patchThread(threadId, {
+            title: finalThread.title,
+            updatedAt: finalThread.updatedAt,
+            activeMessageId: finalThread.activeMessageId,
+            archived: finalThread.archived,
+          });
         }
+
+        if (!options.skipUpdateTimestamp) {
+          return yield* storage.saveThread(finalThread);
+        }
+
+        yield* storage.patchThread(threadId, {
+          title: finalThread.title,
+          activeMessageId: finalThread.activeMessageId,
+          archived: finalThread.archived,
+        });
       });
 
     const updateActiveThread = (f: (thread: Thread, now: number) => Thread, skipUpdateTimestamp = false) =>
@@ -182,16 +180,16 @@ export const ChatServiceLive = Layer.effect(
 
     const stop = (threadId?: string) =>
       Effect.gen(function* () {
-        if (threadId) {
-          const fiber = fibers.get(threadId);
-          if (fiber) {
-            fibers.delete(threadId);
-            yield* Fiber.interrupt(fiber);
-          }
-        } else {
+        if (!threadId) {
           const allFibers = Array.from(fibers.values());
           fibers.clear();
-          yield* Effect.all(allFibers.map(Fiber.interrupt), { concurrency: 'unbounded', discard: true });
+          return yield* Effect.all(allFibers.map(Fiber.interrupt), { concurrency: 'unbounded', discard: true });
+        }
+
+        const fiber = fibers.get(threadId);
+        if (fiber) {
+          fibers.delete(threadId);
+          yield* Fiber.interrupt(fiber);
         }
       });
 
@@ -270,17 +268,18 @@ export const ChatServiceLive = Layer.effect(
             Effect.gen(function* () {
               if (token.startsWith('TOOL_CALLS:')) {
                 const delta = JSON.parse(token.slice(11));
-                delta.forEach((d: any) => {
-                  if (d.index !== undefined) {
-                    const idx = d.index;
-                    if (!toolCallsAccumulator[idx]) {
-                      toolCallsAccumulator[idx] = { id: d.id, type: 'function', function: { name: '', arguments: '' } };
-                    }
-                    if (d.id) toolCallsAccumulator[idx].id = d.id;
-                    if (d.function?.name) toolCallsAccumulator[idx].function.name += d.function.name;
-                    if (d.function?.arguments) toolCallsAccumulator[idx].function.arguments += d.function.arguments;
+                for (const d of delta) {
+                  if (d.index === undefined) continue;
+
+                  const idx = d.index;
+                  if (!toolCallsAccumulator[idx]) {
+                    toolCallsAccumulator[idx] = { id: d.id, type: 'function', function: { name: '', arguments: '' } };
                   }
-                });
+
+                  if (d.id) toolCallsAccumulator[idx].id = d.id;
+                  if (d.function?.name) toolCallsAccumulator[idx].function.name += d.function.name;
+                  if (d.function?.arguments) toolCallsAccumulator[idx].function.arguments += d.function.arguments;
+                }
                 return;
               }
               fullContent += token;
@@ -313,49 +312,49 @@ export const ChatServiceLive = Layer.effect(
           // Update timestamp once when stream is finished
           yield* chat.updateMessage(threadId, id, fullContent, { metadataOnly: true });
 
-          if (toolCallsAccumulator.length > 0) {
-            const cleanToolCalls = toolCallsAccumulator.filter(Boolean);
-            yield* chat.updateMessage(threadId, id, fullContent, {
-              skipUpdateTimestamp: true,
-              uiOnly: false,
-            });
+          if (toolCallsAccumulator.length === 0) return;
 
-            // Update with tool calls
-            yield* updateThread(threadId, (t) => {
-              const msg = t.messages[id];
-              if (!msg) return t;
-              return {
-                ...t,
-                messages: {
-                  ...t.messages,
-                  [id]: { ...msg, toolCalls: cleanToolCalls },
-                },
-              };
-            });
+          const cleanToolCalls = toolCallsAccumulator.filter(Boolean);
+          yield* chat.updateMessage(threadId, id, fullContent, {
+            skipUpdateTimestamp: true,
+            uiOnly: false,
+          });
 
-            // Execute tools and generate next message
-            for (const call of cleanToolCalls) {
-              const toolResult = yield* tools.execute(call.function.name, JSON.parse(call.function.arguments), settings);
+          // Update with tool calls
+          yield* updateThread(threadId, (t) => {
+            const msg = t.messages[id];
+            if (!msg) return t;
+            return {
+              ...t,
+              messages: {
+                ...t.messages,
+                [id]: { ...msg, toolCalls: cleanToolCalls },
+              },
+            };
+          });
 
-              const toolMessage: ThreadMessage = {
-                id: randomId(),
-                role: 'assistant', // Use assistant role but marked as tool response via toolCallId
-                content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
-                timestamp: Date.now(),
-                parentId: id,
-                toolCallId: call.id,
-              } as any;
+          // Execute tools and generate next message
+          for (const call of cleanToolCalls) {
+            const toolResult = yield* tools.execute(call.function.name, JSON.parse(call.function.arguments), settings);
 
-              yield* chat.addMessage(threadId, toolMessage);
-            }
+            const toolMessage: ThreadMessage = {
+              id: randomId(),
+              role: 'assistant', // Use assistant role but marked as tool response via toolCallId
+              content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
+              timestamp: Date.now(),
+              parentId: id,
+              toolCallId: call.id,
+            };
 
-            // After all tools executed, trigger next generation
-            const updatedThread = yield* storage.getThread(threadId);
-            if (updatedThread) {
-              const nextHistory = getMessagePath(updatedThread, updatedThread.activeMessageId!);
-              yield* chat.generate(threadId, nextHistory, options);
-            }
+            yield* chat.addMessage(threadId, toolMessage);
           }
+
+          // After all tools executed, trigger next generation
+          const updatedThread = yield* storage.getThread(threadId);
+          if (!updatedThread) return;
+
+          const nextHistory = getMessagePath(updatedThread, updatedThread.activeMessageId!);
+          yield* chat.generate(threadId, nextHistory, options);
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {
@@ -535,15 +534,14 @@ export const ChatServiceLive = Layer.effect(
           let messagesToSave: ThreadMessage[] = [message];
           yield* updateThread(threadId, (thread) => {
             const messages = { ...thread.messages };
-            let parent: ThreadMessage | undefined;
 
-            if (message.parentId && messages[message.parentId]) {
-              const p = messages[message.parentId];
-              parent = {
+            const p = message.parentId ? messages[message.parentId] : undefined;
+            if (p) {
+              const parent: ThreadMessage = {
                 ...p,
                 childrenIds: [...(p.childrenIds || []), message.id],
               };
-              messages[message.parentId] = parent;
+              messages[message.parentId!] = parent;
               messagesToSave.push(parent);
             }
 
@@ -617,13 +615,14 @@ export const ChatServiceLive = Layer.effect(
               const messages = { ...thread.messages };
               for (const id of idsToDelete) delete messages[id];
 
-              if (messageToDelete.parentId && messages[messageToDelete.parentId]) {
-                const p = messages[messageToDelete.parentId];
+              const parentId = messageToDelete.parentId;
+              const p = parentId ? messages[parentId] : undefined;
+              if (p) {
                 updatedParent = {
                   ...p,
                   childrenIds: p.childrenIds?.filter((id) => id !== messageId),
                 };
-                messages[messageToDelete.parentId] = updatedParent;
+                messages[parentId!] = updatedParent;
               }
 
               const activeMessageId =
@@ -636,11 +635,11 @@ export const ChatServiceLive = Layer.effect(
             { metadataOnly: false },
           );
 
-          if (idsToDelete.length > 0) {
-            yield* storage.deleteMessages(threadId, idsToDelete);
-            if (updatedParent) {
-              yield* storage.saveMessages(threadId, [updatedParent]);
-            }
+          if (idsToDelete.length === 0) return;
+
+          yield* storage.deleteMessages(threadId, idsToDelete);
+          if (updatedParent) {
+            yield* storage.saveMessages(threadId, [updatedParent]);
           }
         }),
 

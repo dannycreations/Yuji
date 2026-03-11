@@ -104,17 +104,15 @@ export const ChatInterface: FC = () => {
   useLayoutEffect(() => {
     if (!containerHeight || isTransitioning || isEmpty) return;
 
-    if (!isReady) {
-      if (visibleMessages.length > 0) {
-        virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
-      }
+    if (isReady) return;
 
-      // Mark as ready after a short delay to allow measurements to stabilize
-      const timer = setTimeout(() => {
-        setIsReady(true);
-      }, 50);
-      return () => clearTimeout(timer);
+    if (visibleMessages.length > 0) {
+      virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
     }
+
+    // Mark as ready after a short delay to allow measurements to stabilize
+    const timer = setTimeout(() => setIsReady(true), 50);
+    return () => clearTimeout(timer);
   }, [containerHeight, isReady, isTransitioning, isEmpty, visibleMessages.length, virtualizer]);
 
   // Keep scroll at bottom when content changes or during streaming

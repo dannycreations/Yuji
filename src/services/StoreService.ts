@@ -43,11 +43,9 @@ const createNotification = (
 
   const next: AppRuntimeState['notifications'][number][] = [{ id: randomId(8), type, message, timestamp: Date.now() }];
 
-  for (let i = 0, len = existing.length; i < len; i++) {
-    const n = existing[i];
-    if (n.message !== message || n.type !== type) {
-      next.push(n);
-    }
+  for (const n of existing) {
+    if (n.message === message && n.type === type) continue;
+    next.push(n);
   }
 
   if (next.length > 5) return next.slice(0, 5);
@@ -102,26 +100,26 @@ export const StoreServiceLive = Layer.effect(
       }
 
       const { metadata, threadHeaders } = result.right;
-
-      if (metadata) {
-        const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
-        const { activeThreadId, settings } = metadata;
-        const activeThread = activeThreadId ? yield* storage.getThread(activeThreadId).pipe(Effect.catchAll(() => Effect.succeed(null))) : null;
-
-        return {
-          ...INITIAL_STATE,
-          ...metadata,
-          settings: {
-            ...DEFAULT_SETTINGS,
-            ...settings,
-            model: activeThread?.general.model || settings.model,
-          },
-          activeThread,
-          threads,
-          isHydrated: true,
-        } as AppRuntimeState;
+      if (!metadata) {
+        return { ...INITIAL_STATE, isHydrated: true } as AppRuntimeState;
       }
-      return { ...INITIAL_STATE, isHydrated: true };
+
+      const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
+      const { activeThreadId, settings } = metadata;
+      const activeThread = activeThreadId ? yield* storage.getThread(activeThreadId).pipe(Effect.catchAll(() => Effect.succeed(null))) : null;
+
+      return {
+        ...INITIAL_STATE,
+        ...metadata,
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...settings,
+          model: activeThread?.general.model || settings.model,
+        },
+        activeThread,
+        threads,
+        isHydrated: true,
+      } as AppRuntimeState;
     });
 
     const initialState = yield* loadState;
@@ -189,10 +187,9 @@ export const StoreServiceLive = Layer.effect(
         update((s) => {
           let changed = false;
           for (const key in updates) {
-            if (s[key as keyof typeof s] !== updates[key as keyof typeof updates]) {
-              changed = true;
-              break;
-            }
+            if (s[key as keyof typeof s] === updates[key as keyof typeof updates]) continue;
+            changed = true;
+            break;
           }
           return changed ? { ...s, ...updates } : s;
         }),
@@ -337,11 +334,7 @@ export const StoreServiceLive = Layer.effect(
           const threadList = Object.values(s.threads);
           if (threadList.length === 0) return;
 
-          let lastKey = Infinity;
-          for (let i = 0, len = threadList.length; i < len; i++) {
-            const t = threadList[i];
-            if (t.updatedAt < lastKey) lastKey = t.updatedAt;
-          }
+          const lastKey = threadList.reduce((acc, t) => (t.updatedAt < acc ? t.updatedAt : acc), Infinity);
 
           const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
           if (more.length === 0) return;

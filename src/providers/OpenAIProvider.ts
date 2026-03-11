@@ -4,12 +4,12 @@ import { Effect, Layer, Option, Schema, Stream } from 'effect';
 import { LLMProviderError } from '../app/Error';
 import { LLMProvider } from './LLMProvider';
 
-import type { Attachment, ThreadMessage } from '../app/Schema';
+import type { Attachment, ThreadMessage, ToolCall } from '../app/Schema';
 
 interface OpenAIMessage {
   readonly role: string;
   readonly content: string | OpenAIContent[] | null;
-  readonly tool_calls?: any[];
+  readonly tool_calls?: ReadonlyArray<ToolCall>;
   readonly tool_call_id?: string;
 }
 
@@ -33,7 +33,7 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
         role: 'tool',
         content: m.content,
         tool_call_id: m.toolCallId,
-      } as any);
+      });
       continue;
     }
 
@@ -42,7 +42,7 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
         role: 'assistant',
         content: m.content || null,
         tool_calls: m.toolCalls,
-      } as any);
+      });
       continue;
     }
 

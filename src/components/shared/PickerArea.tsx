@@ -10,7 +10,6 @@ import { ButtonInput, SearchInput } from './InputArea';
 
 import type { LucideIcon } from 'lucide-react';
 import type { ChangeEvent, ComponentProps, FC, ReactNode, RefObject } from 'react';
-import type { Model } from '../../app/Schema';
 
 export interface PickerItemProps {
   readonly title: ReactNode;
@@ -99,44 +98,6 @@ export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, currentMode,
   );
 };
 
-interface ModelItemProps {
-  readonly model: Model;
-  readonly availableModels: readonly Model[];
-  readonly isActive?: boolean;
-  readonly isEnabled?: boolean;
-  readonly isDefault?: boolean;
-  readonly showDescription?: boolean;
-  readonly onClick?: () => void;
-  readonly className?: string;
-  readonly rightContent?: React.ReactNode;
-}
-
-export const ModelItem: FC<ModelItemProps> = ({
-  model,
-  availableModels,
-  isActive,
-  isEnabled = true,
-  isDefault,
-  onClick,
-  className,
-  rightContent,
-}) => {
-  return (
-    <PickerItem
-      title={getModelName(availableModels, model.id)}
-      description={model.id}
-      icon={Cpu}
-      iconColor={model.color}
-      isActive={isActive}
-      isEnabled={isEnabled}
-      onClick={onClick}
-      className={className}
-      rightContent={rightContent}
-      badges={isDefault && isEnabled && <div className="badge-primary">Default</div>}
-    />
-  );
-};
-
 interface ModelPickerProps {
   readonly isOpen: boolean;
   readonly triggerRef: RefObject<HTMLElement | null>;
@@ -163,12 +124,13 @@ export const ModelPicker: FC<ModelPickerProps> = ({ isOpen, triggerRef, currentM
 
       <div className="model-picker-list h-[320px]">
         {filtered.map((model) => (
-          <ModelItem
+          <PickerItem
             key={model.id}
-            model={model}
-            availableModels={availableModels}
+            title={getModelName(availableModels, model.id)}
+            description={model.id}
+            icon={Cpu}
+            iconColor={model.color}
             isActive={currentModel === model.id}
-            showDescription={false}
             onClick={() => {
               onSelect(model.id);
               onClose();

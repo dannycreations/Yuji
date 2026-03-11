@@ -21,7 +21,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { YujiRuntime } from '../../app/Runtime';
-import { getFilteredModels, getModelId, getModelName } from '../../helpers/ModelHelper';
+import { getFilteredModels, getModelName } from '../../helpers/ModelHelper';
 import { getVisibleMessages, sortThreadsByDate } from '../../helpers/ThreadHelper';
 import { useChatAction, useStoreAction } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
@@ -265,8 +265,6 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
     onChange({ disabledModels: newDisabledModels });
   };
 
-  const effectiveModelId = getModelId(settings, availableModels);
-
   return (
     <DiscoverySection
       items={availableModels}
@@ -289,7 +287,6 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
               iconColor={model.color}
               isEnabled={isEnabled}
               className="flex-1 p-1 cursor-default border-none! bg-transparent!"
-              badges={effectiveModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
               rightContent={<SwitchInput checked={isEnabled} onChange={() => toggleModel(model.id)} />}
             />
           </div>
@@ -351,7 +348,6 @@ export const ToolsSection: FC<SettingSectionProps & { availableTools: readonly T
               icon={Wrench}
               isEnabled={isEnabled}
               className="flex-1 p-1 cursor-default border-none! bg-transparent!"
-              badges={isEnabled && <span className="badge-success text-[10px] py-0 px-1">Active</span>}
               rightContent={<SwitchInput checked={isEnabled} onChange={() => toggleTool(tool.function.name)} />}
             />
           </div>
@@ -394,10 +390,12 @@ export const SettingTable = <T,>({
   // Reset page if it's out of bounds after items change
   const totalPages = Math.ceil(items.length / size);
   useEffect(() => {
-    if (currentPage >= totalPages && totalPages > 0) {
+    if (totalPages === 0) {
+      return setCurrentPage(0);
+    }
+
+    if (currentPage >= totalPages) {
       setCurrentPage(totalPages - 1);
-    } else if (totalPages === 0) {
-      setCurrentPage(0);
     }
   }, [items.length, totalPages, currentPage]);
 

@@ -154,21 +154,21 @@ export const Sidebar: FC = () => {
                   </div>
 
                   <div className="sidebar-thread-indicator-wrapper">
-                    {backgroundThreadIds.includes(thread.id) ? (
+                    {backgroundThreadIds.includes(thread.id) && (
                       <div className={clsx('flex items-center transition-opacity', menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0')}>
                         <div className="sidebar-activity-indicator" />
                       </div>
-                    ) : (
-                      pinnedThreadIds.includes(thread.id) && (
-                        <div
-                          className={clsx(
-                            'flex items-center text-text-tertiary transition-opacity',
-                            menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0',
-                          )}
-                        >
-                          <Pin size={16} className="rotate-45" />
-                        </div>
-                      )
+                    )}
+
+                    {!backgroundThreadIds.includes(thread.id) && pinnedThreadIds.includes(thread.id) && (
+                      <div
+                        className={clsx(
+                          'flex items-center text-text-tertiary transition-opacity',
+                          menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0',
+                        )}
+                      >
+                        <Pin size={16} className="rotate-45" />
+                      </div>
                     )}
                     <ButtonInput
                       ref={menuOpenId === thread.id ? menuTriggerRef : null}

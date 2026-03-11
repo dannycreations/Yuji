@@ -97,15 +97,21 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       attachments.length !== currentAttachments.length ||
       attachments.some((a, i) => a.id !== currentAttachments[i]?.id || a.url !== currentAttachments[i]?.url);
 
-    if (contentChanged || attachmentsChanged) {
-      onEditMessage(threadId, message.id, editContent, {
-        attachments: [...attachments],
-        generateNext: !saveAfterEditing,
-        instruction: isSearchEnabled ? SEARCH_INSTRUCTION : undefined,
-      });
-    } else if (!saveAfterEditing) {
-      onRegenerate(threadId, message.id, isSearchEnabled ? { instruction: SEARCH_INSTRUCTION } : undefined);
+    if (!contentChanged && !attachmentsChanged) {
+      if (!saveAfterEditing) {
+        onRegenerate(threadId, message.id, isSearchEnabled ? { instruction: SEARCH_INSTRUCTION } : undefined);
+      }
+
+      setIsEditing(false);
+      setIsSearchEnabled(false);
+      return;
     }
+
+    onEditMessage(threadId, message.id, editContent, {
+      attachments: [...attachments],
+      generateNext: !saveAfterEditing,
+      instruction: isSearchEnabled ? SEARCH_INSTRUCTION : undefined,
+    });
 
     setIsEditing(false);
     setIsSearchEnabled(false);
