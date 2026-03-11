@@ -2,35 +2,42 @@ import { useEffect } from 'react';
 
 import type { RefObject } from 'react';
 
-/**
- * Hook that triggers a handler when a click or touch event occurs outside of the passed ref.
- */
-export const useClickOutside = <T extends HTMLElement = HTMLElement>(ref: RefObject<T | null>, handler: (event: MouseEvent | TouchEvent) => void) => {
+export const useClickOutside = <T extends HTMLElement = HTMLElement>(
+  ref: RefObject<T | null>,
+  handler: (event: MouseEvent | TouchEvent) => void,
+  ignoreRef?: RefObject<HTMLElement | null>,
+) => {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       const el = ref?.current;
       const target = event?.target as Node | null;
+
       if (!el || el.contains(target)) return;
+      if (ignoreRef?.current?.contains(target)) return;
 
-      // All modals have a .modal-overlay and a .modal-container child.
-      // If the click is inside a modal-overlay but outside OUR container,
-      // it might be a click on a different modal (like a ConfirmModal on top).
-      if (!(target instanceof Element)) return;
+      if (!(target instanceof Element)) {
+        handler(event);
+        return;
+      }
 
-      const targetContainer = target.closest('.modal-container');
-      const isStackedModal =
-        targetContainer && targetContainer !== el && el.compareDocumentPosition(targetContainer) & Node.DOCUMENT_POSITION_FOLLOWING;
-
-      if (isStackedModal) return;
+      // Handle clicks in portaled elements (modals, dropdowns, etc.)
+      // If the click is inside a portal that follows our element in the DOM (like a newer modal or dropdown),
+      // we ignore it to prevent closing underlying elements.
+      const targetPortal = target.closest('.modal-container, .dropdown-menu');
+      if (targetPortal && targetPortal !== el && el.compareDocumentPosition(targetPortal) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return;
+      }
 
       const targetOverlay = target.closest('.modal-overlay');
-      if (!targetOverlay) return;
-
       const myOverlay = el.closest('.modal-overlay');
-      const isStackedOverlay =
-        myOverlay && targetOverlay !== myOverlay && myOverlay.compareDocumentPosition(targetOverlay) & Node.DOCUMENT_POSITION_FOLLOWING;
-
-      if (isStackedOverlay) return;
+      if (
+        targetOverlay &&
+        myOverlay &&
+        targetOverlay !== myOverlay &&
+        myOverlay.compareDocumentPosition(targetOverlay) & Node.DOCUMENT_POSITION_FOLLOWING
+      ) {
+        return;
+      }
 
       handler(event);
     };

@@ -111,6 +111,10 @@
       'calt' 1;
   }
 
+  *:focus {
+    outline: none !important;
+  }
+
   /* Scrollbars */
   ::-webkit-scrollbar {
     @apply w-2.5 h-2.5;
@@ -243,7 +247,7 @@
   }
 
   .dropdown-item {
-    @apply flex w-[calc(100%-8px)] items-center gap-3 p-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
+    @apply flex w-[calc(100%-8px)] items-center gap-3 p-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none mx-1;
     &:not(:last-child) {
       @apply mb-0.5;
     }
@@ -256,7 +260,7 @@
   }
 
   .list-item-interactive {
-    @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-separator hover:text-text-primary border-none outline-none;
+    @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-separator hover:text-text-primary border-none;
     & .list-item-icon {
       @apply text-text-tertiary transition-colors;
     }
@@ -293,14 +297,14 @@
 
   /* Inputs & Cards */
   .input-base {
-    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl p-3 text-sm text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-colors placeholder:text-text-tertiary;
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl p-3 text-sm text-text-primary focus:border-line/50 focus:bg-surface transition-colors placeholder:text-text-tertiary;
     &.input-sm {
       @apply px-3 py-2 text-xs;
     }
   }
 
   .select-base {
-    @apply w-full appearance-none bg-surface border border-transparent rounded-xl p-3 text-sm text-text-primary outline-none focus:border-line transition-all;
+    @apply w-full appearance-none bg-surface border border-transparent rounded-xl p-3 text-sm text-text-primary focus:border-line transition-all;
   }
 
   .input-wrapper {
@@ -322,12 +326,12 @@
       @apply right-3;
     }
     &.clickable {
-      @apply pointer-events-auto cursor-pointer hover:text-text-primary rounded-md outline-none;
+      @apply pointer-events-auto cursor-pointer hover:text-text-primary rounded-md;
     }
   }
 
   .input-switch {
-    @apply w-10 h-6 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-primary/50;
+    @apply w-10 h-6 rounded-full transition-colors relative focus:ring-2 focus:ring-primary/50;
     &.checked {
       @apply bg-primary;
     }
@@ -358,7 +362,7 @@
   }
 
   .input-tag {
-    @apply flex-1 bg-transparent border-none outline-none text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px];
+    @apply flex-1 bg-transparent border-none text-sm text-text-primary placeholder:text-text-tertiary min-w-[120px];
   }
 
   .tag-item {
@@ -573,7 +577,7 @@
   }
 
   .regenerate-input {
-    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl px-3 py-2 text-xs text-text-primary outline-none focus:border-line/50 focus:bg-surface transition-colors placeholder:text-text-tertiary pr-9;
+    @apply w-full bg-surface-hover/40 border border-separator/30 rounded-xl px-3 py-2 text-xs text-text-primary focus:border-line/50 focus:bg-surface transition-colors placeholder:text-text-tertiary pr-9;
   }
 
   .regenerate-submit-btn {
@@ -591,7 +595,7 @@
   }
 
   .chat-input-textarea {
-    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none outline-none ring-0!;
+    @apply bg-transparent! border-none! focus:border-none! p-3 text-sm font-sans shadow-none ring-0!;
     &::placeholder {
       @apply font-medium;
     }
@@ -688,7 +692,7 @@
   }
 
   .code-block-header-btn {
-    @apply p-1 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors outline-none;
+    @apply p-1 rounded-md text-code-text-muted hover:text-code-text-active hover:bg-separator transition-colors;
   }
 
   .code-block-header-btn-copy {
@@ -729,7 +733,7 @@
   }
 
   .model-picker-item {
-    @apply w-full flex items-start gap-3 p-2 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover outline-none;
+    @apply w-full flex items-start gap-3 p-2 rounded-xl transition-all text-left border border-transparent hover:bg-surface-hover;
     & .model-picker-item-title {
       @apply text-sm font-medium truncate text-text-secondary transition-colors;
     }

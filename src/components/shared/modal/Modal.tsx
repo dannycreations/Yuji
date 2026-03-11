@@ -48,8 +48,8 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, className, co
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={clsx('modal-overlay', className)} onClick={(e) => e.stopPropagation()}>
-      <div ref={containerRef} className={clsx('modal-container', containerClassName)} onClick={(e) => e.stopPropagation()}>
+    <div className={clsx('modal-overlay', className)}>
+      <div ref={containerRef} className={clsx('modal-container', containerClassName)}>
         {children}
       </div>
     </div>,

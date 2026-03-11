@@ -66,14 +66,15 @@ interface ModeItemProps {
   readonly className?: string;
   readonly onSelect: (mode: 'chat' | 'agent') => void;
   readonly onClose: () => void;
+  readonly ignoreRef?: RefObject<HTMLElement | null>;
 }
 
-export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, onSelect, onClose, className }) => {
+export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, onSelect, onClose, className, ignoreRef }) => {
   const availableTools = useStore((s) => s.availableTools);
   const hasTools = availableTools.length > 0;
 
   return (
-    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={clsx('w-[200px]', className)}>
+    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={clsx('w-[200px]', className)} ignoreRef={ignoreRef}>
       {MODE_LIST.map((mode) => {
         const isDisabled = mode.id === 'agent' && !hasTools;
         return (
@@ -103,9 +104,10 @@ interface ModelPickerProps {
   readonly onSelect: (modelId: string) => void;
   readonly onClose: () => void;
   readonly className?: string;
+  readonly ignoreRef?: RefObject<HTMLElement | null>;
 }
 
-export const ModelPicker: FC<ModelPickerProps> = ({ isOpen, triggerRef, currentModel, onSelect, onClose, className }) => {
+export const ModelPicker: FC<ModelPickerProps> = ({ isOpen, triggerRef, currentModel, onSelect, onClose, className, ignoreRef }) => {
   const availableModels = useStore((s) => s.availableModels);
   const settings = useStore((s) => s.settings);
   const disabledModels = settings.disabledModels;
@@ -115,7 +117,7 @@ export const ModelPicker: FC<ModelPickerProps> = ({ isOpen, triggerRef, currentM
   const filtered = useMemo(() => getFilteredModels(availableModels, disabledModels, search), [availableModels, disabledModels, search]);
 
   return (
-    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={className || 'model-picker-dropdown'}>
+    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={className || 'model-picker-dropdown'} ignoreRef={ignoreRef}>
       <div className="model-picker-header">
         <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search models..." className="input-sm" autoFocus />
       </div>

@@ -42,15 +42,7 @@ export const Sidebar: FC = () => {
   const [showModePicker, setShowModePicker] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(pickerRef, (e) => {
-    const target = e.target as Node;
-    const dropdowns = document.querySelectorAll('.model-picker-dropdown');
-    for (const dropdown of Array.from(dropdowns)) {
-      if (dropdown.contains(target)) return;
-    }
-
-    setShowModePicker(false);
-  });
+  useClickOutside(pickerRef, () => setShowModePicker(false));
 
   const handleModeSelect = (mode: 'chat' | 'agent') => {
     setShowModePicker(false);
@@ -122,6 +114,7 @@ export const Sidebar: FC = () => {
           <ModePicker
             isOpen={showModePicker}
             triggerRef={pickerRef}
+            ignoreRef={pickerRef}
             className="left-auto right-0 origin-top-right"
             onSelect={handleModeSelect}
             onClose={() => setShowModePicker(false)}

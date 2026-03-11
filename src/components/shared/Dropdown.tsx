@@ -61,13 +61,14 @@ interface DropdownProps {
   readonly triggerRef: RefObject<HTMLElement | null>;
   readonly children: ReactNode;
   readonly className?: string;
+  readonly ignoreRef?: RefObject<HTMLElement | null>;
 }
 
-export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRef, children, className }) => {
+export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRef, children, className, ignoreRef }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
-  useClickOutside(ref, onClose);
+  useClickOutside(ref, onClose, ignoreRef);
 
   useEffect(() => {
     if (!isOpen) return;
