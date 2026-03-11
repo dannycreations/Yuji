@@ -239,11 +239,14 @@
   }
 
   .dropdown-menu {
-    @apply dropdown-menu-base w-44 py-1;
+    @apply dropdown-menu-base w-44 py-1 gap-0.5;
   }
 
   .dropdown-item {
     @apply flex w-[calc(100%-8px)] items-center gap-3 p-2 rounded-lg text-sm transition-colors cursor-pointer text-text-secondary hover:bg-surface-hover hover:text-text-primary border-none outline-none mx-1;
+    &:not(:last-child) {
+      @apply mb-0.5;
+    }
     &.active {
       @apply bg-highlight text-text-primary font-medium;
     }

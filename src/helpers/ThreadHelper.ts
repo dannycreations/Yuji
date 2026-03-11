@@ -10,6 +10,7 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
   return {
     id: randomId(),
     title: 'New Chat',
+    mode: settings.mode,
     messages: {},
     createdAt: now,
     updatedAt: now,

@@ -59,6 +59,8 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
 
   const handleGeneral = (updates: Partial<Thread['general']>) => patchThread((s) => ({ ...s, general: { ...s.general, ...updates } }));
 
+  const handleModeChange = (mode: 'chat' | 'agent') => patchThread((s) => ({ ...s, mode }), true);
+
   const renderContent = () => {
     switch (activeTab) {
       case 'general':
@@ -71,6 +73,10 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
                 placeholder="Enter chat title..."
               />
             </SettingField>
+
+            <SettingItem label="Agentic Mode" description="Enable autonomous task execution with tools." className="panel-section-group pt-2">
+              <SwitchInput checked={thread.mode === 'agent'} onChange={(checked) => handleModeChange(checked ? 'agent' : 'chat')} />
+            </SettingItem>
 
             <SettingItem label="Override Instruction" description="Ignore global system prompt." className="panel-section-group pt-2">
               <SwitchInput checked={!!thread.general.overrideInstruction} onChange={(checked) => handleGeneral({ overrideInstruction: checked })} />

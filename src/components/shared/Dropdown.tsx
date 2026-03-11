@@ -11,23 +11,41 @@ export interface DropdownItemProps {
   readonly icon?: LucideIcon;
   readonly iconClassName?: string;
   readonly label: string;
-  readonly onClick: () => void;
+  readonly description?: string;
+  readonly onClick?: () => void;
+  readonly onMouseDown?: (e: React.MouseEvent) => void;
   readonly variant?: 'default' | 'danger';
   readonly className?: string;
 }
 
-export const DropdownItem: FC<DropdownItemProps> = ({ icon: IconComponent, iconClassName, label, onClick, variant = 'default', className }) => {
+export const DropdownItem: FC<DropdownItemProps> = ({
+  icon: IconComponent,
+  iconClassName,
+  label,
+  description,
+  onClick,
+  onMouseDown,
+  variant = 'default',
+  className,
+}) => {
   return (
     <button
       type="button"
       className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', className)}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        onMouseDown?.(e);
+      }}
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        onClick?.();
       }}
     >
       {IconComponent && <IconComponent size={16} className={clsx(variant !== 'danger' && 'text-text-tertiary', iconClassName)} />}
-      <span className="flex-1 text-left">{label}</span>
+      <div className="flex-1 min-w-0 text-left">
+        <div className="font-medium truncate">{label}</div>
+        {description && <div className="text-[11px] text-text-tertiary truncate leading-tight mt-0.5">{description}</div>}
+      </div>
     </button>
   );
 };

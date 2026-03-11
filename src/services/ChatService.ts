@@ -12,7 +12,7 @@ import { ToolService } from './ToolService';
 import type { ToolCall } from '../app/Schema';
 
 export interface ChatService {
-  readonly createThread: () => Effect.Effect<ThreadMetadata, Error>;
+  readonly createThread: (mode?: 'chat' | 'agent') => Effect.Effect<ThreadMetadata, Error>;
   readonly deleteThreads: (ids: string | Iterable<string>) => Effect.Effect<void, Error>;
   readonly importThreads: (threads: Record<string, Thread>) => Effect.Effect<void, Error>;
   readonly addMessage: (threadId: string, message: ThreadMessage) => Effect.Effect<void, ThreadNotFoundError | Error>;
@@ -133,6 +133,7 @@ export const ChatServiceLive = Layer.effect(
                 [threadId]: {
                   id: finalThread.id,
                   title: finalThread.title,
+                  mode: finalThread.mode,
                   createdAt: finalThread.createdAt,
                   updatedAt: finalThread.updatedAt,
                   activeMessageId: finalThread.activeMessageId,
@@ -156,6 +157,7 @@ export const ChatServiceLive = Layer.effect(
         if (options.metadataOnly) {
           return yield* storage.patchThread(threadId, {
             title: finalThread.title,
+            mode: finalThread.mode,
             updatedAt: finalThread.updatedAt,
             activeMessageId: finalThread.activeMessageId,
             archived: finalThread.archived,
@@ -168,6 +170,7 @@ export const ChatServiceLive = Layer.effect(
 
         yield* storage.patchThread(threadId, {
           title: finalThread.title,
+          mode: finalThread.mode,
           activeMessageId: finalThread.activeMessageId,
           archived: finalThread.archived,
         });
@@ -238,9 +241,8 @@ export const ChatServiceLive = Layer.effect(
             }
 
             const model = thread.general.model || settings.model;
-
             const activeTools =
-              settings.mode === 'agent'
+              threadHeader.mode === 'agent'
                 ? state.availableTools.filter((t) => t.function && !settings.disabledTools.includes(t.function.name))
                 : undefined;
 
@@ -501,10 +503,10 @@ export const ChatServiceLive = Layer.effect(
           Effect.orDie,
         ),
 
-      createThread: () =>
+      createThread: (mode) =>
         Effect.gen(function* () {
           const { settings, availableModels } = yield* SubscriptionRef.get(store.state);
-          const newThread = createInitialThread(settings, availableModels);
+          const newThread = createInitialThread({ ...settings, mode: mode ?? settings.mode }, availableModels);
           const metadata = yield* Schema.decode(ThreadMetadata)(newThread).pipe(Effect.orDie);
 
           yield* store.update((state) => ({

@@ -97,6 +97,7 @@ export type ThreadSetting = Schema.Schema.Type<typeof ThreadSetting>;
 export const ThreadMetadata = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
+  mode: Schema.Literal('chat', 'agent'),
   activeMessageId: Schema.optional(Schema.String),
   archived: Schema.optional(Schema.Boolean),
   createdAt: Schema.Number,

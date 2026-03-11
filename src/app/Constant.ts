@@ -1,3 +1,5 @@
+import { MessageSquare, Zap } from 'lucide-react';
+
 import type { GlobalSetting } from './Schema';
 
 export const DEFAULT_SYSTEM_PROMPT =
@@ -36,6 +38,21 @@ export const DEFAULT_SETTINGS: GlobalSetting = {
   toolsUrl: '',
   disabledTools: [],
 };
+
+export const MODE_LIST = [
+  {
+    id: 'chat',
+    icon: MessageSquare,
+    title: 'Chat',
+    description: 'Standard conversation mode',
+  },
+  {
+    id: 'agent',
+    icon: Zap,
+    title: 'Agent',
+    description: 'Autonomous task execution',
+  },
+] as const;
 
 export const INITIAL_GREETING = 'How can I help you{{0}}?';
 export const INITIAL_SUGGESTIONS = [

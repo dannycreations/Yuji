@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Archive, Bot, MoreHorizontal, PanelLeftClose, Pin, Settings, SquarePen, Trash2, User } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { MODE_LIST } from '../app/Constant';
 import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useResizeObserver } from '../hooks/useResizeObserver';
@@ -14,7 +15,7 @@ import { ButtonInput, SearchInput } from './shared/InputArea';
 import { ModePicker } from './shared/PickerArea';
 
 import type { FC } from 'react';
-import type { ConfirmOptions, GlobalSetting } from '../app/Schema';
+import type { ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
   const threads = useStore((s) => s.threads);
@@ -31,9 +32,8 @@ export const Sidebar: FC = () => {
   const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
-  const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
 
-  const onCreateThread = useChatAction((c) => c.createThread());
+  const onCreateThread = useChatAction((c, mode?: 'chat' | 'agent') => c.createThread(mode));
   const onDeleteThreads = useChatAction((c, id: string) => c.deleteThreads(id));
 
   const handleTogglePin = useStoreAction((s, id: string) => s.togglePin(id));
@@ -53,9 +53,8 @@ export const Sidebar: FC = () => {
   });
 
   const handleModeSelect = (mode: 'chat' | 'agent') => {
-    updateSetting({ mode });
     setShowModePicker(false);
-    onCreateThread();
+    onCreateThread(mode);
   };
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -123,8 +122,7 @@ export const Sidebar: FC = () => {
           <ModePicker
             isOpen={showModePicker}
             triggerRef={pickerRef}
-            className="model-picker-dropdown -translate-y-2 left-auto right-0 origin-top-right"
-            currentMode={settings.mode}
+            className="left-auto right-0 origin-top-right"
             onSelect={handleModeSelect}
             onClose={() => setShowModePicker(false)}
           />
@@ -184,6 +182,11 @@ export const Sidebar: FC = () => {
                   onClick={() => setActiveThread(thread.id)}
                 >
                   <div className="sidebar-thread-title flex items-center gap-2">
+                    {(() => {
+                      const modeInfo = MODE_LIST.find((m) => m.id === thread.mode);
+                      const ModeIcon = modeInfo?.icon;
+                      return ModeIcon && <ModeIcon size={14} className="text-text-tertiary flex-shrink-0" />;
+                    })()}
                     <span className="block truncate">{thread.title}</span>
                   </div>
 

@@ -1,11 +1,11 @@
 import clsx from 'clsx';
-import { Check, Cpu, MessageSquare, Plus, Zap } from 'lucide-react';
+import { Check, Cpu, Plus } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
+import { MODE_LIST } from '../../app/Constant';
 import { getFilteredModels, getModelName } from '../../helpers/ModelHelper';
 import { useStore } from '../../hooks/useStore';
-import { toTitleCase } from '../../utilities/CommonUtil';
-import { Dropdown } from './Dropdown';
+import { Dropdown, DropdownItem } from './Dropdown';
 import { ButtonInput, SearchInput } from './InputArea';
 
 import type { LucideIcon } from 'lucide-react';
@@ -44,7 +44,7 @@ export const PickerItem: FC<PickerItemProps> = ({
       className={clsx('model-picker-item group items-center', isActive && 'active', !isEnabled && 'opacity-60', className)}
     >
       {Icon && (
-        <div className={clsx('flex-shrink-0', isEnabled ? iconColor || 'text-text-tertiary' : 'text-text-tertiary')}>
+        <div className={clsx('flex-shrink-0 mt-0.5', isEnabled ? iconColor || 'text-text-tertiary' : 'text-text-tertiary')}>
           <Icon size={18} />
         </div>
       )}
@@ -53,7 +53,7 @@ export const PickerItem: FC<PickerItemProps> = ({
           <span className={clsx('model-picker-item-title block truncate', !isEnabled && 'text-text-tertiary')}>{title}</span>
           {badges}
         </div>
-        {description && <div className="model-picker-item-id truncate">{description}</div>}
+        {description && <div className="model-picker-item-description truncate">{description}</div>}
       </div>
       <div className="flex items-center gap-1 flex-shrink-0">{rightContent}</div>
     </Component>
@@ -64,36 +64,26 @@ interface ModeItemProps {
   readonly isOpen: boolean;
   readonly triggerRef: RefObject<HTMLElement | null>;
   readonly className?: string;
-  readonly currentMode: 'chat' | 'agent';
   readonly onSelect: (mode: 'chat' | 'agent') => void;
   readonly onClose: () => void;
 }
 
-const MODE_LIST = [
-  { id: 'chat', icon: MessageSquare, description: 'Standard conversation mode' },
-  { id: 'agent', icon: Zap, description: 'Autonomous task execution' },
-] as const;
-
-export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, currentMode, onSelect, onClose, className }) => {
+export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, onSelect, onClose, className }) => {
   return (
-    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={className || 'model-picker-dropdown'}>
-      <div className="model-picker-list">
-        {MODE_LIST.map((mode) => (
-          <PickerItem
-            key={mode.id}
-            icon={mode.icon}
-            iconColor={currentMode === mode.id ? 'text-primary' : 'text-text-tertiary'}
-            title={toTitleCase(mode.id)}
-            description={mode.description}
-            isActive={currentMode === mode.id}
-            onClick={() => {
-              onSelect(mode.id);
-              onClose();
-            }}
-            rightContent={currentMode === mode.id && <Check size={18} className="text-primary" />}
-          />
-        ))}
-      </div>
+    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={clsx('w-[200px]', className)}>
+      {MODE_LIST.map((mode) => (
+        <DropdownItem
+          key={mode.id}
+          icon={mode.icon}
+          label={mode.title}
+          description={mode.description}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onSelect(mode.id);
+            onClose();
+          }}
+        />
+      ))}
     </Dropdown>
   );
 };
