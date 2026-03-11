@@ -1,6 +1,6 @@
 import { Effect, JSONSchema, Schema } from 'effect';
 
-import type { ToolDefinition } from '../core/Schema';
+import type { ToolDefinition } from '@client/app/Schema';
 
 export interface ToolImplementation<A = unknown, I = unknown, R = unknown> {
   readonly name: string;

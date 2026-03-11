@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { default as clsx } from 'clsx';
 import { Effect } from 'effect';
 import {
   Archive,
@@ -16,26 +16,110 @@ import {
   RefreshCw,
   Trash2,
   Upload,
+  Wrench,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { YujiRuntime } from '../../app/Runtime';
-import { getFilteredModels, getModelId } from '../../helpers/ModelHelper';
+import { getFilteredModels, getModelId, getModelName } from '../../helpers/ModelHelper';
 import { getVisibleMessages, sortThreadsByDate } from '../../helpers/ThreadHelper';
 import { useChatAction, useStoreAction } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
 import { StoreService } from '../../services/StoreService';
+import { ToolService } from '../../services/ToolService';
 import { downloadFile, formatError } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
 import { ChatMessageBubble } from '../chat/ChatMessageBubble';
 import { Checkbox } from '../shared/Checkbox';
 import { ButtonInput, SearchInput, SelectInput, SwitchInput, TagInput, TextareaInput, TextInput } from '../shared/InputArea';
 import { FullscreenModal } from '../shared/modal/FullscreenModal';
-import { ModelItem } from '../shared/PickerArea';
+import { PickerItem } from '../shared/PickerArea';
 
 import type { LucideIcon } from 'lucide-react';
 import type { ChangeEvent, FC, ReactNode } from 'react';
-import type { AppRuntimeState, ConfirmOptions, GlobalSetting, Instruction, Model, Personalisation, Thread, ThreadMetadata } from '../../app/Schema';
+import type {
+  AppRuntimeState,
+  ConfirmOptions,
+  GlobalSetting,
+  Instruction,
+  Model,
+  Personalisation,
+  Thread,
+  ThreadMetadata,
+  ToolDefinition,
+} from '../../app/Schema';
+
+interface DiscoverySectionProps<T> {
+  readonly items: readonly T[];
+  readonly emptyIcon: LucideIcon;
+  readonly emptyLabel: (search: string) => string;
+  readonly searchPlaceholder: string;
+  readonly refreshLabel: string;
+  readonly refreshTitle: string;
+  readonly getId: (item: T) => string;
+  readonly onRefresh: () => Promise<void>;
+  readonly filterItems: (items: readonly T[], search: string) => T[];
+  readonly renderRow: (item: T) => ReactNode;
+}
+
+export const DiscoverySection = <T,>({
+  items,
+  emptyIcon,
+  emptyLabel,
+  searchPlaceholder,
+  refreshLabel,
+  refreshTitle,
+  getId,
+  onRefresh,
+  filterItems,
+  renderRow,
+}: DiscoverySectionProps<T>) => {
+  const [search, setSearch] = useState('');
+  const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success'>('idle');
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshState('loading');
+    try {
+      await onRefresh();
+      setRefreshState('success');
+      setTimeout(() => setRefreshState('idle'), 2000);
+    } catch (error) {
+      setRefreshState('idle');
+    }
+  }, [onRefresh]);
+
+  const filteredItems = useMemo(() => filterItems(items, search), [items, search, filterItems]);
+
+  return (
+    <SettingTable
+      emptyIcon={emptyIcon}
+      emptyLabel={emptyLabel(search)}
+      items={filteredItems}
+      getId={getId}
+      size={10}
+      hideCheckbox
+      headerLabel={
+        <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder={searchPlaceholder} className="settings-search-input" />
+      }
+      headerActions={() => (
+        <ButtonInput
+          className={clsx('badge-outline ml-2', refreshState === 'success' && '!text-emerald-500')}
+          onClick={handleRefresh}
+          disabled={refreshState === 'loading'}
+          title={refreshTitle}
+        >
+          {refreshState === 'success' ? (
+            <Check size={14} />
+          ) : (
+            <RefreshCw size={14} className={clsx(refreshState === 'loading' && 'animate-spin-once')} />
+          )}
+          <span>{refreshState === 'success' ? 'Updated' : refreshLabel}</span>
+        </ButtonInput>
+      )}
+      renderRow={renderRow}
+    />
+  );
+};
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
   <div className={clsx('settings-section-wrapper', className)}>{children}</div>
@@ -128,21 +212,26 @@ export const ConnectionSection: FC<SettingSectionProps> = ({ settings, onChange 
           placeholder="sk-..."
         />
       </SettingField>
+
+      <SettingField label="Tools URL">
+        <TextInput
+          leftIcon={Link}
+          value={settings.toolsUrl || ''}
+          onChange={(e) => onChange({ toolsUrl: e.target.value })}
+          placeholder={settings.baseUrl}
+        />
+      </SettingField>
     </SectionWrapper>
   );
 };
 
 export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly Model[] }> = ({ settings, availableModels, onChange }) => {
-  const [modelSearch, setModelSearch] = useState('');
-  const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success'>('idle');
-
   const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const setAvailableModels = (models: Model[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableModels: models }));
 
-  const handleRefreshModels = useCallback(() => {
-    YujiRuntime.runPromise(
+  const handleRefreshModels = useCallback(async () => {
+    return YujiRuntime.runPromise(
       Effect.gen(function* () {
-        setRefreshState('loading');
         const llm = yield* LLMProvider;
         const result = yield* llm.fetchModels(settings);
 
@@ -157,20 +246,17 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         );
 
         setAvailableModels(apiModels);
-        setRefreshState('success');
-        setTimeout(() => setRefreshState('idle'), 2000);
       }).pipe(
         Effect.catchAll((e) => {
-          setRefreshState('idle');
           return Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to fetch models: ${formatError(e)}`));
         }),
       ),
-    ).catch(() => {});
+    ).then(() => {});
   }, [settings]);
 
-  const filteredModels = useMemo(
-    () => getFilteredModels(availableModels, settings.disabledModels, modelSearch, { includeDisabled: true, sort: true }),
-    [availableModels, modelSearch, settings.disabledModels],
+  const filterItems = useCallback(
+    (items: readonly Model[], search: string) => getFilteredModels(items, settings.disabledModels, search, { includeDisabled: true, sort: true }),
+    [settings.disabledModels],
   );
 
   const toggleModel = (modelId: string) => {
@@ -182,47 +268,91 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
   const effectiveModelId = getModelId(settings, availableModels);
 
   return (
-    <SettingTable
+    <DiscoverySection
+      items={availableModels}
       emptyIcon={Cpu}
-      emptyLabel={modelSearch ? `No models match "${modelSearch}"` : 'No models available. Click refresh to fetch models.'}
-      items={filteredModels}
+      emptyLabel={(search) => (search ? `No models match "${search}"` : 'No models available. Click refresh to fetch models.')}
+      searchPlaceholder="Search models..."
+      refreshLabel="Refresh"
+      refreshTitle="Refresh Library"
       getId={(m) => m.id}
-      size={10}
-      hideCheckbox
-      headerLabel={
-        <SearchInput
-          value={modelSearch}
-          onChange={(e) => setModelSearch(e.target.value)}
-          placeholder="Search models..."
-          className="settings-search-input"
-        />
-      }
-      headerActions={() => (
-        <ButtonInput
-          className={clsx('badge-outline ml-2', refreshState === 'success' && '!text-emerald-500')}
-          onClick={handleRefreshModels}
-          disabled={refreshState === 'loading'}
-          title="Refresh Library"
-        >
-          {refreshState === 'success' ? (
-            <Check size={14} />
-          ) : (
-            <RefreshCw size={14} className={clsx(refreshState === 'loading' && 'animate-spin-once')} />
-          )}
-          <span>{refreshState === 'success' ? 'Updated' : 'Refresh'}</span>
-        </ButtonInput>
-      )}
+      onRefresh={handleRefreshModels}
+      filterItems={filterItems}
       renderRow={(model) => {
         const isEnabled = !settings.disabledModels.includes(model.id);
         return (
           <div key={model.id} className={clsx('settings-history-row', !isEnabled && 'opacity-60')}>
-            <ModelItem
-              model={model}
-              availableModels={availableModels}
+            <PickerItem
+              title={getModelName(availableModels, model.id)}
+              description={model.id}
+              icon={Cpu}
+              iconColor={model.color}
               isEnabled={isEnabled}
-              isDefault={effectiveModelId === model.id}
               className="flex-1 p-1 cursor-default border-none! bg-transparent!"
+              badges={effectiveModelId === model.id && isEnabled && <div className="badge-primary">Default</div>}
               rightContent={<SwitchInput checked={isEnabled} onChange={() => toggleModel(model.id)} />}
+            />
+          </div>
+        );
+      }}
+    />
+  );
+};
+
+export const ToolsSection: FC<SettingSectionProps & { availableTools: readonly ToolDefinition[] }> = ({ settings, availableTools, onChange }) => {
+  const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
+  const setAvailableTools = (tools: ToolDefinition[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableTools: tools }));
+
+  const handleRefreshTools = useCallback(async () => {
+    return YujiRuntime.runPromise(
+      Effect.gen(function* () {
+        const toolService = yield* ToolService;
+        const tools = yield* toolService.fetch(settings);
+
+        setAvailableTools(tools as ToolDefinition[]);
+      }).pipe(
+        Effect.catchAll((e) => {
+          return Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to fetch tools: ${formatError(e)}`));
+        }),
+      ),
+    ).then(() => {});
+  }, [settings, updateStore]);
+
+  const filterItems = useCallback((items: readonly ToolDefinition[], search: string) => {
+    if (!search) return items as ToolDefinition[];
+    const s = search.toLowerCase();
+    return items.filter((t) => t.function.name.toLowerCase().includes(s) || t.function.description.toLowerCase().includes(s)) as ToolDefinition[];
+  }, []);
+
+  const toggleTool = (toolName: string) => {
+    const isDisabled = settings.disabledTools.includes(toolName);
+    const newDisabledTools = isDisabled ? settings.disabledTools.filter((name) => name !== toolName) : [...settings.disabledTools, toolName];
+    onChange({ disabledTools: newDisabledTools });
+  };
+
+  return (
+    <DiscoverySection
+      items={availableTools}
+      emptyIcon={Wrench}
+      emptyLabel={(search) => (search ? `No tools match "${search}"` : 'No tools available. Click refresh to fetch tools.')}
+      searchPlaceholder="Search tools..."
+      refreshLabel="Refresh"
+      refreshTitle="Refresh Tools"
+      getId={(t) => t.function.name}
+      onRefresh={handleRefreshTools}
+      filterItems={filterItems}
+      renderRow={(tool) => {
+        const isEnabled = !settings.disabledTools.includes(tool.function.name);
+        return (
+          <div key={tool.function.name} className={clsx('settings-history-row', !isEnabled && 'opacity-60')}>
+            <PickerItem
+              title={tool.function.name}
+              description={tool.function.description}
+              icon={Wrench}
+              isEnabled={isEnabled}
+              className="flex-1 p-1 cursor-default border-none! bg-transparent!"
+              badges={isEnabled && <span className="badge-success text-[10px] py-0 px-1">Active</span>}
+              rightContent={<SwitchInput checked={isEnabled} onChange={() => toggleTool(tool.function.name)} />}
             />
           </div>
         );

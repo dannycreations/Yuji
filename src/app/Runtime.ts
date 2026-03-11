@@ -5,6 +5,7 @@ import { OpenAIProviderLive } from '../providers/OpenAIProvider';
 import { ChatServiceLive } from '../services/ChatService';
 import { StorageServiceLive } from '../services/StorageService';
 import { StoreServiceLive } from '../services/StoreService';
+import { ToolServiceLive } from '../services/ToolService';
 
 const MainLogger = Logger.make<unknown, void>(({ logLevel, message }) => {
   // Ignore internal Effect errors
@@ -37,6 +38,7 @@ const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(OpenAIProviderLive),
   Layer.provideMerge(StoreServiceLive),
   Layer.provideMerge(StorageServiceLive),
+  Layer.provideMerge(ToolServiceLive),
   Layer.provide(FetchHttpClient.layer),
   Layer.provide(Logger.replace(Logger.defaultLogger, MainLogger)),
   Layer.provide(Logger.minimumLogLevel(import.meta.env.PROD ? LogLevel.Info : LogLevel.Debug)),

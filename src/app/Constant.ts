@@ -33,6 +33,8 @@ export const DEFAULT_SETTINGS: GlobalSetting = {
     additionalContext: '',
   },
   disabledModels: [],
+  toolsUrl: '',
+  disabledTools: [],
 };
 
 export const INITIAL_GREETING = 'How can I help you{{0}}?';

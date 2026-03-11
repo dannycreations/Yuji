@@ -8,7 +8,9 @@ import type { Attachment, ThreadMessage } from '../app/Schema';
 
 interface OpenAIMessage {
   readonly role: string;
-  readonly content: string | OpenAIContent[];
+  readonly content: string | OpenAIContent[] | null;
+  readonly tool_calls?: any[];
+  readonly tool_call_id?: string;
 }
 
 type OpenAIContent =
@@ -25,6 +27,25 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
   const result: OpenAIMessage[] = [{ role: 'system', content: systemPrompt }];
   for (let i = 0, len = messages.length; i < len; i++) {
     const m = messages[i];
+
+    if (m.toolCallId) {
+      result.push({
+        role: 'tool',
+        content: m.content,
+        tool_call_id: m.toolCallId,
+      } as any);
+      continue;
+    }
+
+    if (m.toolCalls) {
+      result.push({
+        role: 'assistant',
+        content: m.content || null,
+        tool_calls: m.toolCalls,
+      } as any);
+      continue;
+    }
+
     if (!m.attachments || m.attachments.length === 0) {
       result.push({ role: m.role, content: m.content });
       continue;
@@ -62,6 +83,7 @@ export const OpenAIProviderLive = Layer.effect(
           max_tokens: config.maxTokens,
           top_p: config.topP,
           stream: true,
+          tools: config.tools,
         };
 
         return HttpClientRequest.post(`${settings.baseUrl}/chat/completions`).pipe(
@@ -94,6 +116,11 @@ export const OpenAIProviderLive = Layer.effect(
 
                         const token = delta.content || '';
                         const reasoning = delta.reasoning_content || '';
+                        const toolCalls = delta.tool_calls;
+
+                        if (toolCalls) {
+                          return Option.some(`TOOL_CALLS:${JSON.stringify(toolCalls)}`);
+                        }
 
                         if (reasoning) {
                           return Option.some(` <reasoning>${reasoning}</reasoning> `);

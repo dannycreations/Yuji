@@ -7,6 +7,7 @@ import { LLMProvider, synthesizeSystemPrompt } from '../providers/LLMProvider';
 import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 import { StoreService } from './StoreService';
+import { ToolService } from './ToolService';
 
 export interface ChatService {
   readonly createThread: () => Effect.Effect<ThreadMetadata, Error>;
@@ -79,6 +80,7 @@ export const ChatServiceLive = Layer.effect(
     const store = yield* StoreService;
     const storage = yield* StorageService;
     const llm = yield* LLMProvider;
+    const tools = yield* ToolService;
     const fibers = new Map<string, Fiber.Fiber<void, ThreadNotFoundError | MessageNotFoundError | Error>>();
 
     const updateThread = (
@@ -237,6 +239,11 @@ export const ChatServiceLive = Layer.effect(
             effectiveForLLM = effectiveForLLM.slice(0, -1);
           }
 
+          const activeTools =
+            settings.mode === 'agent'
+              ? state.availableTools.filter((t) => t.function && !settings.disabledTools.includes(t.function.name))
+              : undefined;
+
           const stream = yield* llm.streamCompletion(
             effectiveForLLM,
             settings,
@@ -244,11 +251,13 @@ export const ChatServiceLive = Layer.effect(
               provider: 'openai',
               model,
               temperature: 0.7,
+              tools: activeTools,
             },
             systemPrompt,
           );
 
           let fullContent = '';
+          let toolCallsAccumulator: any[] = [];
           let lastSavedContent = '';
           let lastUISaveContent = '';
           let lastUITime = 0;
@@ -259,6 +268,21 @@ export const ChatServiceLive = Layer.effect(
 
           yield* Stream.runForEach(stream, (token) =>
             Effect.gen(function* () {
+              if (token.startsWith('TOOL_CALLS:')) {
+                const delta = JSON.parse(token.slice(11));
+                delta.forEach((d: any) => {
+                  if (d.index !== undefined) {
+                    const idx = d.index;
+                    if (!toolCallsAccumulator[idx]) {
+                      toolCallsAccumulator[idx] = { id: d.id, type: 'function', function: { name: '', arguments: '' } };
+                    }
+                    if (d.id) toolCallsAccumulator[idx].id = d.id;
+                    if (d.function?.name) toolCallsAccumulator[idx].function.name += d.function.name;
+                    if (d.function?.arguments) toolCallsAccumulator[idx].function.arguments += d.function.arguments;
+                  }
+                });
+                return;
+              }
               fullContent += token;
               const now = performance.now();
 
@@ -288,6 +312,50 @@ export const ChatServiceLive = Layer.effect(
 
           // Update timestamp once when stream is finished
           yield* chat.updateMessage(threadId, id, fullContent, { metadataOnly: true });
+
+          if (toolCallsAccumulator.length > 0) {
+            const cleanToolCalls = toolCallsAccumulator.filter(Boolean);
+            yield* chat.updateMessage(threadId, id, fullContent, {
+              skipUpdateTimestamp: true,
+              uiOnly: false,
+            });
+
+            // Update with tool calls
+            yield* updateThread(threadId, (t) => {
+              const msg = t.messages[id];
+              if (!msg) return t;
+              return {
+                ...t,
+                messages: {
+                  ...t.messages,
+                  [id]: { ...msg, toolCalls: cleanToolCalls },
+                },
+              };
+            });
+
+            // Execute tools and generate next message
+            for (const call of cleanToolCalls) {
+              const toolResult = yield* tools.execute(call.function.name, JSON.parse(call.function.arguments), settings);
+
+              const toolMessage: ThreadMessage = {
+                id: randomId(),
+                role: 'assistant', // Use assistant role but marked as tool response via toolCallId
+                content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult),
+                timestamp: Date.now(),
+                parentId: id,
+                toolCallId: call.id,
+              } as any;
+
+              yield* chat.addMessage(threadId, toolMessage);
+            }
+
+            // After all tools executed, trigger next generation
+            const updatedThread = yield* storage.getThread(threadId);
+            if (updatedThread) {
+              const nextHistory = getMessagePath(updatedThread, updatedThread.activeMessageId!);
+              yield* chat.generate(threadId, nextHistory, options);
+            }
+          }
         }).pipe(
           Effect.catchAll((err) =>
             Effect.gen(function* () {

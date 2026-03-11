@@ -35,6 +35,7 @@ export interface LLMProvider {
       readonly temperature: number;
       readonly maxTokens?: number;
       readonly topP?: number;
+      readonly tools?: readonly any[];
     },
     systemPrompt: string,
   ) => Effect.Effect<Stream.Stream<string, LLMProviderError>, LLMProviderError>;

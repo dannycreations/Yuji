@@ -28,7 +28,11 @@
     "noUncheckedSideEffectImports": true,
 
     "allowJs": false,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@client/*": ["./src/*"],
+      "@server/*": ["./src-server/*"]
+    }
   },
   "include": ["src", "src-server"]
 }

@@ -1,47 +1,49 @@
+import { ToolExecute } from '@client/app/Schema.js';
 import { HttpMiddleware, HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from '@effect/platform';
 import { BunFileSystem, BunHttpServer } from '@effect/platform-bun';
 import { Effect, Layer, Schema } from 'effect';
 
-import { ExecuteToolRequest } from './core/Schema.js';
 import { TOOL_LIST } from './tools/index.js';
 
 import type { RequestError } from '@effect/platform/HttpClientError';
 import type { ParseError } from 'effect/ParseResult';
 
-const router = HttpRouter.empty.pipe(
-  HttpRouter.get(
-    '/tools',
-    Effect.gen(function* () {
-      const toolDefinitions = Object.values(TOOL_LIST).map((t) => t.definition);
-      return yield* HttpServerResponse.json(toolDefinitions);
-    }),
-  ),
-  HttpRouter.post(
-    '/tools/execute',
-    Effect.gen(function* () {
-      const request = yield* HttpServerRequest.HttpServerRequest;
-      const body = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknown(ExecuteToolRequest)));
-      const tool = TOOL_LIST[body.name];
-
-      if (!tool) {
-        return yield* HttpServerResponse.json({ error: `Tool not found: ${body.name}` }, { status: 404 });
-      }
-
-      const result = yield* tool.execute(body.arguments);
-      return yield* HttpServerResponse.json({ result });
-    }).pipe(
-      Effect.catchTags({
-        ParseError: (error: ParseError) => HttpServerResponse.json({ error: 'Invalid input', details: error }, { status: 400 }),
-        RequestError: (error: RequestError) => HttpServerResponse.json({ error: 'Failed to read request body', details: error }, { status: 400 }),
+const router = HttpRouter.empty
+  .pipe(
+    HttpRouter.get(
+      '/tools',
+      Effect.gen(function* () {
+        const toolDefinitions = Object.values(TOOL_LIST).map((t) => t.definition);
+        return yield* HttpServerResponse.json(toolDefinitions);
       }),
     ),
-  ),
-);
+    HttpRouter.post(
+      '/tools/execute',
+      Effect.gen(function* () {
+        const request = yield* HttpServerRequest.HttpServerRequest;
+        const body = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknown(ToolExecute)));
+        const tool = TOOL_LIST[body.name];
+
+        if (!tool) {
+          return yield* HttpServerResponse.json({ error: `Tool not found: ${body.name}` }, { status: 404 });
+        }
+
+        const result = yield* tool.execute(body.arguments);
+        return yield* HttpServerResponse.json({ result });
+      }).pipe(
+        Effect.catchTags({
+          ParseError: (error: ParseError) => HttpServerResponse.json({ error: 'Invalid input', details: error }, { status: 400 }),
+          RequestError: (error: RequestError) => HttpServerResponse.json({ error: 'Failed to read request body', details: error }, { status: 400 }),
+        }),
+      ),
+    ),
+  )
+  .pipe(HttpRouter.all('/*', HttpServerResponse.empty({ status: 204 })), HttpRouter.use(HttpMiddleware.cors()));
 
 const HttpLive = router.pipe(
   HttpServer.serve(HttpMiddleware.logger),
   HttpServer.withLogAddress,
-  Layer.provide(BunHttpServer.layer({ port: 3000 })),
+  Layer.provide(BunHttpServer.layer({ port: 1730 })),
   Layer.provide(BunFileSystem.layer),
 );
 

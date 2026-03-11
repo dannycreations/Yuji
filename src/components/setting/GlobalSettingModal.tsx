@@ -1,4 +1,4 @@
-import { Archive, Cpu, History, Link, Settings, Terminal, User } from 'lucide-react';
+import { Archive, Cpu, History, Link, Settings, Terminal, User, Wrench } from 'lucide-react';
 import { useState } from 'react';
 
 import { useStore, useStoreAction } from '../../hooks/useStore';
@@ -11,18 +11,20 @@ import {
   InstructionSection,
   ModelsSection,
   PersonalisationSection,
+  ToolsSection,
 } from './SettingSection';
 
 import type { FC } from 'react';
 import type { AppRuntimeState } from '../../app/Schema';
 import type { SettingTabItem } from '../shared/modal/SettingModal';
 
-type GlobalSettingTab = 'general' | 'connection' | 'models' | 'instruction' | 'persona' | 'history' | 'archive';
+type GlobalSettingTab = 'general' | 'connection' | 'models' | 'tools' | 'instruction' | 'persona' | 'history' | 'archive';
 
 const GLOBAL_SETTING_TABS: SettingTabItem[] = [
   { icon: Settings, id: 'general', label: 'General' },
   { icon: Link, id: 'connection', label: 'Connection' },
   { icon: Cpu, id: 'models', label: 'Models' },
+  { icon: Wrench, id: 'tools', label: 'Tools' },
   { icon: Terminal, id: 'instruction', label: 'Instruction' },
   { icon: User, id: 'persona', label: 'Personalization' },
   { icon: History, id: 'history', label: 'History & Sync' },
@@ -34,6 +36,7 @@ export const GlobalSettingModal: FC = () => {
   const settings = useStore((s) => s.settings);
   const threads = useStore((s) => s.threads);
   const availableModels = useStore((s) => s.availableModels);
+  const availableTools = useStore((s) => s.availableTools);
 
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const updateSetting = useStoreAction(
@@ -51,6 +54,8 @@ export const GlobalSettingModal: FC = () => {
         return <ConnectionSection settings={settings} onChange={updateSetting} />;
       case 'models':
         return <ModelsSection settings={settings} availableModels={availableModels} onChange={updateSetting} />;
+      case 'tools':
+        return <ToolsSection settings={settings} availableTools={availableTools} onChange={updateSetting} />;
       case 'instruction':
         return (
           <InstructionSection

@@ -9,8 +9,57 @@ import { Dropdown } from './Dropdown';
 import { ButtonInput, SearchInput } from './InputArea';
 
 import type { LucideIcon } from 'lucide-react';
-import type { ChangeEvent, ComponentProps, FC, RefObject } from 'react';
+import type { ChangeEvent, ComponentProps, FC, ReactNode, RefObject } from 'react';
 import type { Model } from '../../app/Schema';
+
+export interface PickerItemProps {
+  readonly title: ReactNode;
+  readonly description?: ReactNode;
+  readonly icon?: LucideIcon;
+  readonly iconColor?: string;
+  readonly isActive?: boolean;
+  readonly isEnabled?: boolean;
+  readonly onClick?: () => void;
+  readonly rightContent?: ReactNode;
+  readonly className?: string;
+  readonly badges?: ReactNode;
+}
+
+export const PickerItem: FC<PickerItemProps> = ({
+  title,
+  description,
+  icon: Icon,
+  iconColor,
+  isActive,
+  isEnabled = true,
+  onClick,
+  rightContent,
+  className,
+  badges,
+}) => {
+  const Component = onClick ? 'button' : 'div';
+
+  return (
+    <Component
+      onClick={onClick}
+      className={clsx('model-picker-item group items-center', isActive && 'active', !isEnabled && 'opacity-60', className)}
+    >
+      {Icon && (
+        <div className={clsx('flex-shrink-0', isEnabled ? iconColor || 'text-text-tertiary' : 'text-text-tertiary')}>
+          <Icon size={18} />
+        </div>
+      )}
+      <div className="flex-1 min-w-0 text-left">
+        <div className="flex items-center gap-2">
+          <span className={clsx('model-picker-item-title block truncate', !isEnabled && 'text-text-tertiary')}>{title}</span>
+          {badges}
+        </div>
+        {description && <div className="model-picker-item-id truncate">{description}</div>}
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">{rightContent}</div>
+    </Component>
+  );
+};
 
 interface ModeItemProps {
   readonly isOpen: boolean;
@@ -31,25 +80,19 @@ export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, currentMode,
     <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={className || 'model-picker-dropdown'}>
       <div className="model-picker-list">
         {MODE_LIST.map((mode) => (
-          <button
+          <PickerItem
             key={mode.id}
+            icon={mode.icon}
+            iconColor={currentMode === mode.id ? 'text-primary' : 'text-text-tertiary'}
+            title={toTitleCase(mode.id)}
+            description={mode.description}
+            isActive={currentMode === mode.id}
             onClick={() => {
               onSelect(mode.id);
               onClose();
             }}
-            className={`model-picker-item group items-center ${currentMode === mode.id ? 'active' : ''}`}
-          >
-            <div className={`flex-shrink-0 ${currentMode === mode.id ? 'text-primary' : 'text-text-tertiary'}`}>
-              <mode.icon size={18} />
-            </div>
-            <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-center gap-2">
-                <span className={`model-picker-item-title block ${currentMode === mode.id ? 'text-text-primary' : ''}`}>{toTitleCase(mode.id)}</span>
-              </div>
-              <div className="model-picker-item-id">{mode.description}</div>
-            </div>
-            {currentMode === mode.id && <Check size={18} className="text-primary" />}
-          </button>
+            rightContent={currentMode === mode.id && <Check size={18} className="text-primary" />}
+          />
         ))}
       </div>
     </Dropdown>
@@ -78,22 +121,19 @@ export const ModelItem: FC<ModelItemProps> = ({
   className,
   rightContent,
 }) => {
-  const Component = onClick ? 'button' : 'div';
-
   return (
-    <Component onClick={onClick} className={clsx('model-picker-item group items-center', isActive && 'active', className)}>
-      <div className={clsx('flex-shrink-0', isEnabled ? model.color || 'text-text-tertiary' : 'text-text-tertiary')}>
-        <Cpu size={18} />
-      </div>
-      <div className="flex-1 min-w-0 text-left">
-        <div className="flex items-center gap-2">
-          <span className={clsx('model-picker-item-title block', !isEnabled && 'text-text-tertiary')}>{getModelName(availableModels, model.id)}</span>
-          {isDefault && isEnabled && <div className="badge-primary">Default</div>}
-        </div>
-        <div className="model-picker-item-id">{model.id}</div>
-      </div>
-      <div className="flex items-center gap-1 flex-shrink-0">{rightContent}</div>
-    </Component>
+    <PickerItem
+      title={getModelName(availableModels, model.id)}
+      description={model.id}
+      icon={Cpu}
+      iconColor={model.color}
+      isActive={isActive}
+      isEnabled={isEnabled}
+      onClick={onClick}
+      className={className}
+      rightContent={rightContent}
+      badges={isDefault && isEnabled && <div className="badge-primary">Default</div>}
+    />
   );
 };
 

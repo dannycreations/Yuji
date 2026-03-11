@@ -1,5 +1,31 @@
 import { Schema } from 'effect';
 
+export const ToolDefinition = Schema.Struct({
+  type: Schema.Literal('function'),
+  function: Schema.Struct({
+    name: Schema.String,
+    description: Schema.String,
+    parameters: Schema.Unknown, // JSON Schema
+  }),
+});
+export type ToolDefinition = Schema.Schema.Type<typeof ToolDefinition>;
+
+export const ToolCall = Schema.Struct({
+  id: Schema.String,
+  type: Schema.Literal('function'),
+  function: Schema.Struct({
+    name: Schema.String,
+    arguments: Schema.String,
+  }),
+});
+export type ToolCall = Schema.Schema.Type<typeof ToolCall>;
+
+export const ToolExecute = Schema.Struct({
+  name: Schema.String,
+  arguments: Schema.Unknown,
+});
+export type ToolExecute = Schema.Schema.Type<typeof ToolExecute>;
+
 export const Model = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
@@ -40,6 +66,8 @@ export const GlobalSetting = Schema.Struct({
   instruction: Instruction,
   personalisation: Personalisation,
   disabledModels: Schema.Array(Schema.String),
+  toolsUrl: Schema.optional(Schema.String),
+  disabledTools: Schema.Array(Schema.String),
 });
 export type GlobalSetting = Schema.Schema.Type<typeof GlobalSetting>;
 
@@ -73,6 +101,8 @@ export const ThreadMessage = Schema.Struct({
   parentId: Schema.optional(Schema.String),
   childrenIds: Schema.optional(Schema.Array(Schema.String)),
   isError: Schema.optional(Schema.Boolean),
+  toolCalls: Schema.optional(Schema.Array(ToolCall)),
+  toolCallId: Schema.optional(Schema.String),
 });
 export type ThreadMessage = Schema.Schema.Type<typeof ThreadMessage>;
 
@@ -111,6 +141,7 @@ export const AppStoreState = Schema.Struct({
   activeThreadId: Schema.NullOr(Schema.String),
   settings: GlobalSetting,
   availableModels: Schema.Array(Model),
+  availableTools: Schema.Array(ToolDefinition),
   pinnedThreadIds: Schema.Array(Schema.String),
   backgroundThreadIds: Schema.Array(Schema.String),
 });
