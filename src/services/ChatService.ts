@@ -115,7 +115,8 @@ export const ChatServiceLive = Layer.effect(
 
           // Fast-path for UI-only updates to active thread (common during streaming)
           if (options.uiOnly && isTargetActive && options.skipUpdateTimestamp) {
-            return s.activeThread === finalThread ? s : { ...s, activeThread: finalThread };
+            if (s.activeThread === finalThread) return s;
+            return { ...s, activeThread: finalThread };
           }
 
           const prevMeta = s.threads[threadId];
@@ -127,22 +128,25 @@ export const ChatServiceLive = Layer.effect(
             finalThread.archived !== prevMeta.archived ||
             finalThread.updatedAt !== prevMeta.updatedAt;
 
-          const nextThreads = isMetadataChanged
-            ? {
-                ...s.threads,
-                [threadId]: {
-                  id: finalThread.id,
-                  title: finalThread.title,
-                  mode: finalThread.mode,
-                  createdAt: finalThread.createdAt,
-                  updatedAt: finalThread.updatedAt,
-                  activeMessageId: finalThread.activeMessageId,
-                  archived: finalThread.archived,
-                } satisfies ThreadMetadata,
-              }
-            : s.threads;
+          let nextThreads = s.threads;
+          if (isMetadataChanged) {
+            nextThreads = {
+              ...s.threads,
+              [threadId]: {
+                id: finalThread.id,
+                title: finalThread.title,
+                mode: finalThread.mode,
+                createdAt: finalThread.createdAt,
+                updatedAt: finalThread.updatedAt,
+                activeMessageId: finalThread.activeMessageId,
+                archived: finalThread.archived,
+              } satisfies ThreadMetadata,
+            };
+          }
 
-          if (isTargetActive && s.activeThread === finalThread && s.threads === nextThreads) return s;
+          if (isTargetActive && s.activeThread === finalThread && s.threads === nextThreads) {
+            return s;
+          }
 
           return {
             ...s,

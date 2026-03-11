@@ -85,6 +85,7 @@ export const DiscoverySection = <T,>({
       setTimeout(() => setRefreshState('idle'), 2000);
     } catch (error) {
       setRefreshState('idle');
+      throw error;
     }
   }, [onRefresh]);
 
@@ -528,7 +529,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 
           downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
         }),
-      ).catch(console.error);
+      );
     },
     [threads, getThread],
   );
@@ -638,7 +639,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 
           downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
         }),
-      ).catch(console.error);
+      );
     },
     [threads, getThread],
   );

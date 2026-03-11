@@ -106,7 +106,21 @@ export const StoreServiceLive = Layer.effect(
 
       const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
       const { activeThreadId, settings } = metadata;
-      const activeThread = activeThreadId ? yield* storage.getThread(activeThreadId).pipe(Effect.catchAll(() => Effect.succeed(null))) : null;
+
+      if (!activeThreadId) {
+        return {
+          ...INITIAL_STATE,
+          ...metadata,
+          settings: {
+            ...DEFAULT_SETTINGS,
+            ...settings,
+          },
+          threads,
+          isHydrated: true,
+        } as AppRuntimeState;
+      }
+
+      const activeThread = yield* storage.getThread(activeThreadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
 
       return {
         ...INITIAL_STATE,
@@ -220,11 +234,16 @@ export const StoreServiceLive = Layer.effect(
         }),
       setActiveThread: (activeThreadOrId) =>
         update((s) => {
-          if (!activeThreadOrId) return { ...s, activeThreadId: null, activeThread: null };
+          if (!activeThreadOrId) {
+            return { ...s, activeThreadId: null, activeThread: null };
+          }
+
           const id = typeof activeThreadOrId === 'string' ? activeThreadOrId : activeThreadOrId.id;
           const thread = typeof activeThreadOrId === 'string' ? null : activeThreadOrId;
 
-          if (id === s.activeThreadId && s.activeThread?.id === id) return s;
+          if (id === s.activeThreadId && s.activeThread?.id === id) {
+            return s;
+          }
 
           return {
             ...s,

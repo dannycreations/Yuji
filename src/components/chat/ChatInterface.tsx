@@ -123,7 +123,7 @@ export const ChatInterface: FC = () => {
   }, [totalSize, visibleMessages.length, isReady, isTransitioning, virtualizer]);
 
   return (
-    <div className="main-layout">
+    <main className="main-layout">
       <div
         className={clsx('chat-scroll-area', (!containerHeight || (!isReady && !isEmpty)) && 'opacity-0')}
         ref={scrollAreaRef}
@@ -203,6 +203,6 @@ export const ChatInterface: FC = () => {
         isLoading={isLoading}
         initialInput={pendingInput}
       />
-    </div>
+    </main>
   );
 };

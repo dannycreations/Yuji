@@ -29,19 +29,19 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
 };
 
 export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
-  if (message.role !== 'user' || !message.content) return thread.title;
+  if (message.role !== 'user') return thread.title;
+  if (!message.content) return thread.title;
 
   const isInitialState = thread.title === 'New Chat' || thread.title.endsWith('...');
   if (!isInitialState) return thread.title;
 
   const msgCount = Object.keys(thread.messages).length;
   // If no messages or only this message exists (during addMessage flow), generate title
-  if (msgCount === 0 || (msgCount === 1 && thread.messages[message.id])) {
-    const firstLine = message.content.split('\n', 1)[0];
-    return truncate(firstLine, 40);
-  }
+  const isEligibleForAutoTitle = msgCount === 0 || (msgCount === 1 && thread.messages[message.id]);
+  if (!isEligibleForAutoTitle) return thread.title;
 
-  return thread.title;
+  const firstLine = message.content.split('\n', 1)[0];
+  return truncate(firstLine, 40);
 };
 
 export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[]): T[] => {

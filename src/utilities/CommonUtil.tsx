@@ -12,7 +12,8 @@ export const getFirstChar = (str: string): string => {
 };
 
 export const truncate = (str: string, length: number): string => {
-  return str.length <= length ? str : str.slice(0, length).trim() + '...';
+  if (str.length <= length) return str;
+  return str.slice(0, length).trim() + '...';
 };
 
 export const toTitleCase = (str: string): string => {
@@ -74,7 +75,11 @@ export const formatError = (err: unknown): string => {
   if (Cause.isCause(err)) return Cause.pretty(err);
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
-  return (err as { readonly message?: string })?.message ?? JSON.stringify(err);
+
+  const msg = (err as { readonly message?: string })?.message;
+  if (msg) return msg;
+
+  return JSON.stringify(err);
 };
 
 export const downloadFile = (content: string, filename: string, type = 'text/plain') => {

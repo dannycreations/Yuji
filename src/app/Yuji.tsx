@@ -4,6 +4,7 @@ import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
 import { PanelLeftOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { reportError } from '../app/Error';
 import { ChatInterface } from '../components/chat/ChatInterface';
 import { GlobalSettingModal } from '../components/setting/GlobalSettingModal';
 import { ButtonInput } from '../components/shared/InputArea';
@@ -76,28 +77,28 @@ const YujiLayout = () => {
     root.classList.add(theme);
   }, [theme]);
 
+  if (initializationError) {
+    return (
+      <div className="app-container">
+        <DatabaseErrorView error={initializationError} />
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
-      {initializationError ? (
-        <DatabaseErrorView error={initializationError} />
-      ) : (
-        <>
-          {!isSidebarOpen && (
-            <div className="fixed top-2 left-2 z-header">
-              <ButtonInput onClick={toggleSidebar} title="Open Sidebar" className="bg-background/80 backdrop-blur border border-separator/50">
-                <PanelLeftOpen size={20} />
-              </ButtonInput>
-            </div>
-          )}
-          <Sidebar />
-          <main className="main-layout">
-            <ChatInterface />
-          </main>
-          <GlobalSettingModal />
-          <ConfirmModal />
-          <Notification />
-        </>
+      {!isSidebarOpen && (
+        <div className="fixed top-2 left-2 z-header">
+          <ButtonInput onClick={toggleSidebar} title="Open Sidebar" className="bg-background/80 backdrop-blur border border-separator/50">
+            <PanelLeftOpen size={20} />
+          </ButtonInput>
+        </div>
       )}
+      <Sidebar />
+      <ChatInterface />
+      <GlobalSettingModal />
+      <ConfirmModal />
+      <Notification />
     </div>
   );
 };
@@ -125,7 +126,21 @@ export const YujiApp = () => {
         );
       }),
     );
+
+    const handleWindowError = (event: ErrorEvent) => {
+      YujiRuntime.runPromise(reportError('Uncaught error', event.error));
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      YujiRuntime.runPromise(reportError('Unhandled promise rejection', event.reason));
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleRejection);
+
     return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleRejection);
       YujiRuntime.runFork(Fiber.interrupt(fiber));
     };
   }, []);

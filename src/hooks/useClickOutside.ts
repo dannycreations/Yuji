@@ -15,25 +15,22 @@ export const useClickOutside = <T extends HTMLElement = HTMLElement>(ref: RefObj
       // All modals have a .modal-overlay and a .modal-container child.
       // If the click is inside a modal-overlay but outside OUR container,
       // it might be a click on a different modal (like a ConfirmModal on top).
-      if (target instanceof Element) {
-        const targetContainer = target.closest('.modal-container');
-        if (targetContainer && targetContainer !== el) {
-          // If target is AFTER el in DOM, it's a stacked modal.
-          if (el.compareDocumentPosition(targetContainer) & Node.DOCUMENT_POSITION_FOLLOWING) {
-            return;
-          }
-        }
+      if (!(target instanceof Element)) return;
 
-        const targetOverlay = target.closest('.modal-overlay');
-        if (targetOverlay) {
-          const myOverlay = el.closest('.modal-overlay');
-          if (myOverlay && targetOverlay !== myOverlay) {
-            if (myOverlay.compareDocumentPosition(targetOverlay) & Node.DOCUMENT_POSITION_FOLLOWING) {
-              return;
-            }
-          }
-        }
-      }
+      const targetContainer = target.closest('.modal-container');
+      const isStackedModal =
+        targetContainer && targetContainer !== el && el.compareDocumentPosition(targetContainer) & Node.DOCUMENT_POSITION_FOLLOWING;
+
+      if (isStackedModal) return;
+
+      const targetOverlay = target.closest('.modal-overlay');
+      if (!targetOverlay) return;
+
+      const myOverlay = el.closest('.modal-overlay');
+      const isStackedOverlay =
+        myOverlay && targetOverlay !== myOverlay && myOverlay.compareDocumentPosition(targetOverlay) & Node.DOCUMENT_POSITION_FOLLOWING;
+
+      if (isStackedOverlay) return;
 
       handler(event);
     };

@@ -998,7 +998,7 @@
   }
 
   .toast-message {
-    @apply flex-1 text-sm font-medium text-text-primary pr-2 truncate;
+    @apply flex-1 text-sm font-medium text-text-primary pr-2 line-clamp-3;
   }
 
   .toast-progress-track {

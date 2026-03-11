@@ -1,6 +1,7 @@
-import { Effect, ManagedRuntime } from 'effect';
+import { Cause, Effect, ManagedRuntime } from 'effect';
 import { createContext, useCallback, useContext, useRef, useSyncExternalStore } from 'react';
 
+import { reportError } from '../app/Error';
 import { YujiRuntime } from '../app/Runtime';
 import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
@@ -52,7 +53,19 @@ export const useStoreAction = <A extends unknown[], R, E, I extends ManagedRunti
   const store = useStoreService();
   const actionRef = useRef(action);
   actionRef.current = action;
-  return useCallback((...args: A) => YujiRuntime.runPromise(actionRef.current(store, ...args)), [store]);
+
+  return useCallback(
+    (...args: A) =>
+      YujiRuntime.runPromise(
+        actionRef.current(store, ...args).pipe(
+          Effect.catchAllCause((cause) => {
+            if (Cause.isInterruptedOnly(cause)) return Effect.void;
+            return reportError('Store action failed', cause);
+          }),
+        ),
+      ),
+    [store],
+  );
 };
 
 export const useChatAction = <A extends unknown[], R, E, I extends ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>>(
@@ -60,5 +73,19 @@ export const useChatAction = <A extends unknown[], R, E, I extends ManagedRuntim
 ) => {
   const actionRef = useRef(action);
   actionRef.current = action;
-  return useCallback((...args: A) => YujiRuntime.runPromise(Effect.flatMap(ChatService, (c) => actionRef.current(c, ...args))), []);
+
+  return useCallback(
+    (...args: A) =>
+      YujiRuntime.runPromise(
+        Effect.flatMap(ChatService, (c) =>
+          actionRef.current(c, ...args).pipe(
+            Effect.catchAllCause((cause) => {
+              if (Cause.isInterruptedOnly(cause)) return Effect.void;
+              return reportError('Chat action failed', cause);
+            }),
+          ),
+        ),
+      ),
+    [],
+  );
 };

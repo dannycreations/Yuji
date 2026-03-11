@@ -61,6 +61,7 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
           };
       }
     });
+
     result.push({
       role: m.role,
       content: [textContent, ...attachmentContents],

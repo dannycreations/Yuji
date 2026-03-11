@@ -19,9 +19,9 @@ export const getFilteredModels = (
   for (let i = 0; i < availableModels.length; i++) {
     const m = availableModels[i];
     if (!includeDisabled && disabledSet?.has(m.id)) continue;
-    if (!query || m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query)) {
-      filtered.push(m);
-    }
+
+    const matchesQuery = !query || m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query);
+    if (matchesQuery) filtered.push(m);
   }
 
   if (sort && filtered.length > 1) {
