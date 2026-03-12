@@ -12,10 +12,10 @@ const ReadFileSchema = Schema.Struct({
 });
 
 export const ReadFile = defineTool(
-  'read_files',
+  'read_file',
   `USE this to ingest the complete contents of specified files into the active context. This is the designated method for gaining awareness of a file's content for subsequent analysis or modification. This mandate is to be bypassed if, and only if, the file's content is already present and known to be current; redundant data ingestion is inefficient and thus forbidden.`,
   ReadFileSchema,
-  ({ files }: { readonly files: ReadonlyArray<{ readonly path: string }> }) =>
+  ({ files }) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       return yield* Effect.forEach(

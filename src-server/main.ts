@@ -4,7 +4,7 @@ import { BunFileSystem, BunHttpServer } from '@effect/platform-bun';
 import { Effect, Layer, Schema } from 'effect';
 
 import { authMiddleware } from './helpers/ServerHelper.js';
-import { TOOL_LIST } from './tools/index.js';
+import { EXTERNAL_TOOL_LIST, TOOL_LIST } from './tools/index.js';
 
 import type { ToolDefinition, ToolExecuteResponse } from '@client/app/Schema.js';
 import type { RequestError } from '@effect/platform/HttpServerError';
@@ -16,7 +16,7 @@ const router = HttpRouter.empty.pipe(
   HttpRouter.get(
     '/tools',
     Effect.gen(function* () {
-      const toolDefinitions = Object.values(TOOL_LIST).map((t) => t.definition);
+      const toolDefinitions = Object.values(EXTERNAL_TOOL_LIST).map((t) => t.definition);
       return yield* HttpServerResponse.json(toolDefinitions as ToolDefinition[]);
     }),
   ),
