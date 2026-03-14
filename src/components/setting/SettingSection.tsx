@@ -85,7 +85,7 @@ export const DiscoverySection = <T,>({
       setTimeout(() => setRefreshState('idle'), 2000);
     } catch (error) {
       setRefreshState('idle');
-      throw error;
+      YujiRuntime.runPromise(Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to refresh: ${formatError(error)}`)));
     }
   }, [onRefresh]);
 
@@ -247,12 +247,8 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
         );
 
         setAvailableModels(apiModels);
-      }).pipe(
-        Effect.catchAll((e) => {
-          return Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to fetch models: ${formatError(e)}`));
-        }),
-      ),
-    ).then(() => {});
+      }),
+    );
   }, [settings]);
 
   const filterItems = useCallback(
@@ -308,12 +304,8 @@ export const ToolsSection: FC<SettingSectionProps & { availableTools: readonly T
         const tools = yield* toolService.fetch(settings);
 
         setAvailableTools(tools as ToolDefinition[]);
-      }).pipe(
-        Effect.catchAll((e) => {
-          return Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to fetch tools: ${formatError(e)}`));
-        }),
-      ),
-    ).then(() => {});
+      }),
+    );
   }, [settings, updateStore]);
 
   const filterItems = useCallback((items: readonly ToolDefinition[], search: string) => {
