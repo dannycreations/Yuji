@@ -348,6 +348,12 @@ export const StoreServiceLive = Layer.effect(
 
             yield* update((s) => {
               if (s.activeThreadId !== threadId) return s;
+
+              // If the thread is already populated (e.g. by sendMessage), don't overwrite
+              if (s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > Object.keys(fullThread.messages).length) {
+                return s;
+              }
+
               // If streaming happened during load, preserve those new messages
               const currentMessages = s.activeThread?.id === threadId ? s.activeThread.messages : {};
               const mergedMessages = { ...fullThread.messages, ...currentMessages };

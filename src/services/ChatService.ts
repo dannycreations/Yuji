@@ -436,12 +436,13 @@ export const ChatServiceLive = Layer.effect(
       stop,
       sendMessage: (content, attachments = [], options) =>
         Effect.gen(function* () {
-          const { activeThreadId, activeThread } = yield* SubscriptionRef.get(store.state);
-          let targetThreadId = activeThreadId;
+          let state = yield* SubscriptionRef.get(store.state);
+          let targetThreadId = state.activeThreadId;
 
           if (!targetThreadId) {
             const thread = yield* chat.createThread();
             targetThreadId = thread.id;
+            state = yield* SubscriptionRef.get(store.state);
           }
 
           const userMessage: ThreadMessage = {
@@ -450,7 +451,7 @@ export const ChatServiceLive = Layer.effect(
             content,
             attachments: [...attachments],
             timestamp: Date.now(),
-            parentId: activeThread?.activeMessageId,
+            parentId: state.activeThread?.activeMessageId,
           };
 
           yield* chat.addMessage(targetThreadId, userMessage);
