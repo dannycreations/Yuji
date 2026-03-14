@@ -11,7 +11,6 @@ import type { RequestError } from '@effect/platform/HttpServerError';
 import type { ParseError } from 'effect/ParseResult';
 
 const router = HttpRouter.empty.pipe(
-  HttpRouter.use(HttpMiddleware.cors()),
   HttpRouter.use(authMiddleware),
   HttpRouter.get(
     '/tools',
@@ -52,7 +51,8 @@ const router = HttpRouter.empty.pipe(
       }),
     ),
   ),
-  HttpRouter.all('*', HttpServerResponse.empty({ status: 204 })),
+  HttpRouter.all('*', HttpServerResponse.empty({ status: 404 })),
+  HttpMiddleware.cors(),
 );
 
 const HttpLive = router.pipe(
