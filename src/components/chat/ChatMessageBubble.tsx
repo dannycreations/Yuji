@@ -24,6 +24,7 @@ import { SEARCH_INSTRUCTION } from '../../app/Constant';
 import { findVersionLeaf } from '../../helpers/ThreadHelper';
 import { useAttachment } from '../../hooks/useAttachment';
 import { useCopy } from '../../hooks/useCopy';
+import { useSmoothTyping } from '../../hooks/useSmoothTyping';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
 import { AttachmentGrid } from '../shared/AttachmentGrid';
 import { Dropdown, DropdownItem } from '../shared/Dropdown';
@@ -59,6 +60,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   const [copied, setCopy] = useCopy();
   const [isEditing, setIsEditing] = useState(false);
+  const smoothedContent = useSmoothTyping(message.content, !!isThinking);
   const [editContent, setEditContent] = useState(message.content);
   const { attachments, setAttachments, onFileSelect, onPaste, removeAttachment } = useAttachment(message.attachments || []);
   const [isSearchEnabled, setIsSearchEnabled] = useState(false);
@@ -236,7 +238,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                     <div className="message-thinking-dot message-thinking-dot-delay-2" />
                   </div>
                 ) : (
-                  <Markdown content={message.content} components={markdownComponents} />
+                  <Markdown content={smoothedContent} components={markdownComponents} />
                 )}
               </div>
             )}
