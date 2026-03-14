@@ -29,7 +29,6 @@ export const ToolServiceLive = Layer.effect(
           const response = yield* client.execute(request).pipe(Effect.flatMap((res) => res.json));
           return response as ToolDefinition[];
         }).pipe(Effect.catchAll((e) => Effect.fail(new Error(`Fetch tools error: ${formatError(e)}`)))),
-
       execute: (requests, settings) =>
         Effect.gen(function* () {
           const baseUrl = settings.toolsUrl || settings.baseUrl;

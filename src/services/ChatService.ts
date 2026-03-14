@@ -47,21 +47,25 @@ export interface ChatService {
   readonly generate: (
     threadId: string,
     messagesToProcess: ReadonlyArray<ThreadMessage>,
-    options?: { readonly instruction?: string },
+    options?: {
+      readonly instruction?: string;
+    },
   ) => Effect.Effect<void>;
   readonly stop: (threadId?: string) => Effect.Effect<void>;
   readonly sendMessage: (
     content: string,
     attachments?: ReadonlyArray<Attachment>,
-    options?: { readonly instruction?: string },
-  ) => Effect.Effect<void>;
+    options?: {
+      readonly instruction?: string;
+    },
+  ) => Effect.Effect<void, ThreadNotFoundError | Error>;
   readonly regenerateMessage: (
     threadId: string,
     messageId: string,
     options?: {
       readonly instruction?: string;
     },
-  ) => Effect.Effect<void>;
+  ) => Effect.Effect<void, Error>;
   readonly editMessage: (
     threadId: string,
     messageId: string,
@@ -178,13 +182,6 @@ export const ChatServiceLive = Layer.effect(
           activeMessageId: finalThread.activeMessageId,
           archived: finalThread.archived,
         });
-      });
-
-    const updateActiveThread = (f: (thread: Thread, now: number) => Thread, skipUpdateTimestamp = false) =>
-      Effect.gen(function* () {
-        const activeId = (yield* SubscriptionRef.get(store.state)).activeThreadId;
-        if (!activeId) return yield* Effect.fail(new ThreadNotFoundError({ threadId: 'active' }));
-        return yield* updateThread(activeId, f, { skipUpdateTimestamp });
       });
 
     const stop = (threadId?: string) =>
@@ -406,6 +403,7 @@ export const ChatServiceLive = Layer.effect(
               if (lastMsgId) {
                 yield* chat.updateMessage(threadId, lastMsgId, `*[Error: ${msg}]*`, { isError: true });
               }
+
               yield* store.notify('error', `Chat error: ${msg}`);
             }),
           ),
@@ -458,10 +456,7 @@ export const ChatServiceLive = Layer.effect(
           yield* chat.addMessage(targetThreadId, userMessage);
           const history = yield* chat.getThreadPath(targetThreadId, userMessage.id);
           yield* chat.generate(targetThreadId, history, options);
-        }).pipe(
-          Effect.catchAll((err) => store.notify('error', `Failed to send message: ${formatError(err)}`)),
-          Effect.orDie,
-        ),
+        }),
       regenerateMessage: (threadId, messageId, options) =>
         Effect.gen(function* () {
           const { activeThread } = yield* SubscriptionRef.get(store.state);
@@ -473,10 +468,7 @@ export const ChatServiceLive = Layer.effect(
           const history = yield* chat.getThreadPath(threadId, messageId);
 
           yield* chat.generate(threadId, history, options);
-        }).pipe(
-          Effect.catchAll((err) => store.notify('error', `Failed to regenerate: ${formatError(err)}`)),
-          Effect.orDie,
-        ),
+        }),
       editMessage: (threadId, messageId, content, options) =>
         Effect.gen(function* () {
           const { activeThread } = yield* SubscriptionRef.get(store.state);
@@ -502,11 +494,7 @@ export const ChatServiceLive = Layer.effect(
             const history = yield* chat.getThreadPath(threadId, newMsgId);
             yield* chat.generate(threadId, history, options);
           }
-        }).pipe(
-          Effect.catchAll((err) => store.notify('error', `Failed to edit message: ${formatError(err)}`)),
-          Effect.orDie,
-        ),
-
+        }),
       createThread: (mode) =>
         Effect.gen(function* () {
           const { settings, availableModels, availableTools } = yield* SubscriptionRef.get(store.state);
@@ -526,7 +514,6 @@ export const ChatServiceLive = Layer.effect(
           yield* storage.saveThread(newThread);
           return metadata;
         }),
-
       deleteThreads: (input) =>
         Effect.gen(function* () {
           const ids = typeof input === 'string' ? [input] : Array.from(input);
@@ -552,7 +539,6 @@ export const ChatServiceLive = Layer.effect(
           // Atomic batch delete from storage
           yield* storage.deleteThreads(ids);
         }),
-
       importThreads: (threads) =>
         Effect.gen(function* () {
           const metadatas: Record<string, ThreadMetadata> = {};
@@ -577,7 +563,6 @@ export const ChatServiceLive = Layer.effect(
             { discard: true },
           );
         }),
-
       addMessage: (threadId, message) =>
         Effect.gen(function* () {
           let messagesToSave: ThreadMessage[] = [message];
@@ -606,7 +591,6 @@ export const ChatServiceLive = Layer.effect(
 
           yield* storage.saveMessages(threadId, messagesToSave);
         }),
-
       updateMessage: (threadId, messageId, content, options = {}) =>
         Effect.gen(function* () {
           let updatedMessage: ThreadMessage | undefined;
@@ -649,7 +633,6 @@ export const ChatServiceLive = Layer.effect(
             yield* storage.saveMessages(threadId, [updatedMessage]);
           }
         }),
-
       deleteMessage: (threadId, messageId) =>
         Effect.gen(function* () {
           const idsToDelete = yield* storage.getDescendantIds(threadId, messageId);
@@ -691,11 +674,13 @@ export const ChatServiceLive = Layer.effect(
             yield* storage.saveMessages(threadId, [updatedParent]);
           }
         }),
-
       renameThread: (threadId, title) => updateThread(threadId, (thread) => ({ ...thread, title }), { metadataOnly: true }),
-
-      updateActiveThread,
-
+      updateActiveThread: (f: (thread: Thread, now: number) => Thread, skipUpdateTimestamp = false) =>
+        Effect.gen(function* () {
+          const activeId = (yield* SubscriptionRef.get(store.state)).activeThreadId;
+          if (!activeId) return yield* Effect.fail(new ThreadNotFoundError({ threadId: 'active' }));
+          return yield* updateThread(activeId, f, { skipUpdateTimestamp });
+        }),
       getThreadPath: (threadId, messageId) =>
         Effect.gen(function* () {
           const thread = yield* store.getThread(threadId);
@@ -706,7 +691,6 @@ export const ChatServiceLive = Layer.effect(
 
           return getMessagePath(thread, messageId);
         }),
-
       branchChat: (threadId, messageId) =>
         Effect.gen(function* () {
           const sourceThread = yield* store.getThread(threadId);
