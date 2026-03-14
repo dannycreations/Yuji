@@ -467,8 +467,15 @@ export const ChatServiceLive = Layer.effect(
           if (!originalMessage) return;
 
           const history = yield* chat.getThreadPath(threadId, messageId);
+          if (history.length === 0) return;
 
-          yield* chat.generate(threadId, history, options);
+          const lastMessage = history[history.length - 1];
+          if (lastMessage.role === 'assistant') {
+            const context = history.slice(0, -1);
+            yield* chat.generate(threadId, context, options);
+          } else {
+            yield* chat.generate(threadId, history, options);
+          }
         }),
       editMessage: (threadId, messageId, content, options) =>
         Effect.gen(function* () {
