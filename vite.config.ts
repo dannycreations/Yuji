@@ -10,23 +10,39 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
-      checker({
-        typescript: true,
-        enableBuild: true,
-      }),
-    ],
+      mode !== 'production' &&
+        checker({
+          typescript: true,
+          enableBuild: false,
+        }),
+    ].filter(Boolean),
     build: {
       rollupOptions: {
         output: {
           entryFileNames: '[name].js',
+          chunkFileNames: (chunk) => {
+            const name = chunk.name.replace(/_/, '');
+            return `assets/${name}-[hash].js`;
+          },
           assetFileNames: (assetInfo) => {
             if (assetInfo.names?.some((r) => r.endsWith('.css'))) {
               return 'styles.css';
             }
-            return '[name].[hash].[ext]';
+
+            const name = (assetInfo.names?.[0] ?? 'asset').replace(/_/, '');
+            return `assets/${name}-[hash].js`;
+          },
+          manualChunks: (id: string) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('mermaid')) return 'mermaid';
+              if (id.includes('katex')) return 'katex';
+              if (id.includes('react')) return 'react';
+              return 'vendor';
+            }
           },
         },
       },
+      chunkSizeWarningLimit: 3000,
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
