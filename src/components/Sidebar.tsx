@@ -83,11 +83,18 @@ export const Sidebar: FC = () => {
 
   useEffect(() => {
     const [lastItem] = [...virtualItems].reverse();
-    if (!lastItem) return;
 
-    if (lastItem.index >= flattenedThreads.length - 1) {
-      loadMoreThreads();
+    if (!lastItem) {
+      return;
     }
+
+    const isLastItemVisible = lastItem.index >= flattenedThreads.length - 1;
+
+    if (!isLastItemVisible) {
+      return;
+    }
+
+    loadMoreThreads();
   }, [virtualItems, flattenedThreads.length, loadMoreThreads]);
 
   const menuThreadMetadata = menuOpenId ? threads[menuOpenId] : null;

@@ -96,13 +96,17 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const handleSaveEdit = useCallback(() => {
     const contentChanged = editContent.trim() !== message.content.trim();
     const currentAttachments = message.attachments || [];
-    const attachmentsChanged =
-      attachments.length !== currentAttachments.length ||
-      attachments.some((a, i) => a.id !== currentAttachments[i]?.id || a.url !== currentAttachments[i]?.url);
 
-    if (!contentChanged && !attachmentsChanged) {
+    const isLengthDifferent = attachments.length !== currentAttachments.length;
+    const isAnyAttachmentChanged = attachments.some((a, i) => a.id !== currentAttachments[i]?.id || a.url !== currentAttachments[i]?.url);
+
+    const attachmentsChanged = isLengthDifferent || isAnyAttachmentChanged;
+    const hasChanges = contentChanged || attachmentsChanged;
+
+    if (!hasChanges) {
       if (!saveAfterEditing) {
-        onRegenerate(threadId, message.id, isSearchEnabled ? { instruction: SEARCH_INSTRUCTION } : undefined);
+        const options = isSearchEnabled ? { instruction: SEARCH_INSTRUCTION } : undefined;
+        onRegenerate(threadId, message.id, options);
       }
 
       setIsEditing(false);
@@ -110,10 +114,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       return;
     }
 
+    const nextInstruction = isSearchEnabled ? SEARCH_INSTRUCTION : undefined;
+
     onEditMessage(threadId, message.id, editContent, {
       attachments: [...attachments],
       generateNext: !saveAfterEditing,
-      instruction: isSearchEnabled ? SEARCH_INSTRUCTION : undefined,
+      instruction: nextInstruction,
     });
 
     setIsEditing(false);
@@ -202,8 +208,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                       handleSaveEdit();
-                    } else if (e.key === 'Escape') {
+                      return;
+                    }
+
+                    if (e.key === 'Escape') {
                       setIsEditing(false);
+                      return;
                     }
                   }}
                   autoFocus
@@ -294,8 +304,11 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                           value={customInstruction}
                           onChange={(e) => setCustomInstruction(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && customInstruction.trim()) {
-                              onRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
+                            const isEnter = e.key === 'Enter';
+                            const trimmed = customInstruction.trim();
+
+                            if (isEnter && trimmed) {
+                              onRegenerate(threadId, message.id, { instruction: trimmed });
                               setIsRegenerateDropdownOpen(false);
                               setCustomInstruction('');
                             }
@@ -308,8 +321,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                             customInstruction.trim() ? 'bg-primary text-background' : 'text-text-tertiary opacity-50',
                           )}
                           onClick={() => {
-                            if (customInstruction.trim()) {
-                              onRegenerate(threadId, message.id, { instruction: customInstruction.trim() });
+                            const trimmed = customInstruction.trim();
+                            if (trimmed) {
+                              onRegenerate(threadId, message.id, { instruction: trimmed });
                               setIsRegenerateDropdownOpen(false);
                               setCustomInstruction('');
                             }

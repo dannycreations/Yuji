@@ -29,18 +29,29 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
 };
 
 export const generateThreadTitle = (thread: Thread, message: ThreadMessage): string => {
-  if (message.role !== 'user') return thread.title;
-  if (!message.content) return thread.title;
+  if (message.role !== 'user') {
+    return thread.title;
+  }
+
+  if (!message.content) {
+    return thread.title;
+  }
 
   const isInitialState = thread.title === 'New Chat' || thread.title.endsWith('...');
-  if (!isInitialState) return thread.title;
+  if (!isInitialState) {
+    return thread.title;
+  }
 
   const msgCount = Object.keys(thread.messages).length;
   // If no messages or only this message exists (during addMessage flow), generate title
   const isEligibleForAutoTitle = msgCount === 0 || (msgCount === 1 && thread.messages[message.id]);
-  if (!isEligibleForAutoTitle) return thread.title;
+  if (!isEligibleForAutoTitle) {
+    return thread.title;
+  }
 
-  const firstLine = message.content.split('\n', 1)[0];
+  const lines = message.content.split('\n', 1);
+  const firstLine = lines[0];
+
   return truncate(firstLine, 40);
 };
 
@@ -51,7 +62,10 @@ export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[
 
 export const filterThreads = <T extends ThreadMetadata | Thread>(threads: T[], query: string): T[] => {
   const normalized = query.trim().toLowerCase();
-  if (!normalized) return threads;
+  if (!normalized) {
+    return threads;
+  }
+
   return threads.filter((s) => s.title.toLowerCase().includes(normalized));
 };
 
@@ -61,7 +75,10 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
 
   while (currentId) {
     const msg: ThreadMessage | undefined = thread.messages[currentId];
-    if (!msg) break;
+    if (!msg) {
+      break;
+    }
+
     path.push(msg);
     currentId = msg.parentId;
   }
@@ -71,20 +88,33 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
 
 export const getBlockVersions = (thread: Thread, messageId: string): string[] => {
   const msg = thread.messages[messageId];
-  if (!msg) return [];
+  if (!msg) {
+    return [];
+  }
 
   const parentId = msg.parentId;
+
   if (!parentId) {
     const roots = Object.values(thread.messages).filter((m) => !m.parentId && m.role === msg.role);
-    if (roots.length <= 1) return [messageId];
+
+    if (roots.length <= 1) {
+      return [messageId];
+    }
+
     return roots.map((m) => m.id).sort((a, b) => (thread.messages[a]?.timestamp || 0) - (thread.messages[b]?.timestamp || 0));
   }
 
   const parent = thread.messages[parentId];
-  if (!parent) return [messageId];
+
+  if (!parent) {
+    return [messageId];
+  }
 
   const siblings = parent.childrenIds || [];
-  if (siblings.length <= 1) return [messageId];
+
+  if (siblings.length <= 1) {
+    return [messageId];
+  }
 
   // Just return children of the parent that share the same role
   // This avoids deep tree traversal since the UI only shows siblings in the same branch point
@@ -102,7 +132,9 @@ export const getBlockVersions = (thread: Thread, messageId: string): string[] =>
 
 export const findVersionLeaf = (thread: Thread, versionId: string): string => {
   const versionMsg = thread.messages[versionId];
-  if (!versionMsg) return versionId;
+  if (!versionMsg) {
+    return versionId;
+  }
 
   const roleToAvoid = versionMsg.role;
   let currentId = versionId;
@@ -111,7 +143,13 @@ export const findVersionLeaf = (thread: Thread, versionId: string): string => {
   while (true) {
     const msg = thread.messages[currentId];
     const children = msg?.childrenIds;
-    if (!children || children.length === 0) break;
+    if (!children) {
+      break;
+    }
+
+    if (children.length === 0) {
+      break;
+    }
 
     let bestChildId: string | undefined;
     let maxTimestamp = -1;
@@ -119,8 +157,13 @@ export const findVersionLeaf = (thread: Thread, versionId: string): string => {
     for (let i = 0; i < children.length; i++) {
       const childId = children[i];
       const child = thread.messages[childId];
-      if (!child) continue;
-      if (isFirstStep && child.role === roleToAvoid) continue;
+      if (!child) {
+        continue;
+      }
+
+      if (isFirstStep && child.role === roleToAvoid) {
+        continue;
+      }
 
       if (child.timestamp > maxTimestamp) {
         maxTimestamp = child.timestamp;
@@ -128,7 +171,9 @@ export const findVersionLeaf = (thread: Thread, versionId: string): string => {
       }
     }
 
-    if (!bestChildId) break;
+    if (!bestChildId) {
+      break;
+    }
     currentId = bestChildId;
     isFirstStep = false;
   }
@@ -143,7 +188,11 @@ export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage>
   }
 
   const vals = Object.values(messages);
-  return vals.length <= 1 ? vals : vals.sort((a, b) => a.timestamp - b.timestamp);
+  if (vals.length <= 1) {
+    return vals;
+  }
+
+  return vals.sort((a, b) => a.timestamp - b.timestamp);
 };
 
 export const branchThreadPath = (
@@ -218,11 +267,15 @@ export const getFlattenedThreads = (
     {} as Record<string, (ThreadMetadata | Thread)[]>,
   );
 
-  for (let i = 0; i < threadsList.length; i++) {
-    const thread = threadsList[i];
-    if (thread.archived) continue;
+  for (const thread of threadsList) {
+    if (thread.archived) {
+      continue;
+    }
 
-    if (query && !thread.title.toLowerCase().includes(query)) continue;
+    const matchesQuery = !query || thread.title.toLowerCase().includes(query);
+    if (!matchesQuery) {
+      continue;
+    }
 
     if (pinnedSet?.has(thread.id)) {
       groups.Pinned.push(thread);
@@ -230,21 +283,37 @@ export const getFlattenedThreads = (
     }
 
     const ts = thread.updatedAt;
-    if (ts >= todayStart) groups.Today.push(thread);
-    else if (ts >= yesterdayStart) groups.Yesterday.push(thread);
-    else if (ts >= last7DaysStart) groups['Last 7 Days'].push(thread);
-    else groups['Last 30 Days'].push(thread);
+
+    if (ts >= todayStart) {
+      groups.Today.push(thread);
+      continue;
+    }
+
+    if (ts >= yesterdayStart) {
+      groups.Yesterday.push(thread);
+      continue;
+    }
+
+    if (ts >= last7DaysStart) {
+      groups['Last 7 Days'].push(thread);
+      continue;
+    }
+
+    groups['Last 30 Days'].push(thread);
   }
 
   const result: FlattenedThreadItem[] = [];
-  for (let i = 0; i < labels.length; i++) {
-    const label = labels[i];
+
+  for (const label of labels) {
     const group = groups[label];
-    if (group.length > 0) {
-      result.push({ type: 'label', label });
-      for (let j = 0; j < group.length; j++) {
-        result.push({ type: 'thread', thread: group[j] });
-      }
+    if (group.length === 0) {
+      continue;
+    }
+
+    result.push({ type: 'label', label });
+
+    for (const thread of group) {
+      result.push({ type: 'thread', thread });
     }
   }
   return result;

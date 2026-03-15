@@ -122,19 +122,26 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
         mermaid.initialize(mermaidConfig);
         const id = `mermaid-${randomId(8)}`;
         const { svg: renderedSvg } = await mermaid.render(id, code);
-        if (isMounted) {
-          mermaidCache.set(`${theme}-${code}`, renderedSvg);
-          setSvg(renderedSvg);
-          setError(null);
+
+        if (!isMounted) {
+          return;
         }
+
+        mermaidCache.set(`${theme}-${code}`, renderedSvg);
+        setSvg(renderedSvg);
+        setError(null);
       } catch (err) {
-        if (isMounted) {
-          console.error('Mermaid render error:', err);
-          setError('render_failed');
+        if (!isMounted) {
+          return;
         }
+
+        console.error('Mermaid render error:', err);
+        setError('render_failed');
       }
     };
+
     render();
+
     return () => {
       isMounted = false;
     };

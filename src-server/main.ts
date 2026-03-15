@@ -30,7 +30,10 @@ const router = HttpRouter.empty.pipe(
           Effect.gen(function* () {
             const tool = TOOL_LIST[item.name];
             if (!tool) {
-              return { id: item.id, error: `Tool not found: ${item.name}` };
+              return {
+                id: item.id,
+                error: `Tool not found: ${item.name}`,
+              };
             }
 
             const result = yield* tool.execute(item.arguments).pipe(

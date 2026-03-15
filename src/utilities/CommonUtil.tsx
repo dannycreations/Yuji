@@ -6,13 +6,19 @@ export const randomId = (size: number = 8): string => crypto.randomUUID().slice(
 
 export const getFirstChar = (str: string): string => {
   const trimmed = str.trim();
-  if (!trimmed) return '';
+  if (!trimmed) {
+    return '';
+  }
+
   const first = trimmed.codePointAt(0);
   return first ? String.fromCodePoint(first).toUpperCase() : '';
 };
 
 export const truncate = (str: string, length: number): string => {
-  if (str.length <= length) return str;
+  if (str.length <= length) {
+    return str;
+  }
+
   return str.slice(0, length).trim() + '...';
 };
 
@@ -72,9 +78,17 @@ export const parseBoldText = (text: string): (string | ReactNode)[] => {
 };
 
 export const formatError = (err: unknown): string => {
-  if (Cause.isCause(err)) return Cause.pretty(err);
-  if (err instanceof Error) return err.message;
-  if (typeof err === 'string') return err;
+  if (Cause.isCause(err)) {
+    return Cause.pretty(err);
+  }
+
+  if (err instanceof Error) {
+    return err.message;
+  }
+
+  if (typeof err === 'string') {
+    return err;
+  }
 
   const msg = (err as { readonly message?: string })?.message;
   if (msg) return msg;

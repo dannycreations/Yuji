@@ -66,7 +66,8 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
     });
   };
 
-  if (optimisticModelId && optimisticModelId === currentModelId && optimisticModelId !== null) {
+  const isOptimisticResolved = optimisticModelId !== null && optimisticModelId === currentModelId;
+  if (isOptimisticResolved) {
     setOptimisticModelId(null);
   }
 
@@ -84,9 +85,16 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
       onStop();
       return;
     }
+
     const trimmedInput = input.trim();
-    if (!trimmedInput && attachments.length === 0) return;
-    onSend(trimmedInput, [...attachments], { search: isSearchEnabled });
+    const hasAttachments = attachments.length > 0;
+    if (!trimmedInput && !hasAttachments) {
+      return;
+    }
+
+    onSend(trimmedInput, [...attachments], {
+      search: isSearchEnabled,
+    });
     setInput('');
     clearAttachments();
     setIsSearchEnabled(false);

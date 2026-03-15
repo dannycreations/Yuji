@@ -75,7 +75,10 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const metadata = yield* Effect.promise(() => db.get(STORES.METADATA, 'current'));
-          if (!metadata) return null;
+          if (!metadata) {
+            return null;
+          }
+
           return metadata as AppStoreState;
         }),
 
@@ -99,7 +102,9 @@ export const StorageServiceLive = Layer.effect(
           const limit = options?.limit ?? 50;
           const normalizedQuery = query.trim().toLowerCase();
 
-          if (!normalizedQuery) return [];
+          if (!normalizedQuery) {
+            return [];
+          }
 
           const tx = db.transaction(STORES.THREADS, 'readonly');
           const index = tx.store.index('updatedAt');
@@ -108,10 +113,16 @@ export const StorageServiceLive = Layer.effect(
           const results: ThreadMetadata[] = [];
           while (cursor) {
             const thread = cursor.value as ThreadMetadata;
-            if (thread.title.toLowerCase().indexOf(normalizedQuery) !== -1) {
+            const matchesQuery = thread.title.toLowerCase().includes(normalizedQuery);
+
+            if (matchesQuery) {
               results.push(thread);
-              if (results.length >= limit) break;
             }
+
+            if (results.length >= limit) {
+              break;
+            }
+
             cursor = yield* Effect.promise(() => cursor!.continue());
           }
 
@@ -122,10 +133,13 @@ export const StorageServiceLive = Layer.effect(
         Effect.gen(function* () {
           const db = yield* getDB;
           const thread = yield* Effect.promise(() => db.get(STORES.THREADS, id));
-          if (!thread) return null;
+          if (!thread) {
+            return null;
+          }
 
           const messages = yield* storage.getMessages(id, options);
           const messagesRecord: Record<string, ThreadMessage> = {};
+
           for (let i = 0; i < messages.length; i++) {
             const m = messages[i];
             messagesRecord[m.id] = m;
@@ -134,7 +148,11 @@ export const StorageServiceLive = Layer.effect(
           const activeId = thread.activeMessageId;
 
           // Ensure the active path and their siblings are present if a limit was applied
-          if (!options?.limit || !activeId) {
+          if (!options?.limit) {
+            return { ...thread, messages: messagesRecord } as Thread;
+          }
+
+          if (!activeId) {
             return { ...thread, messages: messagesRecord } as Thread;
           }
 
@@ -144,35 +162,48 @@ export const StorageServiceLive = Layer.effect(
           while (currentId) {
             pathIds.push(currentId);
             const existing = messagesRecord[currentId];
+
             if (existing) {
               currentId = existing.parentId;
               continue;
             }
 
-            const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, [id, currentId!]))) as ThreadMessage | undefined;
-            if (!msg) break;
+            const msg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, [id, currentId as string]))) as ThreadMessage | undefined;
+
+            if (!msg) {
+              break;
+            }
 
             messagesRecord[msg.id] = msg;
             currentId = msg.parentId;
           }
 
-          if (options.loadSiblings) {
-            // Load siblings of every message in the active path
-            // This ensures version navigation works even in large threads with lazy loading
-            for (const mid of pathIds) {
-              const msg = messagesRecord[mid];
-              if (!msg?.parentId) continue;
+          if (!options.loadSiblings) {
+            return { ...thread, messages: messagesRecord } as Thread;
+          }
 
-              const siblingsKeys = (yield* Effect.promise(() =>
-                db.getAllKeysFromIndex(STORES.MESSAGES, 'threadId_parentId', [id, msg.parentId!]),
-              )) as [string, string][];
+          // Load siblings of every message in the active path
+          // This ensures version navigation works even in large threads with lazy loading
+          for (const mid of pathIds) {
+            const msg = messagesRecord[mid];
+            if (!msg?.parentId) {
+              continue;
+            }
 
-              for (const skey of siblingsKeys) {
-                const sid = skey[1];
-                if (messagesRecord[sid]) continue;
+            const siblingsKeys = (yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'threadId_parentId', [id, msg.parentId!]))) as [
+              string,
+              string,
+            ][];
 
-                const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, skey))) as ThreadMessage | undefined;
-                if (smsg) messagesRecord[sid] = smsg;
+            for (const skey of siblingsKeys) {
+              const sid = skey[1];
+              if (messagesRecord[sid]) {
+                continue;
+              }
+
+              const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, skey))) as ThreadMessage | undefined;
+              if (smsg) {
+                messagesRecord[sid] = smsg;
               }
             }
           }
@@ -195,8 +226,12 @@ export const StorageServiceLive = Layer.effect(
           // Strip messages before saving to THREADS store to prevent bloat
           const { messages: _, ...metadata } = thread as Thread;
 
-          const toSave = existing ? { ...existing, ...metadata } : metadata;
-          yield* Effect.promise(() => db.put(STORES.THREADS, toSave));
+          if (existing) {
+            yield* Effect.promise(() => db.put(STORES.THREADS, { ...existing, ...metadata }));
+            return;
+          }
+
+          yield* Effect.promise(() => db.put(STORES.THREADS, metadata));
         }),
 
       patchThread: (id, patch) =>
@@ -256,7 +291,10 @@ export const StorageServiceLive = Layer.effect(
 
           while (cursor && results.length < limit) {
             const val = cursor.value;
-            if (indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue) {
+
+            const isWrongThread = indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue;
+
+            if (isWrongThread) {
               break;
             }
 
@@ -313,25 +351,33 @@ export const StorageServiceLive = Layer.effect(
           )) as ThreadMessage[];
 
           const parentToChildren = new Map<string, string[]>();
-          for (let i = 0, len = messages.length; i < len; i++) {
-            const m = messages[i];
-            if (m.parentId) {
-              const list = parentToChildren.get(m.parentId) ?? [];
-              if (!parentToChildren.has(m.parentId)) {
-                parentToChildren.set(m.parentId, list);
-              }
-              list.push(m.id);
+          for (const m of messages) {
+            if (!m.parentId) {
+              continue;
             }
+
+            const parentId = m.parentId;
+            const existingList = parentToChildren.get(parentId);
+
+            if (existingList) {
+              existingList.push(m.id);
+              continue;
+            }
+
+            parentToChildren.set(parentId, [m.id]);
           }
 
           while (stack.length > 0) {
-            const currentId = stack.pop()!;
+            const currentId = stack.pop() as string;
             results.push(currentId);
+
             const children = parentToChildren.get(currentId);
-            if (children) {
-              for (let i = 0, len = children.length; i < len; i++) {
-                stack.push(children[i]);
-              }
+            if (!children) {
+              continue;
+            }
+
+            for (const childId of children) {
+              stack.push(childId);
             }
           }
           return results;

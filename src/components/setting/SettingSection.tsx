@@ -395,22 +395,31 @@ export const SettingTable = <T,>({
   const currentItems = useMemo(() => items.slice(currentPage * size, (currentPage + 1) * size), [items, currentPage, size]);
 
   const toggleSelectAll = () => {
-    if (!getId) return;
-    if (currentItems.length > 0 && currentItems.every((item) => selectedIds.has(getId(item)))) {
+    if (!getId) {
+      return;
+    }
+
+    const allSelected = currentItems.length > 0 && currentItems.every((item) => selectedIds.has(getId(item)));
+
+    if (allSelected) {
       const next = new Set(selectedIds);
       currentItems.forEach((item) => next.delete(getId(item)));
       setSelectedIds(next);
-    } else {
-      const next = new Set(selectedIds);
-      currentItems.forEach((item) => next.add(getId(item)));
-      setSelectedIds(next);
+      return;
     }
+
+    const next = new Set(selectedIds);
+    currentItems.forEach((item) => next.add(getId(item)));
+    setSelectedIds(next);
   };
 
   const toggleSelectItem = (id: string) => {
     const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
     setSelectedIds(next);
   };
 
@@ -532,8 +541,15 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const json = JSON.parse(event.target?.result as string);
-        if (typeof json === 'object' && json !== null) {
+        const result = event.target?.result;
+        if (!result) {
+          return;
+        }
+
+        const json = JSON.parse(result as string);
+        const isValidImport = typeof json === 'object' && json !== null;
+
+        if (isValidImport) {
           onImportThreads(json);
         }
       } catch (err) {
@@ -656,7 +672,11 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 
   const handlePreview = (id: string) => {
     getThread(id).then((thread) => {
-      if (thread) setPreviewThread(thread);
+      if (!thread) {
+        return;
+      }
+
+      setPreviewThread(thread);
     });
   };
 

@@ -34,9 +34,20 @@ export const getAvailableShells = (): Effect.Effect<string[], never, FileSystem.
       const powershellPath = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
       const pwshPath = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe');
 
-      if (yield* fs.exists(cmdPath).pipe(Effect.catchAll(() => Effect.succeed(false)))) shells.push(cmdPath);
-      if (yield* fs.exists(powershellPath).pipe(Effect.catchAll(() => Effect.succeed(false)))) shells.push(powershellPath);
-      if (yield* fs.exists(pwshPath).pipe(Effect.catchAll(() => Effect.succeed(false)))) shells.push(pwshPath);
+      const cmdExists = yield* fs.exists(cmdPath).pipe(Effect.catchAll(() => Effect.succeed(false)));
+      if (cmdExists) {
+        shells.push(cmdPath);
+      }
+
+      const powershellExists = yield* fs.exists(powershellPath).pipe(Effect.catchAll(() => Effect.succeed(false)));
+      if (powershellExists) {
+        shells.push(powershellPath);
+      }
+
+      const pwshExists = yield* fs.exists(pwshPath).pipe(Effect.catchAll(() => Effect.succeed(false)));
+      if (pwshExists) {
+        shells.push(pwshPath);
+      }
     } else {
       const commonShells = ['/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/bash', '/usr/bin/zsh'];
       for (const shell of commonShells) {

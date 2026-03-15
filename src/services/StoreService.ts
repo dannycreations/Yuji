@@ -36,19 +36,30 @@ const createNotification = (
   message: string,
   existing: readonly AppRuntimeState['notifications'][number][],
 ): AppRuntimeState['notifications'] => {
-  // Check for duplicate to avoid unnecessary state update
-  if (existing.length > 0 && existing[0].message === message && existing[0].type === type) {
+  const first = existing[0];
+
+  const isDuplicate = existing.length > 0 && first.message === message && first.type === type;
+
+  if (isDuplicate) {
     return existing as AppRuntimeState['notifications'];
   }
 
   const next: AppRuntimeState['notifications'][number][] = [{ id: randomId(8), type, message, timestamp: Date.now() }];
 
   for (const n of existing) {
-    if (n.message === message && n.type === type) continue;
+    const isSame = n.message === message && n.type === type;
+
+    if (isSame) {
+      continue;
+    }
+
     next.push(n);
   }
 
-  if (next.length > 5) return next.slice(0, 5);
+  if (next.length > 5) {
+    return next.slice(0, 5);
+  }
+
   return next;
 };
 
@@ -101,7 +112,10 @@ export const StoreServiceLive = Layer.effect(
 
       const { metadata, threadHeaders } = result.right;
       if (!metadata) {
-        return { ...INITIAL_STATE, isHydrated: true } as AppRuntimeState;
+        return {
+          ...INITIAL_STATE,
+          isHydrated: true,
+        } as AppRuntimeState;
       }
 
       const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
@@ -200,7 +214,10 @@ export const StoreServiceLive = Layer.effect(
       );
 
     const getSnapshot = () => {
-      if (snapshotCache) return snapshotCache;
+      if (snapshotCache) {
+        return snapshotCache;
+      }
+
       snapshotCache = SubscriptionRef.get(state).pipe(Effect.runSync);
       return snapshotCache;
     };
@@ -212,13 +229,14 @@ export const StoreServiceLive = Layer.effect(
       subscribe,
       patch: (updates) =>
         update((s) => {
-          let changed = false;
-          for (const key in updates) {
-            if (s[key as keyof typeof s] === updates[key as keyof typeof updates]) continue;
-            changed = true;
-            break;
+          const keys = Object.keys(updates) as (keyof typeof updates)[];
+          const hasChange = keys.some((key) => s[key as keyof typeof s] !== updates[key]);
+
+          if (!hasChange) {
+            return s;
           }
-          return changed ? { ...s, ...updates } : s;
+
+          return { ...s, ...updates };
         }),
       getThread: (id) =>
         Effect.gen(function* () {
@@ -261,15 +279,24 @@ export const StoreServiceLive = Layer.effect(
       togglePin: (id) =>
         update((s) => {
           const list = s.pinnedThreadIds;
-          const idx = list.indexOf(id);
-          const next = idx !== -1 ? list.filter((item) => item !== id) : [...list, id];
+          const isPinned = list.includes(id);
+
+          if (isPinned) {
+            const next = list.filter((item) => item !== id);
+
+            return { ...s, pinnedThreadIds: next };
+          }
+
+          const next = [...list, id];
           return { ...s, pinnedThreadIds: next };
         }),
       toggleArchive: (threadId) =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
           const thread = s.threads[threadId];
-          if (!thread) return;
+          if (!thread) {
+            return;
+          }
 
           const archived = !thread.archived;
           yield* update((s) => ({
@@ -297,9 +324,15 @@ export const StoreServiceLive = Layer.effect(
       executeConfirm: (id) =>
         Effect.gen(function* () {
           const onConfirm = OnConfirmStore.get(id);
-          if (onConfirm) onConfirm();
+          if (onConfirm) {
+            onConfirm();
+          }
+
           OnConfirmStore.delete(id);
-          yield* update((s) => ({ ...s, confirm: { ...s.confirm, isOpen: false } }));
+          yield* update((s) => ({
+            ...s,
+            confirm: { ...s.confirm, isOpen: false },
+          }));
         }),
       notify: (type, message) =>
         update((s) => ({
@@ -316,7 +349,9 @@ export const StoreServiceLive = Layer.effect(
           const s = yield* SubscriptionRef.get(state);
           // If the thread is already active and being updated (e.g. streaming), do not reload from storage
           // to avoid overwriting the volatile live state with stale/partial data from disk.
-          if (s.activeThreadId === threadId && s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > 0) {
+          const isCurrentActive = s.activeThreadId === threadId && s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > 0;
+
+          if (isCurrentActive) {
             return;
           }
 
@@ -327,16 +362,25 @@ export const StoreServiceLive = Layer.effect(
 
           if (partialThread) {
             yield* update((s) => {
-              if (s.activeThreadId !== threadId) return s;
+              if (s.activeThreadId !== threadId) {
+                return s;
+              }
+
+              const isMoreDataExisting =
+                s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length >= Object.keys(partialThread.messages).length;
+
               // If we already have more data (maybe from a previous full load or streaming), don't downgrade
-              if (s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length >= Object.keys(partialThread.messages).length) {
+              if (isMoreDataExisting) {
                 return s;
               }
 
               return {
                 ...s,
                 activeThread: partialThread,
-                settings: { ...s.settings, model: partialThread.general.model || s.settings.model },
+                settings: {
+                  ...s.settings,
+                  model: partialThread.general.model || s.settings.model,
+                },
               };
             });
           }
@@ -344,13 +388,21 @@ export const StoreServiceLive = Layer.effect(
           // PHASE 2: Background load of everything else to ensure full history availability
           yield* Effect.gen(function* () {
             const fullThread = yield* storage.getThread(threadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
-            if (!fullThread) return;
+
+            if (!fullThread) {
+              return;
+            }
 
             yield* update((s) => {
-              if (s.activeThreadId !== threadId) return s;
+              if (s.activeThreadId !== threadId) {
+                return s;
+              }
+
+              const isMoreDataExisting =
+                s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > Object.keys(fullThread.messages).length;
 
               // If the thread is already populated (e.g. by sendMessage), don't overwrite
-              if (s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > Object.keys(fullThread.messages).length) {
+              if (isMoreDataExisting) {
                 return s;
               }
 
@@ -361,7 +413,10 @@ export const StoreServiceLive = Layer.effect(
               return {
                 ...s,
                 activeThread: { ...fullThread, messages: mergedMessages },
-                settings: { ...s.settings, model: fullThread.general.model || s.settings.model },
+                settings: {
+                  ...s.settings,
+                  model: fullThread.general.model || s.settings.model,
+                },
               };
             });
           }).pipe(Effect.forkDaemon);
@@ -370,37 +425,58 @@ export const StoreServiceLive = Layer.effect(
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);
           const threadList = Object.values(s.threads);
-          if (threadList.length === 0) return;
+          if (threadList.length === 0) {
+            return;
+          }
 
-          const lastKey = threadList.reduce((acc, t) => (t.updatedAt < acc ? t.updatedAt : acc), Infinity);
+          const lastKey = threadList.reduce((acc, t) => {
+            const result = t.updatedAt < acc ? t.updatedAt : acc;
+            return result;
+          }, Infinity);
 
           const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
-          if (more.length === 0) return;
+
+          if (more.length === 0) {
+            return;
+          }
 
           yield* update((s) => {
             const next = { ...s.threads };
-            for (let i = 0; i < more.length; i++) {
-              const t = more[i];
+            for (const t of more) {
               next[t.id] = t;
             }
 
             const list = Object.values(next);
-            if (list.length <= MAX_MEM_THREADS) return { ...s, threads: next };
+            if (list.length <= MAX_MEM_THREADS) {
+              return { ...s, threads: next };
+            }
 
             const res: Record<string, ThreadMetadata> = {};
             const pinnedIds = s.pinnedThreadIds;
-            for (let i = 0, len = pinnedIds.length; i < len; i++) {
-              const id = pinnedIds[i];
+            for (const id of pinnedIds) {
               const t = next[id];
-              if (t) res[id] = t;
+              if (t) {
+                res[id] = t;
+              }
             }
+
             const activeId = s.activeThreadId;
-            if (activeId && next[activeId]) res[activeId] = next[activeId];
+            if (activeId && next[activeId]) {
+              res[activeId] = next[activeId];
+            }
 
             list.sort((a, b) => b.updatedAt - a.updatedAt);
-            for (let i = 0; i < list.length && Object.keys(res).length < MAX_MEM_THREADS; i++) {
-              const t = list[i];
-              if (!res[t.id]) res[t.id] = t;
+
+            for (const t of list) {
+              const isFull = Object.keys(res).length >= MAX_MEM_THREADS;
+
+              if (isFull) {
+                break;
+              }
+
+              if (!res[t.id]) {
+                res[t.id] = t;
+              }
             }
 
             return { ...s, threads: res };

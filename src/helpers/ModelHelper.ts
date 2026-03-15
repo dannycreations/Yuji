@@ -18,10 +18,14 @@ export const getFilteredModels = (
   const filtered: Model[] = [];
   for (let i = 0; i < availableModels.length; i++) {
     const m = availableModels[i];
-    if (!includeDisabled && disabledSet?.has(m.id)) continue;
+    if (!includeDisabled && disabledSet?.has(m.id)) {
+      continue;
+    }
 
     const matchesQuery = !query || m.name.toLowerCase().includes(query) || m.id.toLowerCase().includes(query);
-    if (matchesQuery) filtered.push(m);
+    if (matchesQuery) {
+      filtered.push(m);
+    }
   }
 
   if (sort && filtered.length > 1) {
@@ -49,8 +53,13 @@ export const getModelId = (settings: GlobalSetting, availableModels: readonly Mo
   for (let i = 0; i < availableModels.length; i++) {
     const m = availableModels[i];
     if (!disabledSet?.has(m.id)) {
-      if (!firstActiveId) firstActiveId = m.id;
-      if (m.id === settings.model) return m.id;
+      if (!firstActiveId) {
+        firstActiveId = m.id;
+      }
+
+      if (m.id === settings.model) {
+        return m.id;
+      }
     }
   }
 
@@ -65,7 +74,9 @@ export const getCurrentModelId = (activeThread: Thread | null, settings: GlobalS
 
 export const getModelName = (availableModels: readonly Model[], modelId: string): string => {
   for (const m of availableModels) {
-    if (m.id === modelId) return toTitleCase(m.name);
+    if (m.id === modelId) {
+      return toTitleCase(m.name);
+    }
   }
   return 'Yuji';
 };

@@ -83,13 +83,18 @@ export const ChatInterface: FC = () => {
 
   // Reset ready state and scroll position on thread change
   useLayoutEffect(() => {
-    if (activeThreadId !== lastThreadId.current) {
-      lastThreadId.current = activeThreadId;
-      setIsReady(false);
-      isAtBottomRef.current = true;
-      // Force virtualizer to clear measurements and scroll position immediately on thread change
-      virtualizer.scrollToOffset(0);
+    const isNewThread = activeThreadId !== lastThreadId.current;
+
+    if (!isNewThread) {
+      return;
     }
+
+    lastThreadId.current = activeThreadId;
+    setIsReady(false);
+    isAtBottomRef.current = true;
+
+    // Force virtualizer to clear measurements and scroll position immediately on thread change
+    virtualizer.scrollToOffset(0);
   }, [activeThreadId, virtualizer]);
 
   // Load messages for the active thread
@@ -101,9 +106,21 @@ export const ChatInterface: FC = () => {
 
   // Handle initial scroll and ready state
   useLayoutEffect(() => {
-    if (!containerHeight || isTransitioning || isEmpty) return;
+    if (!containerHeight) {
+      return;
+    }
 
-    if (isReady) return;
+    if (isTransitioning) {
+      return;
+    }
+
+    if (isEmpty) {
+      return;
+    }
+
+    if (isReady) {
+      return;
+    }
 
     if (visibleMessages.length > 0) {
       virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });
@@ -116,7 +133,21 @@ export const ChatInterface: FC = () => {
 
   // Keep scroll at bottom when content changes or during streaming
   useLayoutEffect(() => {
-    if (!isReady || !isAtBottomRef.current || isTransitioning || visibleMessages.length === 0) return;
+    if (!isReady) {
+      return;
+    }
+
+    if (!isAtBottomRef.current) {
+      return;
+    }
+
+    if (isTransitioning) {
+      return;
+    }
+
+    if (visibleMessages.length === 0) {
+      return;
+    }
 
     // Use scrollToIndex for more stable behavior with virtualization
     virtualizer.scrollToIndex(visibleMessages.length - 1, { align: 'end' });

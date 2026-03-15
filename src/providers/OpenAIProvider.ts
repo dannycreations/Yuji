@@ -34,6 +34,7 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
         content: m.content,
         tool_call_id: m.toolCallId,
       });
+
       continue;
     }
 
@@ -43,11 +44,13 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
         content: m.content || null,
         tool_calls: m.toolCalls,
       });
+
       continue;
     }
 
     if (!m.attachments || m.attachments.length === 0) {
       result.push({ role: m.role, content: m.content });
+
       continue;
     }
 
@@ -127,33 +130,42 @@ export const OpenAIProviderLive = Layer.effect(
                   Stream.splitLines,
                   Stream.filterMap((line) => {
                     const trimmed = line.trim();
-                    if (trimmed === '' || trimmed === 'data: [DONE]') return Option.none();
-                    if (trimmed.startsWith('data: ')) {
-                      try {
-                        const data = JSON.parse(trimmed.slice(6));
-                        const delta = data.choices[0]?.delta;
-                        if (!delta) return Option.none();
+                    if (trimmed === '' || trimmed === 'data: [DONE]') {
+                      return Option.none();
+                    }
 
-                        const token = delta.content || '';
-                        const reasoning = delta.reasoning_content || '';
-                        const toolCalls = delta.tool_calls;
+                    if (!trimmed.startsWith('data: ')) {
+                      return Option.none();
+                    }
 
-                        if (toolCalls) {
-                          return Option.some(`TOOL_CALLS:${JSON.stringify(toolCalls)}`);
-                        }
+                    try {
+                      const data = JSON.parse(trimmed.slice(6));
+                      const delta = data.choices[0]?.delta;
 
-                        if (reasoning) {
-                          return Option.some(` <reasoning>${reasoning}</reasoning> `);
-                        }
-                        if (token) {
-                          return Option.some(token);
-                        }
-                        return Option.none();
-                      } catch {
+                      if (!delta) {
                         return Option.none();
                       }
+
+                      const token = delta.content || '';
+                      const reasoning = delta.reasoning_content || '';
+                      const toolCalls = delta.tool_calls;
+
+                      if (toolCalls) {
+                        return Option.some(`TOOL_CALLS:${JSON.stringify(toolCalls)}`);
+                      }
+
+                      if (reasoning) {
+                        return Option.some(` <reasoning>${reasoning}</reasoning> `);
+                      }
+
+                      if (token) {
+                        return Option.some(token);
+                      }
+
+                      return Option.none();
+                    } catch {
+                      return Option.none();
                     }
-                    return Option.none();
                   }),
                 );
                 return Effect.succeed(stream);

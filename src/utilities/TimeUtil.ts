@@ -8,7 +8,9 @@ const INTERVALS = [
 
 export const timeAgo = (timestamp: number): string => {
   const diffSeconds = (Date.now() - timestamp) / 1000;
-  if (diffSeconds < 60) return 'just now';
+  if (diffSeconds < 60) {
+    return 'just now';
+  }
 
   for (let i = 0, len = INTERVALS.length; i < len; i++) {
     const { label, seconds } = INTERVALS[i];
