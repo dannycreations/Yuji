@@ -1,7 +1,6 @@
 import './styles.css';
 
 import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
-import { PanelLeftOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { reportError } from '../app/Error';
@@ -67,9 +66,7 @@ const DatabaseErrorView = ({ error }: { error: string }) => {
 
 const YujiLayout = () => {
   const theme = useStore((s) => s.settings.theme);
-  const isSidebarOpen = useStore((s) => s.isSidebarOpen);
   const initializationError = useStore((s) => s.initializationError);
-  const toggleSidebar = useStoreAction((s) => s.toggle('isSidebarOpen'));
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -87,13 +84,6 @@ const YujiLayout = () => {
 
   return (
     <div className="app-container">
-      {!isSidebarOpen && (
-        <div className="fixed top-2 left-2 z-header">
-          <ButtonInput onClick={toggleSidebar} title="Open Sidebar" className="bg-background/80 backdrop-blur border border-separator/50">
-            <PanelLeftOpen size={20} />
-          </ButtonInput>
-        </div>
-      )}
       <Sidebar />
       <ChatInterface />
       <GlobalSettingModal />
