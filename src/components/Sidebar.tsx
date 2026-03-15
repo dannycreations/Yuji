@@ -74,6 +74,7 @@ export const Sidebar: FC = () => {
     estimateSize: () => 44,
     getItemKey: (index) => {
       const item = flattenedThreads[index];
+      if (!item) return `empty-${index}`;
       return item.type === 'label' ? `label-${item.label}` : item.thread.id;
     },
     overscan: 5,
@@ -165,6 +166,8 @@ export const Sidebar: FC = () => {
           >
             {virtualItems.map((virtualRow) => {
               const item = flattenedThreads[virtualRow.index];
+              if (!item) return null;
+
               if (item.type === 'label') {
                 return (
                   <h3 key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="label-caps p-2">

@@ -74,7 +74,11 @@ export const ChatInterface: FC = () => {
     count: visibleMessages.length,
     getScrollElement: () => scrollAreaRef.current,
     estimateSize: () => 150,
-    getItemKey: (index) => visibleMessages[index]?.id ?? `empty-${index}`,
+    getItemKey: (index) => {
+      const msg = visibleMessages[index];
+      if (!msg) return `empty-${index}`;
+      return msg.id;
+    },
     overscan: 10,
   });
 
