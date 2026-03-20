@@ -1,7 +1,12 @@
-import { DEFAULT_SYSTEM_PROMPT } from '../app/Constant';
+import { DEFAULT_SYSTEM_PROMPT, MODE_LIST } from '../app/Constant';
 import { GlobalSetting, Model, Thread, ThreadMessage, ThreadMetadata } from '../app/Schema';
 import { randomId, truncate } from '../utilities/CommonUtil';
 import { getModelId } from './ModelHelper';
+
+export const ensureValidMode = (mode: string | undefined | null): 'chat' | 'agent' => {
+  const isValid = MODE_LIST.some((m) => m.id === mode);
+  return isValid ? (mode as 'chat' | 'agent') : 'chat';
+};
 
 export const createInitialThread = (settings: GlobalSetting, availableModels: readonly Model[]): Thread => {
   const now = Date.now();
@@ -10,7 +15,7 @@ export const createInitialThread = (settings: GlobalSetting, availableModels: re
   return {
     id: randomId(),
     title: 'New Chat',
-    mode: settings.mode,
+    mode: ensureValidMode(settings.mode),
     messages: {},
     createdAt: now,
     updatedAt: now,

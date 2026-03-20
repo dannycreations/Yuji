@@ -2,6 +2,7 @@ import { Context, Effect, Either, Layer, Stream, SubscriptionRef } from 'effect'
 
 import { DEFAULT_SETTINGS } from '../app/Constant';
 import { AppRuntimeState, AppStoreState, ConfirmOptions, Thread, ThreadMetadata } from '../app/Schema';
+import { ensureValidMode } from '../helpers/ThreadHelper';
 import { formatError, randomId } from '../utilities/CommonUtil';
 import { StorageService } from './StorageService';
 
@@ -118,7 +119,7 @@ export const StoreServiceLive = Layer.effect(
         } as AppRuntimeState;
       }
 
-      const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, h]));
+      const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, { ...h, mode: ensureValidMode(h.mode) }]));
       const { activeThreadId, settings } = metadata;
 
       if (!activeThreadId) {
@@ -128,6 +129,7 @@ export const StoreServiceLive = Layer.effect(
           settings: {
             ...DEFAULT_SETTINGS,
             ...settings,
+            mode: ensureValidMode(settings.mode),
           },
           threads,
           isHydrated: true,
@@ -143,8 +145,9 @@ export const StoreServiceLive = Layer.effect(
           ...DEFAULT_SETTINGS,
           ...settings,
           model: activeThread?.general.model || settings.model,
+          mode: ensureValidMode(settings.mode),
         },
-        activeThread,
+        activeThread: activeThread ? { ...activeThread, mode: ensureValidMode(activeThread.mode) } : null,
         threads,
         isHydrated: true,
       } as AppRuntimeState;
@@ -376,7 +379,7 @@ export const StoreServiceLive = Layer.effect(
 
               return {
                 ...s,
-                activeThread: partialThread,
+                activeThread: { ...partialThread, mode: ensureValidMode(partialThread.mode) },
                 settings: {
                   ...s.settings,
                   model: partialThread.general.model || s.settings.model,
@@ -412,7 +415,7 @@ export const StoreServiceLive = Layer.effect(
 
               return {
                 ...s,
-                activeThread: { ...fullThread, messages: mergedMessages },
+                activeThread: { ...fullThread, mode: ensureValidMode(fullThread.mode), messages: mergedMessages },
                 settings: {
                   ...s.settings,
                   model: fullThread.general.model || s.settings.model,
@@ -443,7 +446,7 @@ export const StoreServiceLive = Layer.effect(
           yield* update((s) => {
             const next = { ...s.threads };
             for (const t of more) {
-              next[t.id] = t;
+              next[t.id] = { ...t, mode: ensureValidMode(t.mode) };
             }
 
             const list = Object.values(next);
@@ -490,7 +493,7 @@ export const StoreServiceLive = Layer.effect(
                 update((s) => {
                   const newThreads = { ...s.threads };
                   headers.forEach((h) => {
-                    newThreads[h.id] = h;
+                    newThreads[h.id] = { ...h, mode: ensureValidMode(h.mode) };
                   });
                   return { ...s, threads: newThreads };
                 }),
@@ -505,7 +508,7 @@ export const StoreServiceLive = Layer.effect(
           yield* update((s) => {
             const nextThreads = { ...s.threads };
             results.forEach((r) => {
-              nextThreads[r.id] = r;
+              nextThreads[r.id] = { ...r, mode: ensureValidMode(r.mode) };
             });
             return { ...s, threads: nextThreads };
           });
