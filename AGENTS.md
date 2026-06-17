@@ -1,4 +1,4 @@
-# React Development Guide
+# Yuji Development Guide
 
 ## Guidelines
 
@@ -8,6 +8,6 @@
 ## Commands
 
 ```cmd
-# Check for compilation errors
+# Check for static errors
 bun run check
 ```
