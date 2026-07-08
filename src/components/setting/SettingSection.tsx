@@ -20,12 +20,10 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { YujiRuntime } from '../../app/Runtime';
 import { getFilteredModels, getModelName } from '../../helpers/ModelHelper';
 import { getVisibleMessages, sortThreadsByDate } from '../../helpers/ThreadHelper';
-import { useChatAction, useStoreAction } from '../../hooks/useStore';
+import { useChatAction, useRuntimeAction, useStoreAction } from '../../hooks/useStore';
 import { LLMProvider } from '../../providers/LLMProvider';
-import { StoreService } from '../../services/StoreService';
 import { ToolService } from '../../services/ToolService';
 import { downloadFile, formatError } from '../../utilities/CommonUtil';
 import { timeAgo } from '../../utilities/TimeUtil';
@@ -77,6 +75,8 @@ export const DiscoverySection = <T,>({
   const [search, setSearch] = useState('');
   const [refreshState, setRefreshState] = useState<'idle' | 'loading' | 'success'>('idle');
 
+  const notifyError = useStoreAction((s, msg: string) => s.notify('error', msg));
+
   const handleRefresh = useCallback(async () => {
     setRefreshState('loading');
     try {
@@ -85,9 +85,9 @@ export const DiscoverySection = <T,>({
       setTimeout(() => setRefreshState('idle'), 2000);
     } catch (error) {
       setRefreshState('idle');
-      YujiRuntime.runPromise(Effect.flatMap(StoreService, (s) => s.notify('error', `Failed to refresh: ${formatError(error)}`)));
+      notifyError(`Failed to refresh: ${formatError(error)}`);
     }
-  }, [onRefresh]);
+  }, [onRefresh, notifyError]);
 
   const filteredItems = useMemo(() => filterItems(items, search), [items, search, filterItems]);
 
@@ -230,8 +230,8 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
   const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const setAvailableModels = (models: Model[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableModels: models }));
 
-  const handleRefreshModels = useCallback(async () => {
-    return YujiRuntime.runPromise(
+  const handleRefreshModels = useRuntimeAction(
+    () =>
       Effect.gen(function* () {
         const llm = yield* LLMProvider;
         const result = yield* llm.fetchModels(settings);
@@ -248,8 +248,8 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
 
         setAvailableModels(apiModels);
       }),
-    );
-  }, [settings]);
+    'Failed to fetch models',
+  );
 
   const filterItems = useCallback(
     (items: readonly Model[], search: string) => getFilteredModels(items, settings.disabledModels, search, { includeDisabled: true, sort: true }),
@@ -297,16 +297,16 @@ export const ToolsSection: FC<SettingSectionProps & { availableTools: readonly T
   const updateStore = useStoreAction((s, f: (state: AppRuntimeState) => AppRuntimeState) => s.update(f));
   const setAvailableTools = (tools: ToolDefinition[]) => updateStore((s: AppRuntimeState) => ({ ...s, availableTools: tools }));
 
-  const handleRefreshTools = useCallback(async () => {
-    return YujiRuntime.runPromise(
+  const handleRefreshTools = useRuntimeAction(
+    () =>
       Effect.gen(function* () {
         const toolService = yield* ToolService;
         const tools = yield* toolService.fetch(settings);
 
         setAvailableTools(tools as ToolDefinition[]);
       }),
-    );
-  }, [settings, updateStore]);
+    'Failed to fetch tools',
+  );
 
   const filterItems = useCallback((items: readonly ToolDefinition[], search: string) => {
     if (!search) return items as ToolDefinition[];
@@ -516,23 +516,20 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
   const onImportThreads = useChatAction((c, newThreads: Record<string, Thread>) => c.importThreads(newThreads));
   const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
 
-  const handleExport = useCallback(
-    (selectedIds: Set<string>, prefix: string) => {
-      YujiRuntime.runPromise(
-        Effect.gen(function* () {
-          const ids = selectedIds.size > 0 ? Array.from(selectedIds) : Object.keys(threads);
-          const dataToExport: Record<string, Thread> = {};
+  const handleExport = useRuntimeAction(
+    (selectedIds: Set<string>, prefix: string) =>
+      Effect.gen(function* () {
+        const ids = selectedIds.size > 0 ? Array.from(selectedIds) : Object.keys(threads);
+        const dataToExport: Record<string, Thread> = {};
 
-          for (const id of ids) {
-            const thread = yield* Effect.promise(() => getThread(id));
-            if (thread) dataToExport[id] = thread;
-          }
+        for (const id of ids) {
+          const thread = yield* Effect.promise(() => getThread(id));
+          if (thread) dataToExport[id] = thread;
+        }
 
-          downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-        }),
-      );
-    },
-    [threads, getThread],
+        downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+      }),
+    'Failed to export history',
   );
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -628,28 +625,25 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 
   const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
 
-  const handleExport = useCallback(
-    (selectedIds: Set<string>, prefix: string) => {
-      YujiRuntime.runPromise(
-        Effect.gen(function* () {
-          const ids =
-            selectedIds.size > 0
-              ? Array.from(selectedIds)
-              : Object.values(threads)
-                  .filter((t) => t.archived)
-                  .map((t) => t.id);
-          const dataToExport: Record<string, Thread> = {};
+  const handleExport = useRuntimeAction(
+    (selectedIds: Set<string>, prefix: string) =>
+      Effect.gen(function* () {
+        const ids =
+          selectedIds.size > 0
+            ? Array.from(selectedIds)
+            : Object.values(threads)
+                .filter((t) => t.archived)
+                .map((t) => t.id);
+        const dataToExport: Record<string, Thread> = {};
 
-          for (const id of ids) {
-            const thread = yield* Effect.promise(() => getThread(id));
-            if (thread) dataToExport[id] = thread;
-          }
+        for (const id of ids) {
+          const thread = yield* Effect.promise(() => getThread(id));
+          if (thread) dataToExport[id] = thread;
+        }
 
-          downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-        }),
-      );
-    },
-    [threads, getThread],
+        downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+      }),
+    'Failed to export archive',
   );
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => t.archived)), [threads]);

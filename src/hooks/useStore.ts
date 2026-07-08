@@ -1,8 +1,8 @@
-import { Cause, Effect, ManagedRuntime } from 'effect';
+import { Cause, Effect } from 'effect';
 import { createContext, useCallback, useContext, useRef, useSyncExternalStore } from 'react';
 
 import { reportError } from '../app/Error';
-import { YujiRuntime } from '../app/Runtime';
+import { YujiEnv, YujiRuntime } from '../app/Runtime';
 import { ChatService } from '../services/ChatService';
 import { StoreService } from '../services/StoreService';
 
@@ -47,29 +47,51 @@ export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 };
 
-export const useStoreAction = <A extends unknown[], R, E, I extends ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>>(
-  action: (s: StoreService, ...args: A) => Effect.Effect<R, E, I>,
+export const useRuntimeAction = <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
+  action: (...args: A) => Effect.Effect<Success, Error, Requirements>,
+  errorPrefix = 'Action failed',
 ) => {
-  const store = useStoreService();
   const actionRef = useRef(action);
   actionRef.current = action;
 
   return useCallback(
     (...args: A) =>
       YujiRuntime.runPromise(
-        actionRef.current(store, ...args).pipe(
+        actionRef.current(...args).pipe(
           Effect.catchAllCause((cause) => {
             if (Cause.isInterruptedOnly(cause)) return Effect.void;
-            return reportError('Store action failed', cause);
+            return reportError(errorPrefix, cause);
           }),
         ),
       ),
-    [store],
+    [errorPrefix],
   );
 };
 
-export const useChatAction = <A extends unknown[], R, E, I extends ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>>(
-  action: (c: ChatService, ...args: A) => Effect.Effect<R, E, I>,
+export const useStoreAction = <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
+  action: (s: StoreService, ...args: A) => Effect.Effect<Success, Error, Requirements>,
+) => {
+  const actionRef = useRef(action);
+  actionRef.current = action;
+
+  return useCallback(
+    (...args: A) =>
+      YujiRuntime.runPromise(
+        Effect.flatMap(StoreService, (s) =>
+          actionRef.current(s, ...args).pipe(
+            Effect.catchAllCause((cause) => {
+              if (Cause.isInterruptedOnly(cause)) return Effect.void;
+              return reportError('Store action failed', cause);
+            }),
+          ),
+        ),
+      ),
+    [],
+  );
+};
+
+export const useChatAction = <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
+  action: (c: ChatService, ...args: A) => Effect.Effect<Success, Error, Requirements>,
 ) => {
   const actionRef = useRef(action);
   actionRef.current = action;

@@ -14,7 +14,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react';
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
@@ -36,9 +36,42 @@ import type { FC } from 'react';
 import type { Components } from 'react-markdown';
 import type { Attachment, ConfirmOptions, ThreadMessage } from '../../app/Schema';
 
+const sharedMarkdownComponents: Components = {
+  code({ node, className, children, ...props }) {
+    const match = /language-(\w+)/.exec(className || '');
+    const rawContent = String(children);
+    const value = rawContent.replace(/\n$/, '');
+
+    if (match || value.includes('\n') || rawContent.endsWith('\n')) {
+      return <ChatMessageBlock language={match ? match[1] : ''} value={value} />;
+    }
+
+    return (
+      <code className={clsx('code-inline', className)} {...props}>
+        {children}
+      </code>
+    );
+  },
+  a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />,
+  ul: ({ node, ...props }) => <ul {...props} />,
+  ol: ({ node, ...props }) => <ol {...props} />,
+  h1: ({ node, ...props }) => <h1 {...props} />,
+  h2: ({ node, ...props }) => <h2 {...props} />,
+  h3: ({ node, ...props }) => <h3 {...props} />,
+  blockquote: ({ node, ...props }) => <blockquote {...props} />,
+  table: ({ node, ...props }) => (
+    <div className="prose-table">
+      <table {...props} />
+    </div>
+  ),
+  th: ({ node, ...props }) => <th {...props} />,
+  td: ({ node, ...props }) => <td {...props} />,
+  p: ({ node, ...props }) => <div className="prose-p" {...props} />,
+};
+
 const Markdown = memo(
-  ({ content, components }: { content: string; components: Components }) => (
-    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
+  ({ content }: { content: string }) => (
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={sharedMarkdownComponents}>
       {content}
     </ReactMarkdown>
   ),
@@ -147,42 +180,6 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       onConfirm: () => onDeleteMessage(threadId, message.id),
     });
 
-  const markdownComponents = useMemo<Components>(
-    () => ({
-      code({ node, className, children, ...props }) {
-        const match = /language-(\w+)/.exec(className || '');
-        const rawContent = String(children);
-        const value = rawContent.replace(/\n$/, '');
-
-        if (match || value.includes('\n') || rawContent.endsWith('\n')) {
-          return <ChatMessageBlock language={match ? match[1] : ''} value={value} />;
-        }
-
-        return (
-          <code className={clsx('code-inline', className)} {...props}>
-            {children}
-          </code>
-        );
-      },
-      a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />,
-      ul: ({ node, ...props }) => <ul {...props} />,
-      ol: ({ node, ...props }) => <ol {...props} />,
-      h1: ({ node, ...props }) => <h1 {...props} />,
-      h2: ({ node, ...props }) => <h2 {...props} />,
-      h3: ({ node, ...props }) => <h3 {...props} />,
-      blockquote: ({ node, ...props }) => <blockquote {...props} />,
-      table: ({ node, ...props }) => (
-        <div className="prose-table">
-          <table {...props} />
-        </div>
-      ),
-      th: ({ node, ...props }) => <th {...props} />,
-      td: ({ node, ...props }) => <td {...props} />,
-      p: ({ node, ...props }) => <div className="prose-p" {...props} />,
-    }),
-    [],
-  );
-
   return (
     <div className="group w-full" data-message-id={message.id}>
       <div className={clsx('message-row', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
@@ -248,7 +245,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                     <div className="message-thinking-dot message-thinking-dot-delay-2" />
                   </div>
                 ) : (
-                  <Markdown content={smoothedContent} components={markdownComponents} />
+                  <Markdown content={smoothedContent} />
                 )}
               </div>
             )}

@@ -38,7 +38,8 @@ export const generateThreadTitle = (thread: Thread, message: ThreadMessage): str
     return thread.title;
   }
 
-  if (!message.content) {
+  const content = message.content.trim();
+  if (!content) {
     return thread.title;
   }
 
@@ -54,10 +55,16 @@ export const generateThreadTitle = (thread: Thread, message: ThreadMessage): str
     return thread.title;
   }
 
-  const lines = message.content.split('\n', 1);
-  const firstLine = lines[0];
+  // Remove potential markdown headers/styling from the start of the first line
+  const lines = content.split('\n', 1);
+  const cleanLine = lines[0]
+    .replace(/^#+\s+/, '') // Remove h1-h6 prefixes
+    .replace(/^>\s+/, '') // Remove blockquote prefix
+    .replace(/^-\s+|^(\d+\.)\s+/, '') // Remove list prefixes
+    .replace(/[*_`]/g, '') // Remove basic markdown emphasis characters
+    .trim();
 
-  return truncate(firstLine, 40);
+  return truncate(cleanLine || content, 40);
 };
 
 export const sortThreadsByDate = <T extends ThreadMetadata | Thread>(threads: T[]): T[] => {
