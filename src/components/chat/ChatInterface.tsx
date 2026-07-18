@@ -1,3 +1,4 @@
+import { shallowEqual } from '@client/utilities/CommonUtil';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
 import { Bot, Code, Compass, Network, Sparkles } from 'lucide-react';
@@ -24,7 +25,7 @@ interface MessageItemProps {
 }
 
 const MessageItem: FC<MessageItemProps> = ({ index, message, activeThread, isLoading, isLast, measureElement }) => {
-  const siblings = useMemo(() => getBlockVersions(activeThread, message.id), [activeThread.messages, message.id]);
+  const siblings = useMemo(() => getBlockVersions(activeThread, message.id), [activeThread, message.id]);
 
   return (
     <div ref={measureElement} data-index={index} className="w-full">
@@ -40,7 +41,7 @@ const MessageItem: FC<MessageItemProps> = ({ index, message, activeThread, isLoa
 
 export const ChatInterface: FC = () => {
   const activeThreadId = useStore((s) => s.activeThreadId);
-  const activeThread = useStore((s) => s.activeThread);
+  const activeThread = useStore((s) => s.activeThread, shallowEqual);
   const showSuggestions = useStore((s) => s.settings.showSuggestions);
   const userName = useStore((s) => s.settings.personalisation.userName);
 

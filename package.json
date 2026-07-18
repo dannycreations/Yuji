@@ -10,7 +10,7 @@
     "dev": "vite",
     "dev:server": "bun --watch src-server/main.ts",
     "build": "vite build",
-    "check": "tsc --noEmit",
+    "check": "bun run format && tsc --noEmit",
     "format": "prettier --write .",
     "update": "npm-check-updates -u",
     "prepare": "husky"

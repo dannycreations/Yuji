@@ -81,12 +81,28 @@ export const filterThreads = <T extends ThreadMetadata | Thread>(threads: T[], q
   return threads.filter((s) => s.title.toLowerCase().includes(normalized));
 };
 
+const messagePathCache = new WeakMap<Record<string, ThreadMessage>, Map<string, ReadonlyArray<ThreadMessage>>>();
+const blockVersionsCache = new WeakMap<Record<string, ThreadMessage>, Map<string, string[]>>();
+const sortedMessagesCache = new WeakMap<Record<string, ThreadMessage>, ReadonlyArray<ThreadMessage>>();
+
 export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray<ThreadMessage> => {
+  const { messages } = thread;
+  let cacheForThread = messagePathCache.get(messages);
+  if (!cacheForThread) {
+    cacheForThread = new Map();
+    messagePathCache.set(messages, cacheForThread);
+  }
+
+  const cached = cacheForThread.get(messageId);
+  if (cached) {
+    return cached;
+  }
+
   const path: ThreadMessage[] = [];
   let currentId: string | undefined = messageId;
 
   while (currentId) {
-    const msg: ThreadMessage | undefined = thread.messages[currentId];
+    const msg: ThreadMessage | undefined = messages[currentId];
     if (!msg) {
       break;
     }
@@ -95,51 +111,77 @@ export const getMessagePath = (thread: Thread, messageId: string): ReadonlyArray
     currentId = msg.parentId;
   }
 
-  return path.reverse();
+  const result = path.reverse();
+  cacheForThread.set(messageId, result);
+  return result;
 };
 
 export const getBlockVersions = (thread: Thread, messageId: string): string[] => {
-  const msg = thread.messages[messageId];
-  if (!msg) {
-    return [];
+  const { messages } = thread;
+  let cacheForThread = blockVersionsCache.get(messages);
+  if (!cacheForThread) {
+    cacheForThread = new Map();
+    blockVersionsCache.set(messages, cacheForThread);
   }
 
-  const parentId = msg.parentId;
+  const cached = cacheForThread.get(messageId);
+  if (cached) {
+    return cached;
+  }
 
-  if (!parentId) {
-    const roots = Object.values(thread.messages).filter((m) => !m.parentId && m.role === msg.role);
+  const result = (() => {
+    const msg = messages[messageId];
+    if (!msg) {
+      return [];
+    }
 
-    if (roots.length <= 1) {
+    const parentId = msg.parentId;
+
+    if (!parentId) {
+      const keys = Object.keys(messages);
+      const roots: ThreadMessage[] = [];
+      for (let i = 0; i < keys.length; i++) {
+        const m = messages[keys[i]];
+        if (m && !m.parentId && m.role === msg.role) {
+          roots.push(m);
+        }
+      }
+
+      if (roots.length <= 1) {
+        return [messageId];
+      }
+
+      return roots.map((m) => m.id).sort((a, b) => (messages[a]?.timestamp || 0) - (messages[b]?.timestamp || 0));
+    }
+
+    const parent = messages[parentId];
+
+    if (!parent) {
       return [messageId];
     }
 
-    return roots.map((m) => m.id).sort((a, b) => (thread.messages[a]?.timestamp || 0) - (thread.messages[b]?.timestamp || 0));
-  }
+    const siblings = parent.childrenIds || [];
 
-  const parent = thread.messages[parentId];
-
-  if (!parent) {
-    return [messageId];
-  }
-
-  const siblings = parent.childrenIds || [];
-
-  if (siblings.length <= 1) {
-    return [messageId];
-  }
-
-  // Just return children of the parent that share the same role
-  // This avoids deep tree traversal since the UI only shows siblings in the same branch point
-  const versions: string[] = [];
-  for (let i = 0, len = siblings.length; i < len; i++) {
-    const sid = siblings[i];
-    const smsg = thread.messages[sid];
-    if (smsg?.role === msg.role) {
-      versions.push(sid);
+    if (siblings.length <= 1) {
+      return [messageId];
     }
-  }
 
-  return versions.sort((a, b) => (thread.messages[a]?.timestamp || 0) - (thread.messages[b]?.timestamp || 0));
+    // Just return children of the parent that share the same role
+    // This avoids deep tree traversal since the UI only shows siblings in the same branch point
+    const versions: string[] = [];
+    for (let i = 0, len = siblings.length; i < len; i++) {
+      const sid = siblings[i];
+      const smsg = messages[sid];
+      if (smsg?.role === msg.role) {
+        versions.push(sid);
+      }
+    }
+
+    return versions.sort((a, b) => (messages[a]?.timestamp || 0) - (messages[b]?.timestamp || 0));
+  })();
+
+  cacheForThread.set(messageId, result);
+  return result;
 };
 
 export const findVersionLeaf = (thread: Thread, versionId: string): string => {
@@ -199,12 +241,20 @@ export const getVisibleMessages = (thread: Thread): ReadonlyArray<ThreadMessage>
     return getMessagePath(thread, activeMessageId);
   }
 
+  const cached = sortedMessagesCache.get(messages);
+  if (cached) {
+    return cached;
+  }
+
   const vals = Object.values(messages);
   if (vals.length <= 1) {
+    sortedMessagesCache.set(messages, vals);
     return vals;
   }
 
-  return vals.sort((a, b) => a.timestamp - b.timestamp);
+  const result = vals.sort((a, b) => a.timestamp - b.timestamp);
+  sortedMessagesCache.set(messages, result);
+  return result;
 };
 
 export const branchThreadPath = (

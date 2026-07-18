@@ -8,7 +8,7 @@ import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper'
 import { useClickOutside } from '../hooks/useClickOutside';
 import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
-import { getFirstChar } from '../utilities/CommonUtil';
+import { getFirstChar, shallowEqual } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
 import { Dropdown, DropdownItem } from './shared/Dropdown';
 import { ButtonInput, SearchInput } from './shared/InputArea';
@@ -18,13 +18,13 @@ import type { FC } from 'react';
 import type { ConfirmOptions } from '../app/Schema';
 
 export const Sidebar: FC = () => {
-  const threads = useStore((s) => s.threads);
-  const settings = useStore((s) => s.settings);
+  const threads = useStore((s) => s.threads, shallowEqual);
+  const settings = useStore((s) => s.settings, shallowEqual);
   const userName = settings.personalisation.userName;
   const activeThreadId = useStore((s) => s.activeThreadId);
-  const pinnedThreadIds = useStore((s) => s.pinnedThreadIds);
+  const pinnedThreadIds = useStore((s) => s.pinnedThreadIds, shallowEqual);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);
-  const backgroundThreadIds = useStore((s) => s.backgroundThreadIds);
+  const backgroundThreadIds = useStore((s) => s.backgroundThreadIds, shallowEqual);
 
   const setActiveThread = useStoreAction((s, id: string | null) => s.setActiveThread(id));
   const loadMoreThreads = useStoreAction((s) => s.loadMoreThreads());
