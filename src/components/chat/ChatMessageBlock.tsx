@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Check, ChevronDown, ChevronUp, Copy, Download, Maximize } from 'lucide-react';
-import mermaid from 'mermaid';
+import mermaid from 'mermaid-compact';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
