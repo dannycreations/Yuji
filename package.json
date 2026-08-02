@@ -47,7 +47,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^6.0.5",
     "husky": "^9.1.7",
-    "npm-check-updates": "^22.2.9",
+    "npm-check-updates": "^23.0.0",
     "prettier": "^3.9.6",
     "typescript": "^7.0.2",
     "vite": "^8.2.0",
