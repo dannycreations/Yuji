@@ -102,11 +102,7 @@ export const Sidebar: FC = () => {
     <>
       {!isSidebarOpen && (
         <div className="fixed top-[10px] left-3 z-header">
-          <ButtonInput
-            onClick={toggleSidebar}
-            title="Open Sidebar"
-            className="bg-background/80 backdrop-blur border border-separator/50 h-9 w-9 p-0! flex-center"
-          >
+          <ButtonInput onClick={toggleSidebar} title="Open Sidebar" className="bg-background/80 border border-separator/50 h-9 w-9 p-0! flex-center">
             <PanelLeftOpen size={20} />
           </ButtonInput>
         </div>
