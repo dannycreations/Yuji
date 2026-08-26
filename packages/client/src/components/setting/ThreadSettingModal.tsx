@@ -43,13 +43,9 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
   const updateTargetThread = useCallback(
     (targetId: string, f: (s: Thread, now: number) => Thread, metadataOnly = false) => {
       onUpdateThread(targetId, f, { metadataOnly });
-      if (!metadataOnly) {
-        getThread(targetId).then((thread) => {
-          if (thread) setLocalThread(thread);
-        });
-      }
+      setLocalThread((prev) => (prev && prev.id === targetId ? f(prev, Date.now()) : prev));
     },
-    [onUpdateThread, getThread],
+    [onUpdateThread],
   );
 
   const [activeTab, setActiveTab] = useState('general');

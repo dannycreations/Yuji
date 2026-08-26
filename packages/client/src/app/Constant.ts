@@ -1,4 +1,4 @@
-import { MessageSquare, Zap } from 'lucide-react';
+import { Code, Compass, MessageSquare, Network, Sparkles, Zap } from 'lucide-react';
 
 import type { GlobalSetting } from '@yuji/client/app/Schema';
 
@@ -56,22 +56,22 @@ export const MODE_LIST = [
 
 export const INITIAL_SUGGESTIONS = [
   {
-    icon: 'Sparkles',
+    icon: Sparkles,
     label: 'Create',
     prompt: 'Implement a zero-knowledge proof circuit using Circom for a basic Sudoku solution verifier.',
   },
   {
-    icon: 'Compass',
+    icon: Compass,
     label: 'Explore',
     prompt: 'Analyze the application of Tropical Geometry to characterize the decision boundaries of ReLU neural networks.',
   },
   {
-    icon: 'Code',
+    icon: Code,
     label: 'Code',
     prompt: 'Write a high-performance concurrent hash map in Rust using AtomicPtr and compare-and-swap operations.',
   },
   {
-    icon: 'Network',
+    icon: Network,
     label: 'Diagram',
     prompt: 'Generate a Mermaid sequence diagram illustrating the Raft consensus algorithm during a leader election phase.',
   },

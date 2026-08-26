@@ -1,6 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
-import { Bot, Code, Compass, Network, Sparkles } from 'lucide-react';
+import { Bot } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { INITIAL_SUGGESTIONS, SEARCH_INSTRUCTION } from '@yuji/client/app/Constant';
@@ -178,23 +178,13 @@ export const ChatInterface: FC = () => {
 
             {showSuggestions && (
               <div className="suggestion-grid">
-                {INITIAL_SUGGESTIONS.map((suggestion, idx) => {
-                  const IconComponent =
-                    {
-                      Sparkles,
-                      Compass,
-                      Code,
-                      Network,
-                    }[suggestion.icon] || Bot;
-
-                  return (
-                    <button key={idx} onClick={() => setPendingInput(suggestion.prompt)} className="suggestion-item">
-                      <IconComponent size={20} className="suggestion-item-icon text-text-tertiary" />
-                      <div className="suggestion-item-label">{suggestion.label}</div>
-                      <div className="suggestion-item-prompt">{suggestion.prompt}</div>
-                    </button>
-                  );
-                })}
+                {INITIAL_SUGGESTIONS.map((suggestion, idx) => (
+                  <button key={idx} onClick={() => setPendingInput(suggestion.prompt)} className="suggestion-item">
+                    <suggestion.icon size={20} className="suggestion-item-icon text-text-tertiary" />
+                    <div className="suggestion-item-label">{suggestion.label}</div>
+                    <div className="suggestion-item-prompt">{suggestion.prompt}</div>
+                  </button>
+                ))}
               </div>
             )}
           </div>

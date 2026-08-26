@@ -241,16 +241,10 @@ export const ChatServiceLive = Layer.effect(
         readonly isError?: boolean;
         readonly skipUpdateTimestamp?: boolean;
         readonly uiOnly?: boolean;
-        readonly metadataOnly?: boolean;
       } = {},
     ) =>
       Effect.gen(function* () {
         let updatedMessage: ThreadMessage | undefined;
-
-        if (options.metadataOnly) {
-          yield* updateThread(threadId, (s) => s);
-          return;
-        }
 
         yield* updateThread(
           threadId,
@@ -452,7 +446,7 @@ export const ChatServiceLive = Layer.effect(
               });
             }
 
-            yield* updateMessage(threadId, id, fullContent, { metadataOnly: true });
+            yield* updateThread(threadId, (t) => t);
 
             if (toolCallsAccumulator.length === 0) {
               break;
@@ -738,42 +732,38 @@ export const ChatServiceLive = Layer.effect(
           const idsToDelete = yield* storage.getDescendantIds(threadId, messageId);
           let updatedParent: ThreadMessage | undefined;
 
-          yield* updateThread(
-            threadId,
-            (thread) => {
-              const messageToDelete = thread.messages[messageId];
-              if (!messageToDelete) {
-                return thread;
-              }
+          yield* updateThread(threadId, (thread) => {
+            const messageToDelete = thread.messages[messageId];
+            if (!messageToDelete) {
+              return thread;
+            }
 
-              const messages = { ...thread.messages };
-              for (const id of idsToDelete) {
-                delete messages[id];
-              }
+            const messages = { ...thread.messages };
+            for (const id of idsToDelete) {
+              delete messages[id];
+            }
 
-              const parentId = messageToDelete.parentId;
-              const p = parentId ? messages[parentId] : undefined;
-              if (p) {
-                updatedParent = {
-                  ...p,
-                  childrenIds: p.childrenIds?.filter((id) => id !== messageId),
-                };
-                messages[parentId!] = updatedParent;
-              }
-
-              let activeMessageId = thread.activeMessageId;
-              if (activeMessageId && idsToDelete.includes(activeMessageId)) {
-                activeMessageId = messageToDelete.parentId || Object.keys(messages).pop();
-              }
-
-              return {
-                ...thread,
-                messages,
-                activeMessageId,
+            const parentId = messageToDelete.parentId;
+            const p = parentId ? messages[parentId] : undefined;
+            if (p) {
+              updatedParent = {
+                ...p,
+                childrenIds: p.childrenIds?.filter((id) => id !== messageId),
               };
-            },
-            { metadataOnly: false },
-          );
+              messages[parentId!] = updatedParent;
+            }
+
+            let activeMessageId = thread.activeMessageId;
+            if (activeMessageId && idsToDelete.includes(activeMessageId)) {
+              activeMessageId = messageToDelete.parentId || Object.keys(messages).pop();
+            }
+
+            return {
+              ...thread,
+              messages,
+              activeMessageId,
+            };
+          });
 
           if (idsToDelete.length === 0) {
             return;

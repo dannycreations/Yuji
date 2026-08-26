@@ -4,7 +4,7 @@ import { Effect, Layer, Option, Schema, Stream } from 'effect';
 import { LLMProviderError } from '@yuji/client/app/Error';
 import { LLMProvider } from '@yuji/client/providers/LLMProvider';
 
-import type { Attachment, ThreadMessage, ToolCall } from '@yuji/client/app/Schema';
+import type { Attachment, GlobalSetting, ThreadMessage, ToolCall } from '@yuji/client/app/Schema';
 import type { LLMStreamEvent } from '@yuji/client/providers/LLMProvider';
 
 interface OpenAIMessage {
@@ -74,6 +74,20 @@ const createApiMessages = (messages: readonly ThreadMessage[], systemPrompt: str
   return result;
 };
 
+const authorizedJsonRequest = (settings: GlobalSetting) => (request: HttpClientRequest.HttpClientRequest) =>
+  request.pipe(
+    HttpClientRequest.setHeader('Content-Type', 'application/json'),
+    HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`),
+  );
+
+const ensureOk = (response: HttpClientResponse.HttpClientResponse) =>
+  response.status !== 200
+    ? response.text.pipe(
+        Effect.orElseSucceed(() => 'Unknown API Error'),
+        Effect.flatMap((errorText) => Effect.fail(new LLMProviderError({ message: `API Error ${response.status}: ${errorText}` }))),
+      )
+    : Effect.succeed(response);
+
 export const OpenAIProviderLive = Layer.effect(
   LLMProvider,
   Effect.gen(function* () {
@@ -82,21 +96,15 @@ export const OpenAIProviderLive = Layer.effect(
     return LLMProvider.of({
       fetchModels: (settings) =>
         HttpClientRequest.get(`${settings.baseUrl}/models`).pipe(
-          HttpClientRequest.setHeader('Content-Type', 'application/json'),
-          HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`),
+          authorizedJsonRequest(settings),
           (req) => client.execute(req),
           Effect.mapError((e) => new LLMProviderError({ message: 'Failed to connect to LLM API', cause: e })),
-          Effect.flatMap((response: HttpClientResponse.HttpClientResponse) => {
-            if (response.status !== 200) {
-              return response.text.pipe(
-                Effect.orElseSucceed(() => 'Unknown API Error'),
-                Effect.flatMap((errorText) => Effect.fail(new LLMProviderError({ message: `API Error ${response.status}: ${errorText}` }))),
-              );
-            }
-            return HttpClientResponse.schemaBodyJson(Schema.Struct({ data: Schema.Array(Schema.Struct({ id: Schema.String })) }))(response).pipe(
+          Effect.flatMap(ensureOk),
+          Effect.flatMap((response) =>
+            HttpClientResponse.schemaBodyJson(Schema.Struct({ data: Schema.Array(Schema.Struct({ id: Schema.String })) }))(response).pipe(
               Effect.mapError((e) => new LLMProviderError({ message: 'Failed to parse models response', cause: e })),
-            );
-          }),
+            ),
+          ),
         ),
 
       streamCompletion: (messages, settings, config, systemPrompt) => {
@@ -111,21 +119,15 @@ export const OpenAIProviderLive = Layer.effect(
         };
 
         return HttpClientRequest.post(`${settings.baseUrl}/chat/completions`).pipe(
-          HttpClientRequest.setHeader('Content-Type', 'application/json'),
-          HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`),
+          authorizedJsonRequest(settings),
           HttpClientRequest.bodyJson(body),
           Effect.mapError((e) => new LLMProviderError({ message: 'Failed to prepare request', cause: e })),
           Effect.flatMap((req) =>
             client.execute(req).pipe(
               Effect.mapError((e) => new LLMProviderError({ message: 'Failed to connect to LLM API', cause: e })),
-              Effect.flatMap((response: HttpClientResponse.HttpClientResponse) => {
-                if (response.status !== 200) {
-                  return response.text.pipe(
-                    Effect.orElseSucceed(() => 'Unknown API Error'),
-                    Effect.flatMap((errorText) => Effect.fail(new LLMProviderError({ message: `API Error ${response.status}: ${errorText}` }))),
-                  );
-                }
-                const stream = response.stream.pipe(
+              Effect.flatMap(ensureOk),
+              Effect.map((response) =>
+                response.stream.pipe(
                   Stream.mapError((e) => new LLMProviderError({ message: 'Stream error', cause: e })),
                   (s) => Stream.decodeText(s, 'utf-8'),
                   Stream.splitLines,
@@ -168,9 +170,8 @@ export const OpenAIProviderLive = Layer.effect(
                       return Option.none();
                     }
                   }),
-                );
-                return Effect.succeed(stream);
-              }),
+                ),
+              ),
             ),
           ),
         );
