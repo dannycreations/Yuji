@@ -303,15 +303,15 @@ export const ToolsSection: FC<SettingSectionProps & { availableTools: readonly T
         const toolService = yield* ToolService;
         const tools = yield* toolService.fetch(settings);
 
-        setAvailableTools(tools as ToolDefinition[]);
+        setAvailableTools([...tools]);
       }),
     'Failed to fetch tools',
   );
 
   const filterItems = useCallback((items: readonly ToolDefinition[], search: string) => {
-    if (!search) return items as ToolDefinition[];
+    if (!search) return [...items];
     const s = search.toLowerCase();
-    return items.filter((t) => t.function.name.toLowerCase().includes(s) || t.function.description.toLowerCase().includes(s)) as ToolDefinition[];
+    return items.filter((t) => t.function.name.toLowerCase().includes(s) || t.function.description.toLowerCase().includes(s));
   }, []);
 
   const toggleTool = (toolName: string) => {
@@ -508,18 +508,13 @@ export const SettingTable = <T,>({
   );
 };
 
-export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
+const useExportThreads = (prefix: string, getAllIds: () => string[], errorPrefix: string) => {
   const getThread = useStoreAction((s, id: string) => s.getThread(id));
-  const onImportThreads = useChatAction((c, newThreads: Record<string, Thread>) => c.importThreads(newThreads));
-  const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
 
-  const handleExport = useRuntimeAction(
-    (selectedIds: Set<string>, prefix: string) =>
+  return useRuntimeAction(
+    (selectedIds: Set<string>) =>
       Effect.gen(function* () {
-        const ids = selectedIds.size > 0 ? Array.from(selectedIds) : Object.keys(threads);
+        const ids = selectedIds.size > 0 ? Array.from(selectedIds) : getAllIds();
         const dataToExport: Record<string, Thread> = {};
 
         for (const id of ids) {
@@ -529,8 +524,35 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 
         downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
       }),
-    'Failed to export history',
+    errorPrefix,
   );
+};
+
+const useDeleteSelectedThreads = (title: string, getConfirmMessage: (count: number) => string) => {
+  const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
+  const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
+
+  return (selectedIds: Set<string>, resetSelection: () => void) => {
+    if (selectedIds.size === 0) return;
+    showConfirm({
+      title,
+      message: getConfirmMessage(selectedIds.size),
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: () => {
+        onDeleteThreads(new Set(selectedIds));
+        resetSelection();
+      },
+    });
+  };
+};
+
+export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const onImportThreads = useChatAction((c, newThreads: Record<string, Thread>) => c.importThreads(newThreads));
+
+  const handleExport = useExportThreads('history', () => Object.keys(threads), 'Failed to export history');
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -557,19 +579,10 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
     e.target.value = '';
   };
 
-  const handleDeleteSelected = (selectedIds: Set<string>, resetSelection: () => void) => {
-    if (selectedIds.size === 0) return;
-    showConfirm({
-      title: 'Delete History',
-      message: `Are you sure you want to delete **${selectedIds.size}** selected thread${selectedIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
-      confirmLabel: 'Delete',
-      variant: 'danger',
-      onConfirm: () => {
-        onDeleteThreads(new Set(selectedIds));
-        resetSelection();
-      },
-    });
-  };
+  const handleDeleteSelected = useDeleteSelectedThreads(
+    'Delete History',
+    (count) => `Are you sure you want to delete **${count}** selected thread${count > 1 ? 's' : ''}? This action cannot be undone.`,
+  );
 
   const sortedThreads = useMemo(() => sortThreadsByDate(Object.values(threads).filter((t) => !t.archived)), [threads]);
 
@@ -588,7 +601,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </ButtonInput>
           )}
-          <ButtonInput onClick={() => handleExport(selectedIds, 'history')} className="badge-outline" disabled={sortedThreads.length === 0}>
+          <ButtonInput onClick={() => handleExport(selectedIds)} className="badge-outline" disabled={sortedThreads.length === 0}>
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </ButtonInput>
@@ -621,28 +634,13 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = ({ threads }) => {
   const toggleArchive = useStoreAction((s, id: string) => s.toggleArchive(id));
   const getThread = useStoreAction((s, id: string) => s.getThread(id));
-  const showConfirm = useStoreAction((s, config: ConfirmOptions) => s.setConfirm(config));
 
-  const onDeleteThreads = useChatAction((c, ids: Set<string>) => c.deleteThreads(ids));
-
-  const handleExport = useRuntimeAction(
-    (selectedIds: Set<string>, prefix: string) =>
-      Effect.gen(function* () {
-        const ids =
-          selectedIds.size > 0
-            ? Array.from(selectedIds)
-            : Object.values(threads)
-                .filter((t) => t.archived)
-                .map((t) => t.id);
-        const dataToExport: Record<string, Thread> = {};
-
-        for (const id of ids) {
-          const thread = yield* Effect.promise(() => getThread(id));
-          if (thread) dataToExport[id] = thread;
-        }
-
-        downloadFile(JSON.stringify(dataToExport), `yuji-${prefix}-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
-      }),
+  const handleExport = useExportThreads(
+    'archive',
+    () =>
+      Object.values(threads)
+        .filter((t) => t.archived)
+        .map((t) => t.id),
     'Failed to export archive',
   );
 
@@ -650,19 +648,10 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
 
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
 
-  const handleDeleteSelected = (selectedIds: Set<string>, resetSelection: () => void) => {
-    if (selectedIds.size === 0) return;
-    showConfirm({
-      title: 'Delete Archived History',
-      message: `Are you sure you want to delete **${selectedIds.size}** selected archived thread${selectedIds.size > 1 ? 's' : ''}? This action cannot be undone.`,
-      confirmLabel: 'Delete',
-      variant: 'danger',
-      onConfirm: () => {
-        onDeleteThreads(new Set(selectedIds));
-        resetSelection();
-      },
-    });
-  };
+  const handleDeleteSelected = useDeleteSelectedThreads(
+    'Delete Archived History',
+    (count) => `Are you sure you want to delete **${count}** selected archived thread${count > 1 ? 's' : ''}? This action cannot be undone.`,
+  );
 
   const handlePreview = (id: string) => {
     getThread(id).then((thread) => {
@@ -691,7 +680,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
               Delete ({selectedIds.size})
             </ButtonInput>
           )}
-          <ButtonInput onClick={() => handleExport(selectedIds, 'archive')} className="badge-outline" disabled={sortedThreads.length === 0}>
+          <ButtonInput onClick={() => handleExport(selectedIds)} className="badge-outline" disabled={sortedThreads.length === 0}>
             <Upload size={12} />
             Export {selectedIds.size > 0 ? `(${selectedIds.size})` : ''}
           </ButtonInput>

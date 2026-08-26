@@ -15,21 +15,7 @@ export interface ChatService {
   readonly createThread: (mode?: 'chat' | 'agent') => Effect.Effect<ThreadMetadata, Error>;
   readonly deleteThreads: (ids: string | Iterable<string>) => Effect.Effect<void, Error>;
   readonly importThreads: (threads: Record<string, Thread>) => Effect.Effect<void, Error>;
-  readonly addMessage: (threadId: string, message: ThreadMessage) => Effect.Effect<void, ThreadNotFoundError | Error>;
-  readonly updateMessage: (
-    threadId: string,
-    messageId: string,
-    content: string,
-    options?: {
-      readonly attachments?: ReadonlyArray<Attachment>;
-      readonly isError?: boolean;
-      readonly skipUpdateTimestamp?: boolean;
-      readonly uiOnly?: boolean;
-      readonly metadataOnly?: boolean;
-    },
-  ) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError | Error>;
   readonly deleteMessage: (threadId: string, messageId: string) => Effect.Effect<void, ThreadNotFoundError | MessageNotFoundError | Error>;
-  readonly renameThread: (threadId: string, title: string) => Effect.Effect<void, ThreadNotFoundError | Error>;
   readonly updateThread: (
     threadId: string,
     f: (thread: Thread, now: number) => Thread,
@@ -42,15 +28,7 @@ export interface ChatService {
     f: (thread: Thread, now: number) => Thread,
     skipUpdateTimestamp?: boolean,
   ) => Effect.Effect<void, ThreadNotFoundError | Error>;
-  readonly getThreadPath: (threadId: string, messageId: string) => Effect.Effect<ReadonlyArray<ThreadMessage>, ThreadNotFoundError | Error>;
   readonly branchChat: (threadId: string, messageId: string) => Effect.Effect<ThreadMetadata, ThreadNotFoundError | MessageNotFoundError | Error>;
-  readonly generate: (
-    threadId: string,
-    messagesToProcess: ReadonlyArray<ThreadMessage>,
-    options?: {
-      readonly instruction?: string;
-    },
-  ) => Effect.Effect<void>;
   readonly stop: (threadId?: string) => Effect.Effect<void>;
   readonly sendMessage: (
     content: string,
@@ -225,6 +203,104 @@ export const ChatServiceLive = Layer.effect(
         yield* Fiber.interrupt(fiber);
       });
 
+    const addMessage = (threadId: string, message: ThreadMessage) =>
+      Effect.gen(function* () {
+        let messagesToSave: ThreadMessage[] = [message];
+        yield* updateThread(threadId, (thread) => {
+          const messages = { ...thread.messages };
+
+          const p = message.parentId ? messages[message.parentId] : undefined;
+          if (p) {
+            const parent: ThreadMessage = {
+              ...p,
+              childrenIds: [...(p.childrenIds || []), message.id],
+            };
+            messages[message.parentId!] = parent;
+            messagesToSave.push(parent);
+          }
+
+          messages[message.id] = message;
+
+          return {
+            ...thread,
+            messages,
+            activeMessageId: message.id,
+            title: generateThreadTitle(thread, message),
+          };
+        });
+
+        yield* storage.saveMessages(threadId, messagesToSave);
+      });
+
+    const updateMessage = (
+      threadId: string,
+      messageId: string,
+      content: string,
+      options: {
+        readonly attachments?: ReadonlyArray<Attachment>;
+        readonly isError?: boolean;
+        readonly skipUpdateTimestamp?: boolean;
+        readonly uiOnly?: boolean;
+        readonly metadataOnly?: boolean;
+      } = {},
+    ) =>
+      Effect.gen(function* () {
+        let updatedMessage: ThreadMessage | undefined;
+
+        if (options.metadataOnly) {
+          yield* updateThread(threadId, (s) => s);
+          return;
+        }
+
+        yield* updateThread(
+          threadId,
+          (thread) => {
+            const msg = thread.messages[messageId];
+            if (!msg) {
+              return thread;
+            }
+
+            updatedMessage = {
+              ...msg,
+              content,
+              attachments: options.attachments ?? msg.attachments,
+              isError: options.isError,
+            };
+
+            return {
+              ...thread,
+              messages: {
+                ...thread.messages,
+                [messageId]: updatedMessage,
+              },
+            };
+          },
+          {
+            skipUpdateTimestamp: options.skipUpdateTimestamp,
+            uiOnly: options.uiOnly,
+          },
+        );
+
+        if (!updatedMessage) {
+          return yield* Effect.fail(new MessageNotFoundError({ messageId }));
+        }
+
+        if (!options.uiOnly) {
+          yield* storage.saveMessages(threadId, [updatedMessage]);
+        }
+      });
+
+    const getThreadPath = (threadId: string, messageId: string) =>
+      Effect.gen(function* () {
+        const thread = yield* store.getThread(threadId);
+
+        if (!thread) {
+          return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
+        }
+
+        return getMessagePath(thread, messageId);
+      });
+
     const generate = (threadId: string, messagesToProcess: ReadonlyArray<ThreadMessage>, options: { readonly instruction?: string } = {}) =>
       Effect.gen(function* () {
         const state = yield* SubscriptionRef.get(store.state);
@@ -259,7 +335,7 @@ export const ChatServiceLive = Layer.effect(
               parentId: lastMsg?.id,
             };
 
-            yield* chat.addMessage(threadId, assistantMessage);
+            yield* addMessage(threadId, assistantMessage);
 
             const thread = yield* storage.getThread(threadId);
             if (!thread) {
@@ -281,7 +357,6 @@ export const ChatServiceLive = Layer.effect(
               currentPath,
               settings,
               {
-                provider: 'openai',
                 model,
                 temperature: 0.7,
                 tools: activeTools,
@@ -348,7 +423,7 @@ export const ChatServiceLive = Layer.effect(
                   lastUITime = now;
                   lastUISaveContent = fullContent;
 
-                  yield* chat.updateMessage(threadId, id, fullContent, {
+                  yield* updateMessage(threadId, id, fullContent, {
                     skipUpdateTimestamp: true,
                     uiOnly: true,
                   });
@@ -358,7 +433,7 @@ export const ChatServiceLive = Layer.effect(
                   lastSaveTime = now;
                   lastSavedContent = fullContent;
 
-                  yield* chat.updateMessage(threadId, id, fullContent, {
+                  yield* updateMessage(threadId, id, fullContent, {
                     skipUpdateTimestamp: true,
                   });
                 }
@@ -366,19 +441,19 @@ export const ChatServiceLive = Layer.effect(
             );
 
             if (fullContent !== lastUISaveContent) {
-              yield* chat.updateMessage(threadId, id, fullContent, {
+              yield* updateMessage(threadId, id, fullContent, {
                 skipUpdateTimestamp: true,
                 uiOnly: true,
               });
             }
 
             if (fullContent !== lastSavedContent) {
-              yield* chat.updateMessage(threadId, id, fullContent, {
+              yield* updateMessage(threadId, id, fullContent, {
                 skipUpdateTimestamp: true,
               });
             }
 
-            yield* chat.updateMessage(threadId, id, fullContent, { metadataOnly: true });
+            yield* updateMessage(threadId, id, fullContent, { metadataOnly: true });
 
             if (toolCallsAccumulator.length === 0) {
               break;
@@ -439,7 +514,7 @@ export const ChatServiceLive = Layer.effect(
                 toolCallId: res.id,
               };
 
-              yield* chat.addMessage(threadId, toolMessage);
+              yield* addMessage(threadId, toolMessage);
               lastToolMsgId = toolMessage.id;
             }
 
@@ -456,7 +531,7 @@ export const ChatServiceLive = Layer.effect(
               const { activeThread } = yield* SubscriptionRef.get(store.state);
               const lastMsgId = activeThread?.id === threadId ? activeThread.activeMessageId : undefined;
               if (lastMsgId) {
-                yield* chat.updateMessage(threadId, lastMsgId, `*[Error: ${msg}]*`, { isError: true });
+                yield* updateMessage(threadId, lastMsgId, `*[Error: ${msg}]*`, { isError: true });
               }
 
               yield* store.notify('error', `Chat error: ${msg}`);
@@ -487,7 +562,6 @@ export const ChatServiceLive = Layer.effect(
 
     const chat: ChatService = ChatService.of({
       updateThread,
-      generate,
       stop,
       sendMessage: (content, attachments = [], options) =>
         Effect.gen(function* () {
@@ -509,9 +583,9 @@ export const ChatServiceLive = Layer.effect(
             parentId: state.activeThread?.activeMessageId,
           };
 
-          yield* chat.addMessage(targetThreadId, userMessage);
-          const history = yield* chat.getThreadPath(targetThreadId, userMessage.id);
-          yield* chat.generate(targetThreadId, history, options);
+          yield* addMessage(targetThreadId, userMessage);
+          const history = yield* getThreadPath(targetThreadId, userMessage.id);
+          yield* generate(targetThreadId, history, options);
         }),
       regenerateMessage: (threadId, messageId, options) =>
         Effect.gen(function* () {
@@ -531,7 +605,7 @@ export const ChatServiceLive = Layer.effect(
             return;
           }
 
-          const history = yield* chat.getThreadPath(threadId, messageId);
+          const history = yield* getThreadPath(threadId, messageId);
 
           if (history.length === 0) {
             return;
@@ -539,12 +613,12 @@ export const ChatServiceLive = Layer.effect(
 
           const lastMessage = history[history.length - 1];
           if (lastMessage.role !== 'assistant') {
-            yield* chat.generate(threadId, history, options);
+            yield* generate(threadId, history, options);
             return;
           }
 
           const context = history.slice(0, -1);
-          yield* chat.generate(threadId, context, options);
+          yield* generate(threadId, context, options);
         }),
       editMessage: (threadId, messageId, content, options) =>
         Effect.gen(function* () {
@@ -575,14 +649,14 @@ export const ChatServiceLive = Layer.effect(
             childrenIds: [],
           };
 
-          yield* chat.addMessage(threadId, newMessage);
+          yield* addMessage(threadId, newMessage);
 
           if (!options?.generateNext) {
             return;
           }
 
-          const history = yield* chat.getThreadPath(threadId, newMsgId);
-          yield* chat.generate(threadId, history, options);
+          const history = yield* getThreadPath(threadId, newMsgId);
+          yield* generate(threadId, history, options);
         }),
       createThread: (mode) =>
         Effect.gen(function* () {
@@ -660,80 +734,6 @@ export const ChatServiceLive = Layer.effect(
             { discard: true },
           );
         }),
-      addMessage: (threadId, message) =>
-        Effect.gen(function* () {
-          let messagesToSave: ThreadMessage[] = [message];
-          yield* updateThread(threadId, (thread) => {
-            const messages = { ...thread.messages };
-
-            const p = message.parentId ? messages[message.parentId] : undefined;
-            if (p) {
-              const parent: ThreadMessage = {
-                ...p,
-                childrenIds: [...(p.childrenIds || []), message.id],
-              };
-              messages[message.parentId!] = parent;
-              messagesToSave.push(parent);
-            }
-
-            messages[message.id] = message;
-
-            return {
-              ...thread,
-              messages,
-              activeMessageId: message.id,
-              title: generateThreadTitle(thread, message),
-            };
-          });
-
-          yield* storage.saveMessages(threadId, messagesToSave);
-        }),
-      updateMessage: (threadId, messageId, content, options = {}) =>
-        Effect.gen(function* () {
-          let updatedMessage: ThreadMessage | undefined;
-
-          if (options.metadataOnly) {
-            yield* updateThread(threadId, (s) => s);
-            return;
-          }
-
-          yield* updateThread(
-            threadId,
-            (thread) => {
-              const msg = thread.messages[messageId];
-              if (!msg) {
-                return thread;
-              }
-
-              updatedMessage = {
-                ...msg,
-                content,
-                attachments: options.attachments ?? msg.attachments,
-                isError: options.isError,
-              };
-
-              return {
-                ...thread,
-                messages: {
-                  ...thread.messages,
-                  [messageId]: updatedMessage,
-                },
-              };
-            },
-            {
-              skipUpdateTimestamp: options.skipUpdateTimestamp,
-              uiOnly: options.uiOnly,
-            },
-          );
-
-          if (!updatedMessage) {
-            return yield* Effect.fail(new MessageNotFoundError({ messageId }));
-          }
-
-          if (!options.uiOnly) {
-            yield* storage.saveMessages(threadId, [updatedMessage]);
-          }
-        }),
       deleteMessage: (threadId, messageId) =>
         Effect.gen(function* () {
           const idsToDelete = yield* storage.getDescendantIds(threadId, messageId);
@@ -785,7 +785,6 @@ export const ChatServiceLive = Layer.effect(
             yield* storage.saveMessages(threadId, [updatedParent]);
           }
         }),
-      renameThread: (threadId, title) => updateThread(threadId, (thread) => ({ ...thread, title }), { metadataOnly: true }),
       updateActiveThread: (f: (thread: Thread, now: number) => Thread, skipUpdateTimestamp = false) =>
         Effect.gen(function* () {
           const activeId = (yield* SubscriptionRef.get(store.state)).activeThreadId;
@@ -794,16 +793,6 @@ export const ChatServiceLive = Layer.effect(
           }
 
           return yield* updateThread(activeId, f, { skipUpdateTimestamp });
-        }),
-      getThreadPath: (threadId, messageId) =>
-        Effect.gen(function* () {
-          const thread = yield* store.getThread(threadId);
-
-          if (!thread) {
-            return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
-          }
-
-          return getMessagePath(thread, messageId);
         }),
       branchChat: (threadId, messageId) =>
         Effect.gen(function* () {
@@ -854,9 +843,9 @@ export const ChatServiceLive = Layer.effect(
         if (lastMessage?.role === 'assistant' && !lastMessage.isError) {
           yield* chat.deleteMessage(threadId, lastMessage.id);
           const path = lastUserMessage ? getMessagePath(thread, lastUserMessage.id) : [];
-          if (path.length > 0) yield* chat.generate(threadId, path);
+          if (path.length > 0) yield* generate(threadId, path);
         } else if (lastMessage?.role === 'user') {
-          yield* chat.generate(threadId, getMessagePath(thread, lastMessage.id));
+          yield* generate(threadId, getMessagePath(thread, lastMessage.id));
         } else {
           yield* store.update((s) => ({
             ...s,

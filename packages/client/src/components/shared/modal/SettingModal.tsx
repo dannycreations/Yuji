@@ -20,12 +20,10 @@ interface SettingModalProps {
   readonly onTabChange: (id: string) => void;
   readonly onClose: () => void;
   readonly children: ReactNode;
-  readonly sidebarBottom?: ReactNode;
-  readonly title?: ReactNode;
 }
 
-export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activeTab, onTabChange, onClose, children, sidebarBottom, title }) => {
-  const activeTabLabel = title || tabs.find((t) => t.id === activeTab)?.label || '';
+export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activeTab, onTabChange, onClose, children }) => {
+  const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label || '';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} containerClassName="settings-modal-container">
@@ -44,7 +42,6 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
             </button>
           ))}
         </div>
-        {sidebarBottom && <div className="modal-footer">{sidebarBottom}</div>}
       </div>
 
       {/* Main Content */}

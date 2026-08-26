@@ -54,7 +54,6 @@ export const MODE_LIST = [
   },
 ] as const;
 
-export const INITIAL_GREETING = 'How can I help you{{0}}?';
 export const INITIAL_SUGGESTIONS = [
   {
     icon: 'Sparkles',

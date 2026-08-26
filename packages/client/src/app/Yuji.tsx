@@ -1,6 +1,6 @@
 import '@yuji/client/app/styles.css';
 
-import { Effect, Fiber, Stream, SubscriptionRef } from 'effect';
+import { Effect, Fiber } from 'effect';
 import { useEffect, useState } from 'react';
 
 import { reportError } from '@yuji/client/app/Error';
@@ -95,25 +95,13 @@ const YujiLayout = () => {
 
 export const YujiApp = () => {
   const [store, setStore] = useState<StoreService | null>(null);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
+    // Layer.effect builds StoreService only after hydration finished, so the
+    // service existing already implies state.isHydrated.
     const fiber = YujiRuntime.runFork(
       Effect.gen(function* () {
-        const service = yield* StoreService;
-        setStore(service);
-
-        const current = yield* SubscriptionRef.get(service.state);
-        if (current.isHydrated) {
-          setIsHydrated(true);
-          return;
-        }
-
-        yield* service.state.changes.pipe(
-          Stream.filter((s) => s.isHydrated),
-          Stream.runHead,
-          Effect.map(() => setIsHydrated(true)),
-        );
+        setStore(yield* StoreService);
       }),
     );
 
@@ -135,7 +123,7 @@ export const YujiApp = () => {
     };
   }, []);
 
-  if (!store || !isHydrated) {
+  if (!store) {
     return null;
   }
 

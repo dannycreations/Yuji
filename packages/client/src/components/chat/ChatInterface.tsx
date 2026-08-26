@@ -47,10 +47,7 @@ export const ChatInterface: FC = () => {
 
   const [pendingInput, setPendingInput] = useState<string | undefined>(undefined);
 
-  const isLoading = useStore(
-    (s) => (s.activeThreadId ? s.backgroundThreadIds.includes(s.activeThreadId) : false),
-    (a, b) => a === b,
-  );
+  const isLoading = useStore((s) => (s.activeThreadId ? s.backgroundThreadIds.includes(s.activeThreadId) : false));
 
   const onSend = useChatAction((c, content: string, attachments?: ReadonlyArray<Attachment>, options?: { readonly search?: boolean }) =>
     c.sendMessage(content, attachments, options?.search ? { instruction: SEARCH_INSTRUCTION } : undefined),

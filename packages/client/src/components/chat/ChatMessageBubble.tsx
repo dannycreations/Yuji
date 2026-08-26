@@ -53,19 +53,11 @@ const sharedMarkdownComponents: Components = {
     );
   },
   a: ({ node, ...props }) => <a target="_blank" rel="noopener noreferrer" {...props} />,
-  ul: ({ node, ...props }) => <ul {...props} />,
-  ol: ({ node, ...props }) => <ol {...props} />,
-  h1: ({ node, ...props }) => <h1 {...props} />,
-  h2: ({ node, ...props }) => <h2 {...props} />,
-  h3: ({ node, ...props }) => <h3 {...props} />,
-  blockquote: ({ node, ...props }) => <blockquote {...props} />,
   table: ({ node, ...props }) => (
     <div className="prose-table">
       <table {...props} />
     </div>
   ),
-  th: ({ node, ...props }) => <th {...props} />,
-  td: ({ node, ...props }) => <td {...props} />,
   p: ({ node, ...props }) => <div className="prose-p" {...props} />,
 };
 

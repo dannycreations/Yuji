@@ -1,4 +1,4 @@
-import { Cause, Effect } from 'effect';
+import { Cause, Context, Effect } from 'effect';
 import { createContext, useCallback, useContext, useRef, useSyncExternalStore } from 'react';
 
 import { reportError } from '@yuji/client/app/Error';
@@ -74,32 +74,22 @@ export const useRuntimeAction = <A extends unknown[], Success, Error, Requiremen
   return useCallback((...args: A) => runReported(errorPrefix, stableAction(...args)), [stableAction, errorPrefix]);
 };
 
-export const useStoreAction = <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
-  action: (s: StoreService, ...args: A) => Effect.Effect<Success, Error, Requirements>,
-) => {
-  const stableAction = useStableCallback(action);
+const makeServiceAction =
+  <S extends YujiEnv>(tag: Context.Tag<S, S>, errorPrefix: string) =>
+  <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
+    action: (service: S, ...args: A) => Effect.Effect<Success, Error, Requirements>,
+  ) => {
+    const stableAction = useStableCallback(action);
 
-  return useCallback(
-    (...args: A) =>
-      runReported(
-        'Store action failed',
-        Effect.flatMap(StoreService, (s) => stableAction(s, ...args)),
-      ),
-    [stableAction],
-  );
-};
+    return useCallback(
+      (...args: A) =>
+        runReported(
+          errorPrefix,
+          Effect.flatMap(tag, (service) => stableAction(service, ...args)),
+        ),
+      [stableAction],
+    );
+  };
 
-export const useChatAction = <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
-  action: (c: ChatService, ...args: A) => Effect.Effect<Success, Error, Requirements>,
-) => {
-  const stableAction = useStableCallback(action);
-
-  return useCallback(
-    (...args: A) =>
-      runReported(
-        'Chat action failed',
-        Effect.flatMap(ChatService, (c) => stableAction(c, ...args)),
-      ),
-    [stableAction],
-  );
-};
+export const useStoreAction = makeServiceAction(StoreService, 'Store action failed');
+export const useChatAction = makeServiceAction(ChatService, 'Chat action failed');

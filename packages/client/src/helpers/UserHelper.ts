@@ -1,13 +1,4 @@
-import { INITIAL_GREETING } from '@yuji/client/app/Constant';
-
-export const getFirstName = (fullName: string): string => {
-  const trimmed = fullName.trim();
-  if (!trimmed) return '';
-  return trimmed.split(/\s+/)[0];
-};
-
 export const getGreeting = (userName: string): string => {
-  const firstName = getFirstName(userName);
-  const replacement = firstName ? `, ${firstName}` : ' today';
-  return INITIAL_GREETING.replace('{{0}}', replacement);
+  const firstName = userName.trim().split(/\s+/)[0] || '';
+  return firstName ? `How can I help you, ${firstName}?` : 'How can I help you today?';
 };

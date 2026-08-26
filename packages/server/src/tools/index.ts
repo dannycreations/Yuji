@@ -19,7 +19,7 @@ export const EXTERNAL_TOOL_LIST = {
 } as const;
 
 // Tools to be used by the client.
-export const INTERNAL_TOOL_LIST = {
+const INTERNAL_TOOL_LIST = {
   [SystemInfo.name]: SystemInfo,
 } as const;
 

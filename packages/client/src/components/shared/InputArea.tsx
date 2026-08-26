@@ -18,7 +18,7 @@ interface InputWrapperProps {
   readonly disabled?: boolean;
 }
 
-export const InputWrapper: FC<InputWrapperProps> = ({
+const InputWrapper: FC<InputWrapperProps> = ({
   leftIcon: LeftIcon,
   rightIcon: RightIcon,
   onRightIconClick,

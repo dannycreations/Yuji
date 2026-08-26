@@ -12,7 +12,6 @@ export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
   readonly getSnapshot: () => AppRuntimeState;
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void, never>;
-  readonly patch: (updates: Partial<AppRuntimeState>) => Effect.Effect<void, never>;
   readonly setActiveThread: (threadOrId: Thread | string | null) => Effect.Effect<void, never>;
   readonly updateSetting: (
     updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings']),
@@ -87,7 +86,7 @@ const INITIAL_STATE: AppRuntimeState = {
   initializationError: undefined,
 };
 
-export const MAX_MEM_THREADS = 100;
+const MAX_MEM_THREADS = 100;
 
 const OnConfirmStore = new Map<string, () => void>();
 
@@ -231,17 +230,6 @@ export const StoreServiceLive = Layer.effect(
       getSnapshot,
       update,
       subscribe,
-      patch: (updates) =>
-        update((s) => {
-          const keys = Object.keys(updates) as (keyof typeof updates)[];
-          const hasChange = keys.some((key) => s[key as keyof typeof s] !== updates[key]);
-
-          if (!hasChange) {
-            return s;
-          }
-
-          return { ...s, ...updates };
-        }),
       getThread: (id) =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);

@@ -31,7 +31,6 @@ export interface LLMProvider {
     messages: ReadonlyArray<ThreadMessage>,
     settings: GlobalSetting,
     config: {
-      readonly provider: 'openai';
       readonly model: string;
       readonly temperature: number;
       readonly maxTokens?: number;
