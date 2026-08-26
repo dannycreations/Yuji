@@ -1,7 +1,7 @@
 import { FileSystem } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 
-import { defineTool } from '@yuji/server/helpers/ToolHelper';
+import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const ReadFileSchema = Schema.Struct({
   files: Schema.Array(
@@ -18,19 +18,16 @@ export const ReadFile = defineTool(
   ({ files }) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      return yield* Effect.forEach(
-        files,
-        ({ path }) =>
-          Effect.gen(function* () {
-            const exists = yield* fs.exists(path);
-            if (!exists) {
-              return { path, error: `File not found: ${path}` };
-            }
+      return yield* forEachFile(files, ({ path }) =>
+        Effect.gen(function* () {
+          const exists = yield* fs.exists(path);
+          if (!exists) {
+            return { path, error: `File not found: ${path}` };
+          }
 
-            const content = yield* fs.readFileString(path);
-            return { path, content };
-          }).pipe(Effect.catchAll((error) => Effect.succeed({ path, error: String(error) }))),
-        { concurrency: 'inherit' },
+          const content = yield* fs.readFileString(path);
+          return { path, content };
+        }),
       );
     }),
 );

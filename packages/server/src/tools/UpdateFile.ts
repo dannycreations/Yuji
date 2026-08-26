@@ -1,7 +1,7 @@
 import { FileSystem } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 
-import { defineTool } from '@yuji/server/helpers/ToolHelper';
+import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const UpdateFileSchema = Schema.Struct({
   files: Schema.Array(
@@ -25,28 +25,25 @@ export const UpdateFile = defineTool(
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
 
-      return yield* Effect.forEach(
-        files,
-        ({ path, edits }) =>
-          Effect.gen(function* () {
-            const exists = yield* fs.exists(path);
-            if (!exists) {
-              return { path, error: `File not found: ${path}` };
+      return yield* forEachFile(files, ({ path, edits }) =>
+        Effect.gen(function* () {
+          const exists = yield* fs.exists(path);
+          if (!exists) {
+            return { path, error: `File not found: ${path}` };
+          }
+
+          let content = yield* fs.readFileString(path);
+
+          for (const { search, replace } of edits) {
+            if (!content.includes(search)) {
+              return { path, error: `Search text not found in file: ${path}` };
             }
+            content = content.replace(search, replace);
+          }
 
-            let content = yield* fs.readFileString(path);
-
-            for (const { search, replace } of edits) {
-              if (!content.includes(search)) {
-                return { path, error: `Search text not found in file: ${path}` };
-              }
-              content = content.replace(search, replace);
-            }
-
-            yield* fs.writeFileString(path, content);
-            return { path, status: 'success' };
-          }).pipe(Effect.catchAll((error) => Effect.succeed({ path, error: String(error) }))),
-        { concurrency: 'inherit' },
+          yield* fs.writeFileString(path, content);
+          return { path, status: 'success' };
+        }),
       );
     }),
 );

@@ -25,6 +25,15 @@ interface LLMModel {
   readonly id: string;
 }
 
+export interface ToolCallDelta {
+  readonly index?: number;
+  readonly id?: string;
+  readonly function?: { readonly name?: string; readonly arguments?: string };
+}
+
+export type LLMStreamEvent =
+  { readonly _tag: 'Text'; readonly content: string } | { readonly _tag: 'ToolCallDeltas'; readonly deltas: ReadonlyArray<ToolCallDelta> };
+
 export interface LLMProvider {
   readonly fetchModels: (settings: GlobalSetting) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
   readonly streamCompletion: (
@@ -38,7 +47,7 @@ export interface LLMProvider {
       readonly tools?: ReadonlyArray<ToolDefinition>;
     },
     systemPrompt: string,
-  ) => Effect.Effect<Stream.Stream<string, LLMProviderError>, LLMProviderError>;
+  ) => Effect.Effect<Stream.Stream<LLMStreamEvent, LLMProviderError>, LLMProviderError>;
 }
 
 export const LLMProvider = Context.GenericTag<LLMProvider>('@providers/LLMProvider');

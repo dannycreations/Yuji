@@ -5,6 +5,7 @@ import { LLMProviderError } from '@yuji/client/app/Error';
 import { LLMProvider } from '@yuji/client/providers/LLMProvider';
 
 import type { Attachment, ThreadMessage, ToolCall } from '@yuji/client/app/Schema';
+import type { LLMStreamEvent } from '@yuji/client/providers/LLMProvider';
 
 interface OpenAIMessage {
   readonly role: string;
@@ -151,15 +152,15 @@ export const OpenAIProviderLive = Layer.effect(
                       const toolCalls = delta.tool_calls;
 
                       if (toolCalls) {
-                        return Option.some(`TOOL_CALLS:${JSON.stringify(toolCalls)}`);
+                        return Option.some<LLMStreamEvent>({ _tag: 'ToolCallDeltas', deltas: toolCalls });
                       }
 
                       if (reasoning) {
-                        return Option.some(` <reasoning>${reasoning}</reasoning> `);
+                        return Option.some<LLMStreamEvent>({ _tag: 'Text', content: ` <reasoning>${reasoning}</reasoning> ` });
                       }
 
                       if (token) {
-                        return Option.some(token);
+                        return Option.some<LLMStreamEvent>({ _tag: 'Text', content: token });
                       }
 
                       return Option.none();

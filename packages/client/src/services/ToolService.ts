@@ -13,6 +13,10 @@ export interface ToolService {
 
 export const ToolService = Context.GenericTag<ToolService>('@services/ToolService');
 
+const toolApiUrl = (settings: GlobalSetting, path: string): string => `${settings.toolsUrl || settings.baseUrl}${path}`;
+
+const authorizedRequest = (settings: GlobalSetting) => HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`);
+
 export const ToolServiceLive = Layer.effect(
   ToolService,
   Effect.gen(function* () {
@@ -21,17 +25,15 @@ export const ToolServiceLive = Layer.effect(
     return ToolService.of({
       fetch: (settings) =>
         Effect.gen(function* () {
-          const baseUrl = settings.toolsUrl || settings.baseUrl;
-          const request = HttpClientRequest.get(`${baseUrl}/tools`).pipe(HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`));
+          const request = HttpClientRequest.get(toolApiUrl(settings, '/tools')).pipe(authorizedRequest(settings));
 
           const response = yield* client.execute(request).pipe(Effect.flatMap((res) => res.json));
           return response as ToolDefinition[];
         }).pipe(Effect.catchAll((e) => Effect.fail(new Error(`Fetch tools error: ${formatError(e)}`)))),
       execute: (requests, settings) =>
         Effect.gen(function* () {
-          const baseUrl = settings.toolsUrl || settings.baseUrl;
-          const request = yield* HttpClientRequest.post(`${baseUrl}/tools/execute`).pipe(
-            HttpClientRequest.setHeader('Authorization', `Bearer ${settings.apiKey}`),
+          const request = yield* HttpClientRequest.post(toolApiUrl(settings, '/tools/execute')).pipe(
+            authorizedRequest(settings),
             HttpClientRequest.bodyJson(requests),
           );
 

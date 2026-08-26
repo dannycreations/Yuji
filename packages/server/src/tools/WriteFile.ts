@@ -1,7 +1,7 @@
 import { FileSystem } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 
-import { defineTool } from '@yuji/server/helpers/ToolHelper';
+import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const WriteFileSchema = Schema.Struct({
   files: Schema.Array(
@@ -19,14 +19,11 @@ export const WriteFile = defineTool(
   ({ files }) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      return yield* Effect.forEach(
-        files,
-        ({ path, content }) =>
-          Effect.gen(function* () {
-            yield* fs.writeFileString(path, content);
-            return { path, status: 'success' };
-          }).pipe(Effect.catchAll((error) => Effect.succeed({ path, error: String(error) }))),
-        { concurrency: 'inherit' },
+      return yield* forEachFile(files, ({ path, content }) =>
+        Effect.gen(function* () {
+          yield* fs.writeFileString(path, content);
+          return { path, status: 'success' };
+        }),
       );
     }),
 );

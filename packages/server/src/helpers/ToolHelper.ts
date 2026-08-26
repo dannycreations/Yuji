@@ -1,3 +1,4 @@
+import { FileSystem } from '@effect/platform';
 import { Effect, JSONSchema, Schema } from 'effect';
 
 import type { ToolDefinition } from '@yuji/client/app/Schema';
@@ -34,3 +35,18 @@ export const defineTool = <A, I, R, E, RE>(
       }),
   };
 };
+
+export interface FileProcessingError {
+  readonly path: string;
+  readonly error: string;
+}
+
+export const forEachFile = <F extends { readonly path: string }, R>(
+  files: ReadonlyArray<F>,
+  processFile: (file: F) => Effect.Effect<R, unknown, FileSystem.FileSystem>,
+): Effect.Effect<Array<R | FileProcessingError>, never, FileSystem.FileSystem> =>
+  Effect.forEach(
+    files,
+    (file) => processFile(file).pipe(Effect.catchAll((error) => Effect.succeed<FileProcessingError>({ path: file.path, error: String(error) }))),
+    { concurrency: 'inherit' },
+  );

@@ -1,7 +1,7 @@
 import { FileSystem } from '@effect/platform';
 import { Effect, Schema } from 'effect';
 
-import { defineTool } from '@yuji/server/helpers/ToolHelper';
+import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const DeleteFileSchema = Schema.Struct({
   files: Schema.Array(
@@ -18,19 +18,16 @@ export const DeleteFile = defineTool(
   ({ files }) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      return yield* Effect.forEach(
-        files,
-        ({ path }) =>
-          Effect.gen(function* () {
-            const exists = yield* fs.exists(path);
-            if (!exists) {
-              return { path, error: `Path not found: ${path}` };
-            }
+      return yield* forEachFile(files, ({ path }) =>
+        Effect.gen(function* () {
+          const exists = yield* fs.exists(path);
+          if (!exists) {
+            return { path, error: `Path not found: ${path}` };
+          }
 
-            yield* fs.remove(path, { recursive: true });
-            return { path, status: 'success' };
-          }).pipe(Effect.catchAll((error) => Effect.succeed({ path, error: String(error) }))),
-        { concurrency: 'inherit' },
+          yield* fs.remove(path, { recursive: true });
+          return { path, status: 'success' };
+        }),
       );
     }),
 );

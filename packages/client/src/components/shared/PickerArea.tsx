@@ -21,7 +21,6 @@ export interface PickerItemProps {
   readonly onClick?: () => void;
   readonly rightContent?: ReactNode;
   readonly className?: string;
-  readonly badges?: ReactNode;
 }
 
 export const PickerItem: FC<PickerItemProps> = ({
@@ -34,7 +33,6 @@ export const PickerItem: FC<PickerItemProps> = ({
   onClick,
   rightContent,
   className,
-  badges,
 }) => {
   const Component = onClick ? 'button' : 'div';
 
@@ -51,7 +49,6 @@ export const PickerItem: FC<PickerItemProps> = ({
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-2">
           <span className={clsx('model-picker-item-title block truncate', !isEnabled && 'text-text-tertiary')}>{title}</span>
-          {badges}
         </div>
         {description && <div className="model-picker-item-description truncate">{description}</div>}
       </div>

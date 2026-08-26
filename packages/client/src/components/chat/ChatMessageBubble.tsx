@@ -105,6 +105,12 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
       c.editMessage(tid, mid, content, options),
   );
 
+  const regenerate = (options?: { readonly instruction?: string }) => {
+    onRegenerate(threadId, message.id, options);
+    setIsRegenerateDropdownOpen(false);
+    setCustomInstruction('');
+  };
+
   // Logic to find siblings for navigation
   const siblingsList = siblings || [];
   const currentIndex = siblingsList.indexOf(message.id);
@@ -293,13 +299,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                           value={customInstruction}
                           onChange={(e) => setCustomInstruction(e.target.value)}
                           onKeyDown={(e) => {
-                            const isEnter = e.key === 'Enter';
-                            const trimmed = customInstruction.trim();
-
-                            if (isEnter && trimmed) {
-                              onRegenerate(threadId, message.id, { instruction: trimmed });
-                              setIsRegenerateDropdownOpen(false);
-                              setCustomInstruction('');
+                            if (e.key === 'Enter' && customInstruction.trim()) {
+                              regenerate({ instruction: customInstruction.trim() });
                             }
                           }}
                           autoFocus
@@ -310,11 +311,8 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                             customInstruction.trim() ? 'bg-primary text-background' : 'text-text-tertiary opacity-50',
                           )}
                           onClick={() => {
-                            const trimmed = customInstruction.trim();
-                            if (trimmed) {
-                              onRegenerate(threadId, message.id, { instruction: trimmed });
-                              setIsRegenerateDropdownOpen(false);
-                              setCustomInstruction('');
+                            if (customInstruction.trim()) {
+                              regenerate({ instruction: customInstruction.trim() });
                             }
                           }}
                         >
@@ -323,47 +321,21 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                       </div>
                     </div>
                     <div className="py-1">
-                      <DropdownItem
-                        icon={RefreshCw}
-                        label="Try again"
-                        onClick={() => {
-                          onRegenerate(threadId, message.id);
-                          setIsRegenerateDropdownOpen(false);
-                          setCustomInstruction('');
-                        }}
-                      />
+                      <DropdownItem icon={RefreshCw} label="Try again" onClick={() => regenerate()} />
                       <DropdownItem
                         icon={ArrowUpDown}
                         label="Add details"
-                        onClick={() => {
-                          onRegenerate(threadId, message.id, {
-                            instruction: 'Add more details and be more comprehensive.',
-                          });
-                          setIsRegenerateDropdownOpen(false);
-                          setCustomInstruction('');
-                        }}
+                        onClick={() => regenerate({ instruction: 'Add more details and be more comprehensive.' })}
                       />
                       <DropdownItem
                         icon={Minimize2}
                         label="More concise"
-                        onClick={() => {
-                          onRegenerate(threadId, message.id, {
-                            instruction: 'Make the response more concise and brief.',
-                          });
-                          setIsRegenerateDropdownOpen(false);
-                          setCustomInstruction('');
-                        }}
+                        onClick={() => regenerate({ instruction: 'Make the response more concise and brief.' })}
                       />
                       <DropdownItem
                         icon={Lightbulb}
                         label="Think longer"
-                        onClick={() => {
-                          onRegenerate(threadId, message.id, {
-                            instruction: 'Think longer and provide a more deeply reasoned response.',
-                          });
-                          setIsRegenerateDropdownOpen(false);
-                          setCustomInstruction('');
-                        }}
+                        onClick={() => regenerate({ instruction: 'Think longer and provide a more deeply reasoned response.' })}
                       />
                     </div>
                   </Dropdown>

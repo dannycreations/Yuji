@@ -374,11 +374,10 @@ export const ChatServiceLive = Layer.effect(
             const UI_UPDATE_INTERVAL = 60;
             const STORAGE_SAVE_INTERVAL = 3000;
 
-            yield* Stream.runForEach(stream, (token) =>
+            yield* Stream.runForEach(stream, (event) =>
               Effect.gen(function* () {
-                if (token.startsWith('TOOL_CALLS:')) {
-                  const delta = JSON.parse(token.slice(11));
-                  for (const d of delta) {
+                if (event._tag === 'ToolCallDeltas') {
+                  for (const d of event.deltas) {
                     if (d.index === undefined) {
                       continue;
                     }
@@ -415,7 +414,7 @@ export const ChatServiceLive = Layer.effect(
                   return;
                 }
 
-                fullContent += token;
+                fullContent += event.content;
                 const now = performance.now();
                 const isVisible = typeof document !== 'undefined' ? document.visibilityState === 'visible' : true;
 

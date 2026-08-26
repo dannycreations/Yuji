@@ -1,21 +1,14 @@
 import clsx from 'clsx';
-import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-import { ButtonInput } from '@yuji/client/components/shared/InputArea';
 import { useClickOutside } from '@yuji/client/hooks/useClickOutside';
 
 import type { FC, ReactNode } from 'react';
 
-export const ModalHeader: FC<{ readonly title: ReactNode; readonly onClose?: () => void }> = ({ title, onClose }) => (
+export const ModalHeader: FC<{ readonly title: ReactNode }> = ({ title }) => (
   <div className="modal-header">
     <div className="header-title">{title}</div>
-    {onClose && (
-      <ButtonInput onClick={onClose} className="ml-auto">
-        <X size={18} />
-      </ButtonInput>
-    )}
   </div>
 );
 
