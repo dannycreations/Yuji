@@ -2,12 +2,15 @@
 
 ## Guidelines
 
-- Bun is used as both the runtime and package manager.
-- You SHALL respect `src/app/styles.css` if you dealing with styles related.
+- Bun is the server runtime; pnpm is the package manager and workspace root.
+- You SHALL respect `packages/client/src/app/styles.css` if you dealing with styles related.
 
 ## Commands
 
 ```cmd
-# Check for static errors
-bun run check
+:: Format, then static check all packages
+pnpm run check
+
+:: Scope a command to one package with a filter
+pnpm --filter @yuji/client run check
 ```

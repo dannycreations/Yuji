@@ -5,7 +5,7 @@
   "schedule": ["before 12pm on sunday"],
   "dependencyDashboard": false,
   "cloneSubmodules": true,
-  "bun": {
+  "pnpm": {
     "rangeStrategy": "bump",
     "packageRules": [
       {

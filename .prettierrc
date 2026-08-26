@@ -8,7 +8,7 @@
   "trailingComma": "all",
   "quoteProps": "as-needed",
   "plugins": ["@ianvs/prettier-plugin-sort-imports"],
-  "importOrder": ["<THIRD_PARTY_MODULES>", "", "^[.]", "", "<TYPES>", "<TYPES>^[.]"],
+  "importOrder": ["<THIRD_PARTY_MODULES>", "", "^@yuji", "^[.]", "", "<TYPES>", "<TYPES>^@yuji", "<TYPES>^[.]"],
   "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
   "importOrderTypeScriptVersion": "4.4.0"
 }

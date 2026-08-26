@@ -1,0 +1,32 @@
+{
+  "name": "@yuji/server",
+  "version": "0.0.1",
+  "author": "dannycreations",
+  "license": "GPL",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "start": "bun src/main.ts",
+    "dev": "bun --watch src/main.ts",
+    "check": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dannycreations/Yuji.git",
+    "directory": "packages/server"
+  },
+  "homepage": "https://github.com/dannycreations/Yuji",
+  "dependencies": {
+    "@effect/platform": "^0.97.1",
+    "@effect/platform-bun": "^0.91.2",
+    "@yuji/client": "workspace:*",
+    "effect": "^3.22.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "typescript": "^7.0.2"
+  }
+}
