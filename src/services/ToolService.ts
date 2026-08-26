@@ -4,13 +4,11 @@ import { Context, Effect, Layer } from 'effect';
 import { GlobalSetting } from '../app/Schema';
 import { formatError } from '../utilities/CommonUtil';
 
-import type { ToolDefinition, ToolExecuteResponse } from '../app/Schema';
-
-export type ToolExecuteRequest = { name: string; arguments: unknown; id?: string };
+import type { ToolDefinition, ToolExecuteItem, ToolExecuteResponse } from '../app/Schema';
 
 export interface ToolService {
   readonly fetch: (settings: GlobalSetting) => Effect.Effect<ReadonlyArray<ToolDefinition>, Error>;
-  readonly execute: (requests: ToolExecuteRequest[], settings: GlobalSetting) => Effect.Effect<ToolExecuteResponse, Error>;
+  readonly execute: (requests: ToolExecuteItem[], settings: GlobalSetting) => Effect.Effect<ToolExecuteResponse, Error>;
 }
 
 export const ToolService = Context.GenericTag<ToolService>('@services/ToolService');

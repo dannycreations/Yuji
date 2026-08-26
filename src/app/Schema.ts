@@ -20,13 +20,14 @@ export const ToolCall = Schema.Struct({
 });
 export type ToolCall = Schema.Schema.Type<typeof ToolCall>;
 
-export const ToolExecuteRequest = Schema.Array(
-  Schema.Struct({
-    id: Schema.optional(Schema.String),
-    name: Schema.String,
-    arguments: Schema.Unknown,
-  }),
-);
+export const ToolExecuteItem = Schema.Struct({
+  id: Schema.optional(Schema.String),
+  name: Schema.String,
+  arguments: Schema.Unknown,
+});
+export type ToolExecuteItem = Schema.Schema.Type<typeof ToolExecuteItem>;
+
+export const ToolExecuteRequest = Schema.Array(ToolExecuteItem);
 export type ToolExecuteRequest = Schema.Schema.Type<typeof ToolExecuteRequest>;
 
 export const ToolExecuteResponse = Schema.Array(

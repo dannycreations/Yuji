@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODE_LIST } from '../app/Constant';
 import { getFlattenedThreads, sortThreadsByDate } from '../helpers/ThreadHelper';
 import { useClickOutside } from '../hooks/useClickOutside';
-import { useResizeObserver } from '../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../hooks/useStore';
 import { getFirstChar, shallowEqual } from '../utilities/CommonUtil';
 import { ThreadSettingModal } from './setting/ThreadSettingModal';
@@ -59,7 +58,6 @@ export const Sidebar: FC = () => {
 
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  useResizeObserver(scrollContainerRef);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
 

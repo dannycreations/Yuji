@@ -385,11 +385,6 @@ export const ChatServiceLive = Layer.effect(
             }
 
             const cleanToolCalls = toolCallsAccumulator.filter(Boolean);
-            yield* chat.updateMessage(threadId, id, fullContent, {
-              skipUpdateTimestamp: true,
-              uiOnly: false,
-            });
-
             yield* updateThread(threadId, (t) => {
               const msg = t.messages[id];
               if (!msg) {

@@ -85,7 +85,6 @@ const INITIAL_STATE: AppRuntimeState = {
   initializationError: undefined,
 };
 
-export const MAX_MEM_MESSAGES = 1000;
 export const MAX_MEM_THREADS = 100;
 
 const OnConfirmStore = new Map<string, () => void>();
@@ -280,19 +279,10 @@ export const StoreServiceLive = Layer.effect(
         })),
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
       togglePin: (id) =>
-        update((s) => {
-          const list = s.pinnedThreadIds;
-          const isPinned = list.includes(id);
-
-          if (isPinned) {
-            const next = list.filter((item) => item !== id);
-
-            return { ...s, pinnedThreadIds: next };
-          }
-
-          const next = [...list, id];
-          return { ...s, pinnedThreadIds: next };
-        }),
+        update((s) => ({
+          ...s,
+          pinnedThreadIds: s.pinnedThreadIds.includes(id) ? s.pinnedThreadIds.filter((item) => item !== id) : [...s.pinnedThreadIds, id],
+        })),
       toggleArchive: (threadId) =>
         Effect.gen(function* () {
           const s = yield* SubscriptionRef.get(state);

@@ -1,4 +1,3 @@
-import { shallowEqual } from '@client/utilities/CommonUtil';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import clsx from 'clsx';
 import { Bot, Code, Compass, Network, Sparkles } from 'lucide-react';
@@ -9,6 +8,7 @@ import { getBlockVersions, getVisibleMessages } from '../../helpers/ThreadHelper
 import { getGreeting } from '../../helpers/UserHelper';
 import { useResizeObserver } from '../../hooks/useResizeObserver';
 import { useChatAction, useStore, useStoreAction } from '../../hooks/useStore';
+import { shallowEqual } from '../../utilities/CommonUtil';
 import { ChatInput } from './ChatInput';
 import { ChatMessageBubble } from './ChatMessageBubble';
 

@@ -23,16 +23,6 @@ export interface StorageService {
 
   readonly getDescendantIds: (threadId: string, id: string) => Effect.Effect<ReadonlyArray<string>, Error>;
   readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>, Error>;
-  readonly paginate: <T>(
-    storeName: string,
-    options: {
-      lastKey?: IDBValidKey;
-      limit?: number;
-      indexName?: string;
-      indexValue?: IDBValidKey;
-      direction?: IDBCursorDirection;
-    },
-  ) => Effect.Effect<ReadonlyArray<T>, Error>;
   readonly saveMessages: (threadId: string, messages: Iterable<ThreadMessage>) => Effect.Effect<void, Error>;
   readonly deleteMessages: (threadId: string, ids: Iterable<string>) => Effect.Effect<void, Error>;
   readonly deleteDatabase: () => Effect.Effect<void, Error>;
@@ -70,6 +60,51 @@ export const StorageServiceLive = Layer.effect(
   Effect.gen(function* () {
     const getDB = yield* connectDB;
 
+    const paginate = <T>(
+      storeName: string,
+      options: {
+        lastKey?: IDBValidKey;
+        limit?: number;
+        indexName?: string;
+        indexValue?: IDBValidKey;
+        direction?: IDBCursorDirection;
+      },
+    ) =>
+      Effect.gen(function* () {
+        const db = yield* getDB;
+        const { lastKey, limit = 20, indexName, indexValue, direction = 'prev' } = options;
+        const tx = db.transaction(storeName, 'readonly');
+        const source = indexName ? tx.store.index(indexName) : tx.store;
+
+        let range: IDBKeyRange | null = null;
+        if (indexValue !== undefined && lastKey === undefined) {
+          range = IDBKeyRange.bound([indexValue, 0], [indexValue, Number.MAX_SAFE_INTEGER]);
+        } else if (indexValue !== undefined && direction === 'prev') {
+          range = IDBKeyRange.bound([indexValue, 0], [indexValue, lastKey], false, true);
+        } else if (indexValue !== undefined) {
+          range = IDBKeyRange.bound([indexValue, lastKey], [indexValue, Number.MAX_SAFE_INTEGER], true, false);
+        } else if (lastKey !== undefined) {
+          range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
+        }
+
+        const results: T[] = [];
+        let cursor = yield* Effect.promise(() => source.openCursor(range, direction));
+
+        while (cursor && results.length < limit) {
+          const val = cursor.value;
+
+          const isWrongThread = indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue;
+
+          if (isWrongThread) {
+            break;
+          }
+
+          results.push(val);
+          cursor = yield* Effect.promise(() => cursor!.continue());
+        }
+        return results;
+      });
+
     const storage: StorageService = StorageService.of({
       getMetadata: () =>
         Effect.gen(function* () {
@@ -89,7 +124,7 @@ export const StorageServiceLive = Layer.effect(
         }),
 
       getThreadsMetadata: (options) =>
-        storage.paginate<ThreadMetadata>(STORES.THREADS, {
+        paginate<ThreadMetadata>(STORES.THREADS, {
           limit: options?.limit ?? 50,
           lastKey: options?.lastKey,
           indexName: 'updatedAt',
@@ -259,51 +294,6 @@ export const StorageServiceLive = Layer.effect(
           yield* Effect.promise(() => tx.done);
         }),
 
-      paginate: <T>(
-        storeName: string,
-        options: {
-          lastKey?: IDBValidKey;
-          limit?: number;
-          indexName?: string;
-          indexValue?: IDBValidKey;
-          direction?: IDBCursorDirection;
-        },
-      ) =>
-        Effect.gen(function* () {
-          const db = yield* getDB;
-          const { lastKey, limit = 20, indexName, indexValue, direction = 'prev' } = options;
-          const tx = db.transaction(storeName, 'readonly');
-          const source = indexName ? tx.store.index(indexName) : tx.store;
-
-          let range: IDBKeyRange | null = null;
-          if (indexValue !== undefined && lastKey === undefined) {
-            range = IDBKeyRange.bound([indexValue, 0], [indexValue, Number.MAX_SAFE_INTEGER]);
-          } else if (indexValue !== undefined && direction === 'prev') {
-            range = IDBKeyRange.bound([indexValue, 0], [indexValue, lastKey], false, true);
-          } else if (indexValue !== undefined) {
-            range = IDBKeyRange.bound([indexValue, lastKey], [indexValue, Number.MAX_SAFE_INTEGER], true, false);
-          } else if (lastKey !== undefined) {
-            range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
-          }
-
-          const results: T[] = [];
-          let cursor = yield* Effect.promise(() => source.openCursor(range, direction));
-
-          while (cursor && results.length < limit) {
-            const val = cursor.value;
-
-            const isWrongThread = indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue;
-
-            if (isWrongThread) {
-              break;
-            }
-
-            results.push(val);
-            cursor = yield* Effect.promise(() => cursor!.continue());
-          }
-          return results;
-        }),
-
       getMessages: (threadId, options) =>
         Effect.gen(function* () {
           if (!options || !options.limit) {
@@ -311,7 +301,7 @@ export const StorageServiceLive = Layer.effect(
             const messages = yield* Effect.promise(() => db.getAll(STORES.MESSAGES, IDBKeyRange.bound([threadId, ''], [threadId, '\uffff'])));
             return messages as ThreadMessage[];
           }
-          return yield* storage.paginate<ThreadMessage>(STORES.MESSAGES, {
+          return yield* paginate<ThreadMessage>(STORES.MESSAGES, {
             ...options,
             indexName: 'threadId_timestamp',
             indexValue: threadId,

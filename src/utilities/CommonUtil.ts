@@ -1,7 +1,5 @@
 import { Cause } from 'effect';
 
-import type { ReactNode } from 'react';
-
 export const randomId = (size: number = 8): string => crypto.randomUUID().slice(0, size);
 
 export const getFirstChar = (str: string): string => {
@@ -40,41 +38,6 @@ export const toTitleCase = (str: string): string => {
   }
 
   return result;
-};
-
-export const parseBoldText = (text: string): (string | ReactNode)[] => {
-  const len = text.length;
-  if (len < 5) return [text];
-
-  const firstIdx = text.indexOf('**');
-  if (firstIdx === -1 || firstIdx > len - 4) return [text];
-
-  const results: (string | ReactNode)[] = [];
-  let lastIndex = 0;
-
-  // Manual fast-path iteration instead of regex split + map
-  while (lastIndex < len) {
-    const start = text.indexOf('**', lastIndex);
-    if (start === -1 || start > len - 4) {
-      results.push(text.slice(lastIndex));
-      break;
-    }
-
-    const end = text.indexOf('**', start + 2);
-    if (end === -1) {
-      results.push(text.slice(lastIndex));
-      break;
-    }
-
-    if (start > lastIndex) {
-      results.push(text.slice(lastIndex, start));
-    }
-
-    results.push(<strong key={start}>{text.slice(start + 2, end)}</strong>);
-    lastIndex = end + 2;
-  }
-
-  return results;
 };
 
 export const formatError = (err: unknown): string => {

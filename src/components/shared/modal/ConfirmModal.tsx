@@ -1,11 +1,13 @@
 import { Effect } from 'effect';
 
 import { useStore, useStoreAction } from '../../../hooks/useStore';
-import { parseBoldText } from '../../../utilities/CommonUtil';
 import { ButtonInput } from '../InputArea';
 import { Modal, ModalFooter, ModalHeader } from './Modal';
 
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
+
+const parseBoldText = (text: string): (string | ReactNode)[] =>
+  text.split(/\*\*(.+?)\*\*/g).map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part));
 
 export const ConfirmModal: FC = () => {
   const confirm = useStore((s) => s.confirm);
