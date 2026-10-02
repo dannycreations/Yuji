@@ -1,4 +1,4 @@
-import { Context, Effect, Either, Layer, Stream, SubscriptionRef } from 'effect';
+import { Context, Effect, Layer, Result, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '@yuji/client/app/Constant';
 import { AppRuntimeState, AppStoreState, Thread, ThreadMetadata } from '@yuji/client/app/Schema';
@@ -31,7 +31,7 @@ export interface StoreService {
   readonly getThread: (id: string) => Effect.Effect<Thread | null, Error>;
 }
 
-export const StoreService = Context.GenericTag<StoreService>('@services/StoreService');
+export const StoreService = Context.Service<StoreService>('@services/StoreService');
 
 const createNotification = (
   type: 'error' | 'warning' | 'info' | 'success',
@@ -104,10 +104,10 @@ export const StoreServiceLive = Layer.effect(
       const result = yield* Effect.all({
         metadata: storage.getMetadata(),
         threadHeaders: storage.getThreadsMetadata({ limit: 30 }),
-      }).pipe(Effect.timeout('5 seconds'), Effect.sandbox, Effect.either);
+      }).pipe(Effect.timeout('5 seconds'), Effect.sandbox, Effect.result);
 
-      if (Either.isLeft(result)) {
-        const err = formatError(result.left);
+      if (Result.isFailure(result)) {
+        const err = formatError(result.failure);
         yield* Effect.logError('Database initialization failed:', err);
         return {
           ...INITIAL_STATE,
@@ -116,7 +116,7 @@ export const StoreServiceLive = Layer.effect(
         } as AppRuntimeState;
       }
 
-      const { metadata, threadHeaders } = result.right;
+      const { metadata, threadHeaders } = result.success;
       if (!metadata) {
         return {
           ...INITIAL_STATE,
@@ -140,7 +140,7 @@ export const StoreServiceLive = Layer.effect(
         } as AppRuntimeState;
       }
 
-      const activeThread = yield* storage.getThread(activeThreadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
+      const activeThread = yield* storage.getThread(activeThreadId).pipe(Effect.catch(() => Effect.succeed(null)));
 
       return {
         ...INITIAL_STATE,
@@ -168,8 +168,8 @@ export const StoreServiceLive = Layer.effect(
     };
 
     // Keep cache fresh on changes and notify listeners immediately
-    yield* Effect.forkDaemon(
-      state.changes.pipe(
+    yield* Effect.forkDetach(
+      SubscriptionRef.changes(state).pipe(
         Stream.runForEach(() =>
           Effect.sync(() => {
             snapshotCache = null;
@@ -180,8 +180,8 @@ export const StoreServiceLive = Layer.effect(
     );
 
     // Metadata (Debounced & Differential)
-    yield* Effect.forkDaemon(
-      state.changes.pipe(
+    yield* Effect.forkDetach(
+      SubscriptionRef.changes(state).pipe(
         Stream.drop(1),
         Stream.map(
           (s) =>
@@ -342,9 +342,7 @@ export const StoreServiceLive = Layer.effect(
           }
 
           // PHASE 1: Fast load of active path + siblings for immediate interaction
-          const partialThread = yield* storage
-            .getThread(threadId, { limit: 20, loadSiblings: true })
-            .pipe(Effect.catchAll(() => Effect.succeed(null)));
+          const partialThread = yield* storage.getThread(threadId, { limit: 20, loadSiblings: true }).pipe(Effect.catch(() => Effect.succeed(null)));
 
           if (partialThread) {
             yield* update((s) => {
@@ -373,7 +371,7 @@ export const StoreServiceLive = Layer.effect(
 
           // PHASE 2: Background load of everything else to ensure full history availability
           yield* Effect.gen(function* () {
-            const fullThread = yield* storage.getThread(threadId).pipe(Effect.catchAll(() => Effect.succeed(null)));
+            const fullThread = yield* storage.getThread(threadId).pipe(Effect.catch(() => Effect.succeed(null)));
 
             if (!fullThread) {
               return;
@@ -405,7 +403,7 @@ export const StoreServiceLive = Layer.effect(
                 },
               };
             });
-          }).pipe(Effect.forkDaemon);
+          }).pipe(Effect.forkDetach);
         }).pipe(Effect.orDie),
       loadMoreThreads: () =>
         Effect.gen(function* () {
@@ -420,7 +418,7 @@ export const StoreServiceLive = Layer.effect(
             return result;
           }, Infinity);
 
-          const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+          const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catch(() => Effect.succeed([])));
 
           if (more.length === 0) {
             return;
@@ -481,12 +479,12 @@ export const StoreServiceLive = Layer.effect(
                   return { ...s, threads: newThreads };
                 }),
               ),
-              Effect.catchAll(() => Effect.void),
+              Effect.catch(() => Effect.void),
             );
             return;
           }
 
-          const results = yield* storage.searchThreads(query, { limit: 50 }).pipe(Effect.catchAll(() => Effect.succeed([])));
+          const results = yield* storage.searchThreads(query, { limit: 50 }).pipe(Effect.catch(() => Effect.succeed([])));
 
           yield* update((s) => {
             const nextThreads = { ...s.threads };

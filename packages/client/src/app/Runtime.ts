@@ -1,5 +1,5 @@
-import { FetchHttpClient } from '@effect/platform';
-import { Layer, Logger, LogLevel, ManagedRuntime } from 'effect';
+import { Layer, Logger, ManagedRuntime, References } from 'effect';
+import { FetchHttpClient } from 'effect/http';
 
 import { OpenAIProviderLive } from '@yuji/client/providers/OpenAIProvider';
 import { ChatServiceLive } from '@yuji/client/services/ChatService';
@@ -12,12 +12,12 @@ const MainLogger = Logger.make<unknown, void>(({ logLevel, message }) => {
   if (!Array.isArray(message)) return;
 
   const messages = message as unknown[];
-  switch (logLevel._tag) {
+  switch (logLevel) {
     case 'Fatal':
     case 'Error':
       console.error(...messages);
       break;
-    case 'Warning':
+    case 'Warn':
       console.warn(...messages);
       break;
     case 'Debug':
@@ -40,10 +40,10 @@ const MainLayer = ChatServiceLive.pipe(
   Layer.provideMerge(StoreServiceLive),
   Layer.provideMerge(StorageServiceLive),
   Layer.provide(FetchHttpClient.layer),
-  Layer.provide(Logger.replace(Logger.defaultLogger, MainLogger)),
-  Layer.provide(Logger.minimumLogLevel(import.meta.env.PROD ? LogLevel.Info : LogLevel.Debug)),
+  Layer.provide(Logger.layer([MainLogger])),
+  Layer.provide(Layer.succeed(References.MinimumLogLevel, import.meta.env.PROD ? 'Info' : 'Debug')),
 ).pipe(Layer.orDie);
 
 export const YujiRuntime = ManagedRuntime.make(MainLayer);
 
-export type YujiEnv = ManagedRuntime.ManagedRuntime.Context<typeof YujiRuntime>;
+export type YujiEnv = Layer.Success<typeof MainLayer>;

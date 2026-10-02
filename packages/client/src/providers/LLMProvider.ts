@@ -50,4 +50,4 @@ export interface LLMProvider {
   ) => Effect.Effect<Stream.Stream<LLMStreamEvent, LLMProviderError>, LLMProviderError>;
 }
 
-export const LLMProvider = Context.GenericTag<LLMProvider>('@providers/LLMProvider');
+export const LLMProvider = Context.Service<LLMProvider>('@providers/LLMProvider');

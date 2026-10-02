@@ -11,7 +11,8 @@
   "scripts": {
     "start": "bun src/main.ts",
     "dev": "bun --watch src/main.ts",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "bun test"
   },
   "repository": {
     "type": "git",
@@ -20,13 +21,12 @@
   },
   "homepage": "https://github.com/dannycreations/Yuji",
   "dependencies": {
-    "@effect/platform": "^0.97.1",
-    "@effect/platform-bun": "^0.91.2",
+    "@effect/platform-bun": "^4.0.0",
     "@yuji/client": "workspace:*",
-    "effect": "^3.22.1"
+    "effect": "^4.0.0"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.0",
+    "@types/bun": "^1.4.2",
     "typescript": "^7.0.2"
   }
 }

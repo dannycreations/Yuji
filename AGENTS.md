@@ -1,16 +1,17 @@
 # Yuji Development Guide
 
-## Guidelines
-
-- Bun is the server runtime; pnpm is the package manager and workspace root.
-- You SHALL respect `packages/client/src/app/styles.css` if you dealing with styles related.
-
 ## Commands
 
 ```cmd
-:: Format, then static check all packages
-pnpm run check
+:: Apply formatting, then perform static analysis
+bun run check
+bun --filter @yuji/client run check
 
-:: Scope a command to one package with a filter
-pnpm --filter @yuji/client run check
+:: Perform static analysis, then execute the test suite
+bun run test
 ```
+
+## Guidelines
+
+- Bun serves as both a runtime environment and a package manager.
+- Whenever your work touches anything related to styling, check the conventions established in `./packages/client/src/app/styles.css`.

@@ -56,7 +56,7 @@ export interface ChatService {
   ) => Effect.Effect<void, Error>;
 }
 
-export const ChatService = Context.GenericTag<ChatService>('@services/ChatService');
+export const ChatService = Context.Service<ChatService>('@services/ChatService');
 
 export const ChatServiceLive = Layer.effect(
   ChatService,
@@ -518,7 +518,7 @@ export const ChatServiceLive = Layer.effect(
             currentPath = getMessagePath(updatedThread, lastToolMsgId);
           }
         }).pipe(
-          Effect.catchAll((err) =>
+          Effect.catch((err) =>
             Effect.gen(function* () {
               const msg = formatError(err);
               const { activeThread } = yield* SubscriptionRef.get(store.state);
@@ -549,7 +549,7 @@ export const ChatServiceLive = Layer.effect(
           ),
         );
 
-        const fiber = yield* Effect.forkDaemon(streamEffect);
+        const fiber = yield* Effect.forkDetach(streamEffect);
         fibers.set(threadId, fiber);
       });
 
@@ -658,7 +658,7 @@ export const ChatServiceLive = Layer.effect(
           const finalMode = targetMode === 'agent' && availableTools.length === 0 ? 'chat' : targetMode;
 
           const newThread = createInitialThread({ ...settings, mode: finalMode }, availableModels);
-          const metadata = yield* Schema.decode(ThreadMetadata)(newThread).pipe(Effect.orDie);
+          const metadata = yield* Schema.decodeEffect(ThreadMetadata)(newThread).pipe(Effect.orDie);
 
           yield* store.update((state) => ({
             ...state,
@@ -709,7 +709,7 @@ export const ChatServiceLive = Layer.effect(
           const saveEffects: Effect.Effect<void, Error>[] = [];
 
           for (const [id, thread] of Object.entries(threads)) {
-            metadatas[id] = yield* Schema.decode(ThreadMetadata)(thread).pipe(Effect.orDie);
+            metadatas[id] = yield* Schema.decodeEffect(ThreadMetadata)(thread).pipe(Effect.orDie);
             saveEffects.push(storage.saveThread(thread));
             if (thread.messages) {
               saveEffects.push(storage.saveMessages(id, Object.values(thread.messages)));
@@ -842,7 +842,7 @@ export const ChatServiceLive = Layer.effect(
           }));
         }
       }
-    }).pipe(Effect.forkDaemon);
+    }).pipe(Effect.forkDetach);
 
     return chat;
   }),

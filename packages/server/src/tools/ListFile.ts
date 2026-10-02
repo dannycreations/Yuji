@@ -1,11 +1,10 @@
-import { FileSystem } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Schema } from 'effect';
 
 import { defineTool } from '@yuji/server/helpers/ToolHelper';
 
 const ListFileSchema = Schema.Struct({
-  path: Schema.String.annotations({ description: 'The directory path for inspection.' }),
-  recursive: Schema.Boolean.annotations({
+  path: Schema.String.annotate({ description: 'The directory path for inspection.' }),
+  recursive: Schema.Boolean.annotate({
     description: 'Set to `true` for a recursive, deep listing of all contents; `false` for a top-level-only listing.',
   }),
 });
@@ -24,5 +23,5 @@ export const ListFile = defineTool(
 
       const files = yield* fs.readDirectory(path, { recursive });
       return { path, files };
-    }).pipe(Effect.catchAll((error) => Effect.succeed({ path, error: String(error) }))),
+    }).pipe(Effect.catch((error) => Effect.succeed({ path, error: String(error) }))),
 );

@@ -1,22 +1,25 @@
-import { FileSystem } from '@effect/platform';
-import { Effect, JSONSchema, Schema } from 'effect';
+import { Effect, FileSystem, Schema, Scope } from 'effect';
+import { ChildProcessSpawner } from 'effect/process';
 
 import type { ToolDefinition } from '@yuji/client/app/Schema';
 
-export interface ToolImplementation<A = unknown, I = unknown, R = unknown> {
+/** Services a tool implementation may require. `Scope` is supplied by {@link defineTool}. */
+export type ToolServices = FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner;
+
+export interface ToolImplementation<A = unknown> {
   readonly name: string;
   readonly definition: ToolDefinition;
-  readonly schema: Schema.Schema<A, I, R>;
-  readonly execute: (args: unknown) => Effect.Effect<unknown, unknown, unknown>;
+  readonly schema: Schema.ConstraintDecoder<A>;
+  readonly execute: (args: unknown) => Effect.Effect<unknown, unknown, ToolServices>;
 }
 
-export const defineTool = <A, I, R, E, RE>(
+export const defineTool = <A>(
   name: string,
   description: string,
-  schema: Schema.Schema<A, I, R>,
-  execute: (args: A) => Effect.Effect<unknown, E, RE>,
-): ToolImplementation<A, I, R> => {
-  const parameters = JSONSchema.make(schema);
+  schema: Schema.ConstraintDecoder<A>,
+  execute: (args: A) => Effect.Effect<unknown, unknown, Scope.Scope | ToolServices>,
+): ToolImplementation<A> => {
+  const parameters = Schema.toJsonSchemaDocument(schema);
   return {
     name,
     definition: {
@@ -30,8 +33,8 @@ export const defineTool = <A, I, R, E, RE>(
     schema,
     execute: (args: unknown) =>
       Effect.gen(function* () {
-        const decoded = yield* Schema.decodeUnknown(schema)(args);
-        return yield* execute(decoded);
+        const decoded = yield* Schema.decodeUnknownEffect(schema)(args);
+        return yield* execute(decoded).pipe(Effect.scoped);
       }),
   };
 };
@@ -43,10 +46,8 @@ export interface FileProcessingError {
 
 export const forEachFile = <F extends { readonly path: string }, R>(
   files: ReadonlyArray<F>,
-  processFile: (file: F) => Effect.Effect<R, unknown, FileSystem.FileSystem>,
-): Effect.Effect<Array<R | FileProcessingError>, never, FileSystem.FileSystem> =>
-  Effect.forEach(
-    files,
-    (file) => processFile(file).pipe(Effect.catchAll((error) => Effect.succeed<FileProcessingError>({ path: file.path, error: String(error) }))),
-    { concurrency: 'inherit' },
+  processFile: (file: F) => Effect.Effect<R, unknown, Scope.Scope | ToolServices>,
+): Effect.Effect<Array<R | FileProcessingError>, never, Scope.Scope | ToolServices> =>
+  Effect.forEach(files, (file) =>
+    processFile(file).pipe(Effect.catch((error) => Effect.succeed<FileProcessingError>({ path: file.path, error: String(error) }))),
   );

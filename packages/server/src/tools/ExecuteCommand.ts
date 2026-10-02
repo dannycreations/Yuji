@@ -1,13 +1,13 @@
-import { Command } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, Schema, Stream } from 'effect';
+import { ChildProcess } from 'effect/process';
 
 import { defineTool } from '@yuji/server/helpers/ToolHelper';
 
 const ExecuteCommandSchema = Schema.Struct({
-  command: Schema.String.annotations({
+  command: Schema.String.annotate({
     description: 'The precise and pragmatic OS-native shell command to be executed.',
   }),
-  cwd: Schema.String.annotations({
+  cwd: Schema.String.annotate({
     description: 'The designated working directory for command execution.',
   }),
 });
@@ -18,7 +18,9 @@ export const ExecuteCommand = defineTool(
   ExecuteCommandSchema,
   ({ command, cwd }) =>
     Effect.gen(function* () {
-      const output = yield* Command.make('cmd.exe', '/c', command).pipe(Command.workingDirectory(cwd), Command.string);
-      return output;
-    }).pipe(Effect.catchAll((error) => Effect.succeed({ error: String(error) }))),
+      const output = yield* ChildProcess.make('cmd.exe', ['/c', command], { cwd }).pipe(
+        Effect.flatMap((child) => Stream.runCollect(Stream.decodeText(child.stdout))),
+      );
+      return output.join('');
+    }).pipe(Effect.catch((error) => Effect.succeed({ error: String(error) }))),
 );

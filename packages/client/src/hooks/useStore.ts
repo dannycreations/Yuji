@@ -29,8 +29,8 @@ const useStableCallback = <A extends unknown[], R>(callback: (...args: A) => R) 
 const runReported = <Success, Error, Requirements extends YujiEnv>(errorPrefix: string, effect: Effect.Effect<Success, Error, Requirements>) =>
   YujiRuntime.runPromise(
     effect.pipe(
-      Effect.catchAllCause((cause) => {
-        if (Cause.isInterruptedOnly(cause)) return Effect.void;
+      Effect.catchCause((cause) => {
+        if (Cause.hasInterruptsOnly(cause)) return Effect.void;
         return reportError(errorPrefix, cause);
       }),
     ),
@@ -75,7 +75,7 @@ export const useRuntimeAction = <A extends unknown[], Success, Error, Requiremen
 };
 
 const makeServiceAction =
-  <S extends YujiEnv>(tag: Context.Tag<S, S>, errorPrefix: string) =>
+  <S extends YujiEnv>(tag: Context.Service<S, S>, errorPrefix: string) =>
   <A extends unknown[], Success, Error, Requirements extends YujiEnv>(
     action: (service: S, ...args: A) => Effect.Effect<Success, Error, Requirements>,
   ) => {

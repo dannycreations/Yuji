@@ -1,15 +1,14 @@
-import { FileSystem } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Schema } from 'effect';
 
 import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const WriteFileSchema = Schema.Struct({
   files: Schema.Array(
     Schema.Struct({
-      path: Schema.String.annotations({ description: 'The file path for the write operation.' }),
-      content: Schema.String.annotations({ description: 'The complete and final textual payload for the file.' }),
+      path: Schema.String.annotate({ description: 'The file path for the write operation.' }),
+      content: Schema.String.annotate({ description: 'The complete and final textual payload for the file.' }),
     }),
-  ).pipe(Schema.minItems(1), Schema.maxItems(20), Schema.annotations({ description: 'A list of files to write.' })),
+  ).pipe(Schema.check(Schema.isMinLength(1), Schema.isMaxLength(20)), Schema.annotate({ description: 'A list of files to write.' })),
 });
 
 export const WriteFile = defineTool(

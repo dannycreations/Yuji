@@ -19,5 +19,5 @@ export const SystemInfo = defineTool(
       const os = getFriendlyOSName();
       const shell = yield* getAvailableShells();
       return { os, shell } as SystemInfoResponse;
-    }).pipe(Effect.catchAll((error) => Effect.succeed({ error: String(error) }))),
+    }).pipe(Effect.catch((error) => Effect.succeed({ error: String(error) }))),
 );

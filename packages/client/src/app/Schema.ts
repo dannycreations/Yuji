@@ -70,8 +70,8 @@ export const GlobalSetting = Schema.Struct({
   apiKey: Schema.String,
   baseUrl: Schema.String,
   model: Schema.String,
-  mode: Schema.Literal('chat', 'agent'),
-  theme: Schema.Literal('dark', 'light'),
+  mode: Schema.Literals(['chat', 'agent']),
+  theme: Schema.Literals(['dark', 'light']),
   enterToSend: Schema.Boolean,
   expandCodeblock: Schema.Boolean,
   showSuggestions: Schema.Boolean,
@@ -98,7 +98,7 @@ export type ThreadSetting = Schema.Schema.Type<typeof ThreadSetting>;
 export const ThreadMetadata = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
-  mode: Schema.Literal('chat', 'agent'),
+  mode: Schema.Literals(['chat', 'agent']),
   activeMessageId: Schema.optional(Schema.String),
   archived: Schema.optional(Schema.Boolean),
   createdAt: Schema.Number,
@@ -108,7 +108,7 @@ export type ThreadMetadata = Schema.Schema.Type<typeof ThreadMetadata>;
 
 export const ThreadMessage = Schema.Struct({
   id: Schema.String,
-  role: Schema.Literal('system', 'user', 'assistant', 'tool'),
+  role: Schema.Literals(['system', 'user', 'assistant', 'tool']),
   content: Schema.String,
   attachments: Schema.optional(Schema.Array(Attachment)),
   timestamp: Schema.Number,
@@ -120,14 +120,11 @@ export const ThreadMessage = Schema.Struct({
 });
 export type ThreadMessage = Schema.Schema.Type<typeof ThreadMessage>;
 
-export const Thread = Schema.extend(
-  ThreadMetadata,
-  Schema.extend(
-    ThreadSetting,
-    Schema.Struct({
-      messages: Schema.Record({ key: Schema.String, value: ThreadMessage }),
-    }),
-  ),
+export const Thread = ThreadMetadata.pipe(
+  Schema.fieldsAssign(ThreadSetting.fields),
+  Schema.fieldsAssign({
+    messages: Schema.Record(Schema.String, ThreadMessage),
+  }),
 );
 export type Thread = Schema.Schema.Type<typeof Thread>;
 
@@ -138,14 +135,14 @@ export const ConfirmState = Schema.Struct({
   message: Schema.String,
   confirmLabel: Schema.optional(Schema.String),
   cancelLabel: Schema.optional(Schema.String),
-  variant: Schema.optional(Schema.Literal('danger', 'warning', 'info')),
+  variant: Schema.optional(Schema.Literals(['danger', 'warning', 'info'])),
 });
 export type ConfirmState = Schema.Schema.Type<typeof ConfirmState>;
 export type ConfirmOptions = Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void };
 
 export const Notification = Schema.Struct({
   id: Schema.String,
-  type: Schema.Literal('error', 'warning', 'info', 'success'),
+  type: Schema.Literals(['error', 'warning', 'info', 'success']),
   message: Schema.String,
   timestamp: Schema.Number,
 });
@@ -161,10 +158,9 @@ export const AppStoreState = Schema.Struct({
 });
 export type AppStoreState = Schema.Schema.Type<typeof AppStoreState>;
 
-export const AppRuntimeState = Schema.extend(
-  AppStoreState,
-  Schema.Struct({
-    threads: Schema.Record({ key: Schema.String, value: ThreadMetadata }),
+export const AppRuntimeState = AppStoreState.pipe(
+  Schema.fieldsAssign({
+    threads: Schema.Record(Schema.String, ThreadMetadata),
     activeThread: Schema.NullOr(Thread),
     isSidebarOpen: Schema.Boolean,
     isSettingOpen: Schema.Boolean,

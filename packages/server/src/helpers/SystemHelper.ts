@@ -1,7 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
-import { FileSystem } from '@effect/platform';
-import { Effect } from 'effect';
+import { Effect, FileSystem } from 'effect';
 
 export const getFriendlyOSName = (): string => {
   const platform = os.platform();
@@ -34,29 +33,29 @@ export const getAvailableShells = (): Effect.Effect<string[], never, FileSystem.
       const powershellPath = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
       const pwshPath = path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe');
 
-      const cmdExists = yield* fs.exists(cmdPath).pipe(Effect.catchAll(() => Effect.succeed(false)));
+      const cmdExists = yield* fs.exists(cmdPath).pipe(Effect.catch(() => Effect.succeed(false)));
       if (cmdExists) {
         shells.push(cmdPath);
       }
 
-      const powershellExists = yield* fs.exists(powershellPath).pipe(Effect.catchAll(() => Effect.succeed(false)));
+      const powershellExists = yield* fs.exists(powershellPath).pipe(Effect.catch(() => Effect.succeed(false)));
       if (powershellExists) {
         shells.push(powershellPath);
       }
 
-      const pwshExists = yield* fs.exists(pwshPath).pipe(Effect.catchAll(() => Effect.succeed(false)));
+      const pwshExists = yield* fs.exists(pwshPath).pipe(Effect.catch(() => Effect.succeed(false)));
       if (pwshExists) {
         shells.push(pwshPath);
       }
     } else {
       const commonShells = ['/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/bash', '/usr/bin/zsh'];
       for (const shell of commonShells) {
-        if (yield* fs.exists(shell).pipe(Effect.catchAll(() => Effect.succeed(false)))) {
+        if (yield* fs.exists(shell).pipe(Effect.catch(() => Effect.succeed(false)))) {
           shells.push(shell);
         }
       }
 
-      if (yield* fs.exists('/etc/shells').pipe(Effect.catchAll(() => Effect.succeed(false)))) {
+      if (yield* fs.exists('/etc/shells').pipe(Effect.catch(() => Effect.succeed(false)))) {
         const content = yield* fs.readFileString('/etc/shells', 'utf8').pipe(Effect.orElseSucceed(() => ''));
         const lines = content.split('\n');
         for (const line of lines) {
@@ -65,7 +64,7 @@ export const getAvailableShells = (): Effect.Effect<string[], never, FileSystem.
             trimmed &&
             !trimmed.startsWith('#') &&
             !shells.includes(trimmed) &&
-            (yield* fs.exists(trimmed).pipe(Effect.catchAll(() => Effect.succeed(false))))
+            (yield* fs.exists(trimmed).pipe(Effect.catch(() => Effect.succeed(false))))
           ) {
             shells.push(trimmed);
           }

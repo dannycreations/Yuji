@@ -28,7 +28,7 @@ export interface StorageService {
   readonly deleteDatabase: () => Effect.Effect<void, Error>;
 }
 
-export const StorageService = Context.GenericTag<StorageService>('@services/StorageService');
+export const StorageService = Context.Service<StorageService>('@services/StorageService');
 
 const DB_NAME = 'yuji-db';
 const DB_VERSION = 1;
@@ -374,7 +374,7 @@ export const StorageServiceLive = Layer.effect(
         }),
 
       deleteDatabase: () =>
-        Effect.async<void>((resume) => {
+        Effect.callback<void>((resume) => {
           const request = indexedDB.deleteDatabase(DB_NAME);
           const timeout = setTimeout(() => resume(Effect.void), 2000);
 

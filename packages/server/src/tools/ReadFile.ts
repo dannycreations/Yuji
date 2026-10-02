@@ -1,14 +1,16 @@
-import { FileSystem } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Schema } from 'effect';
 
 import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const ReadFileSchema = Schema.Struct({
   files: Schema.Array(
     Schema.Struct({
-      path: Schema.String.annotations({ description: 'The explicit file path for content acquisition.' }),
+      path: Schema.String.annotate({ description: 'The explicit file path for content acquisition.' }),
     }),
-  ).pipe(Schema.minItems(1), Schema.maxItems(20), Schema.annotations({ description: 'A list of target file paths for content ingestion.' })),
+  ).pipe(
+    Schema.check(Schema.isMinLength(1), Schema.isMaxLength(20)),
+    Schema.annotate({ description: 'A list of target file paths for content ingestion.' }),
+  ),
 });
 
 export const ReadFile = defineTool(

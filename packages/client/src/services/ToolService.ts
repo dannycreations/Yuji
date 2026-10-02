@@ -1,5 +1,5 @@
-import { HttpClient, HttpClientRequest } from '@effect/platform';
 import { Context, Effect, Layer } from 'effect';
+import { HttpClient, HttpClientRequest } from 'effect/http';
 
 import { GlobalSetting } from '@yuji/client/app/Schema';
 import { formatError } from '@yuji/client/utilities/CommonUtil';
@@ -11,7 +11,7 @@ export interface ToolService {
   readonly execute: (requests: ToolExecuteItem[], settings: GlobalSetting) => Effect.Effect<ToolExecuteResponse, Error>;
 }
 
-export const ToolService = Context.GenericTag<ToolService>('@services/ToolService');
+export const ToolService = Context.Service<ToolService>('@services/ToolService');
 
 const toolApiUrl = (settings: GlobalSetting, path: string): string => `${settings.toolsUrl || settings.baseUrl}${path}`;
 
@@ -29,7 +29,7 @@ export const ToolServiceLive = Layer.effect(
 
           const response = yield* client.execute(request).pipe(Effect.flatMap((res) => res.json));
           return response as ToolDefinition[];
-        }).pipe(Effect.catchAll((e) => Effect.fail(new Error(`Fetch tools error: ${formatError(e)}`)))),
+        }).pipe(Effect.catch((e) => Effect.fail(new Error(`Fetch tools error: ${formatError(e)}`)))),
       execute: (requests, settings) =>
         Effect.gen(function* () {
           const request = yield* HttpClientRequest.post(toolApiUrl(settings, '/tools/execute')).pipe(
@@ -39,7 +39,7 @@ export const ToolServiceLive = Layer.effect(
 
           const response = yield* client.execute(request).pipe(Effect.flatMap((res) => res.json));
           return response as ToolExecuteResponse;
-        }).pipe(Effect.catchAll((e) => Effect.fail(new Error(`Tool execution error: ${formatError(e)}`)))),
+        }).pipe(Effect.catch((e) => Effect.fail(new Error(`Tool execution error: ${formatError(e)}`)))),
     });
   }),
 );

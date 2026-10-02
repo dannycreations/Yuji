@@ -1,5 +1,5 @@
-import { HttpClient, HttpClientRequest, HttpClientResponse } from '@effect/platform';
-import { Effect, Layer, Option, Schema, Stream } from 'effect';
+import { Effect, Filter, Layer, Option, Schema, Stream } from 'effect';
+import { HttpClient, HttpClientRequest, HttpClientResponse } from 'effect/http';
 
 import { LLMProviderError } from '@yuji/client/app/Error';
 import { LLMProvider } from '@yuji/client/providers/LLMProvider';
@@ -129,47 +129,49 @@ export const OpenAIProviderLive = Layer.effect(
               Effect.map((response) =>
                 response.stream.pipe(
                   Stream.mapError((e) => new LLMProviderError({ message: 'Stream error', cause: e })),
-                  (s) => Stream.decodeText(s, 'utf-8'),
+                  (s) => Stream.decodeText(s, { encoding: 'utf-8' }),
                   Stream.splitLines,
-                  Stream.filterMap((line) => {
-                    const trimmed = line.trim();
-                    if (trimmed === '' || trimmed === 'data: [DONE]') {
-                      return Option.none();
-                    }
-
-                    if (!trimmed.startsWith('data: ')) {
-                      return Option.none();
-                    }
-
-                    try {
-                      const data = JSON.parse(trimmed.slice(6));
-                      const delta = data.choices[0]?.delta;
-
-                      if (!delta) {
+                  Stream.filterMap(
+                    Filter.fromPredicateOption((line) => {
+                      const trimmed = line.trim();
+                      if (trimmed === '' || trimmed === 'data: [DONE]') {
                         return Option.none();
                       }
 
-                      const token = delta.content || '';
-                      const reasoning = delta.reasoning_content || '';
-                      const toolCalls = delta.tool_calls;
-
-                      if (toolCalls) {
-                        return Option.some<LLMStreamEvent>({ _tag: 'ToolCallDeltas', deltas: toolCalls });
+                      if (!trimmed.startsWith('data: ')) {
+                        return Option.none();
                       }
 
-                      if (reasoning) {
-                        return Option.some<LLMStreamEvent>({ _tag: 'Text', content: ` <reasoning>${reasoning}</reasoning> ` });
-                      }
+                      try {
+                        const data = JSON.parse(trimmed.slice(6));
+                        const delta = data.choices[0]?.delta;
 
-                      if (token) {
-                        return Option.some<LLMStreamEvent>({ _tag: 'Text', content: token });
-                      }
+                        if (!delta) {
+                          return Option.none();
+                        }
 
-                      return Option.none();
-                    } catch {
-                      return Option.none();
-                    }
-                  }),
+                        const token = delta.content || '';
+                        const reasoning = delta.reasoning_content || '';
+                        const toolCalls = delta.tool_calls;
+
+                        if (toolCalls) {
+                          return Option.some<LLMStreamEvent>({ _tag: 'ToolCallDeltas', deltas: toolCalls });
+                        }
+
+                        if (reasoning) {
+                          return Option.some<LLMStreamEvent>({ _tag: 'Text', content: ` <reasoning>${reasoning}</reasoning> ` });
+                        }
+
+                        if (token) {
+                          return Option.some<LLMStreamEvent>({ _tag: 'Text', content: token });
+                        }
+
+                        return Option.none();
+                      } catch {
+                        return Option.none();
+                      }
+                    }),
+                  ),
                 ),
               ),
             ),

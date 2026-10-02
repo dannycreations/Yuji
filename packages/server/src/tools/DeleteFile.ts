@@ -1,14 +1,13 @@
-import { FileSystem } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Schema } from 'effect';
 
 import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const DeleteFileSchema = Schema.Struct({
   files: Schema.Array(
     Schema.Struct({
-      path: Schema.String.annotations({ description: 'The path of the directory or file designated for deletion.' }),
+      path: Schema.String.annotate({ description: 'The path of the directory or file designated for deletion.' }),
     }),
-  ).pipe(Schema.minItems(1), Schema.maxItems(20), Schema.annotations({ description: 'A list of files to delete.' })),
+  ).pipe(Schema.check(Schema.isMinLength(1), Schema.isMaxLength(20)), Schema.annotate({ description: 'A list of files to delete.' })),
 });
 
 export const DeleteFile = defineTool(

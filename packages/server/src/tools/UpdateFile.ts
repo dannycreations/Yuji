@@ -1,20 +1,19 @@
-import { FileSystem } from '@effect/platform';
-import { Effect, Schema } from 'effect';
+import { Effect, FileSystem, Schema } from 'effect';
 
 import { defineTool, forEachFile } from '@yuji/server/helpers/ToolHelper';
 
 const UpdateFileSchema = Schema.Struct({
   files: Schema.Array(
     Schema.Struct({
-      path: Schema.String.annotations({ description: 'The path of the file designated for modification.' }),
+      path: Schema.String.annotate({ description: 'The path of the file designated for modification.' }),
       edits: Schema.Array(
         Schema.Struct({
-          search: Schema.String.annotations({ description: 'The exact text to be replaced.' }),
-          replace: Schema.String.annotations({ description: 'The replacement text.' }),
+          search: Schema.String.annotate({ description: 'The exact text to be replaced.' }),
+          replace: Schema.String.annotate({ description: 'The replacement text.' }),
         }),
-      ).pipe(Schema.minItems(1), Schema.annotations({ description: 'A list of search and replace pairs for the file.' })),
+      ).pipe(Schema.check(Schema.isMinLength(1)), Schema.annotate({ description: 'A list of search and replace pairs for the file.' })),
     }),
-  ).pipe(Schema.minItems(1), Schema.maxItems(20), Schema.annotations({ description: 'A list of files to update.' })),
+  ).pipe(Schema.check(Schema.isMinLength(1), Schema.isMaxLength(20)), Schema.annotate({ description: 'A list of files to update.' })),
 });
 
 export const UpdateFile = defineTool(
