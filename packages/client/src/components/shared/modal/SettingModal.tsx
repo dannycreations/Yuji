@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { X } from 'lucide-react';
 
 import { ButtonInput } from '@yuji/client/components/shared/InputArea';
@@ -36,7 +36,7 @@ export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activ
         </div>
         <div className="flex-1 overflow-y-auto space-y-1">
           {tabs.map((tab) => (
-            <button key={tab.id} onClick={() => onTabChange(tab.id)} className={clsx('list-item-interactive', activeTab === tab.id && 'active')}>
+            <button key={tab.id} onClick={() => onTabChange(tab.id)} className={cn('list-item-interactive', activeTab === tab.id && 'active')}>
               <tab.icon size={18} className="list-item-icon settings-tab-icon" />
               {tab.label}
             </button>

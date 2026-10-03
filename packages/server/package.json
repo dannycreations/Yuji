@@ -11,8 +11,7 @@
   "scripts": {
     "start": "bun src/main.ts",
     "dev": "bun --watch src/main.ts",
-    "check": "tsc --noEmit",
-    "test": "bun test"
+    "check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",

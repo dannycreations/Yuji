@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { forwardRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -27,13 +27,13 @@ const InputWrapper: FC<InputWrapperProps> = ({
   disabled,
 }) => {
   return (
-    <div className={clsx('input-wrapper', containerClassName, disabled && 'disabled')}>
+    <div className={cn('input-wrapper', containerClassName, disabled && 'disabled')}>
       {LeftIcon && <LeftIcon size={14} className="input-icon left" />}
       {children}
       {RightIcon && (
         <RightIcon
           size={14}
-          className={clsx('input-icon right', onRightIconClick && 'clickable')}
+          className={cn('input-icon right', onRightIconClick && 'clickable')}
           onClick={onRightIconClick}
           role={onRightIconClick ? 'button' : undefined}
           tabIndex={onRightIconClick ? 0 : undefined}
@@ -59,7 +59,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       <InputWrapper leftIcon={leftIcon} rightIcon={rightIcon} onRightIconClick={onRightIconClick} containerClassName={containerClassName}>
         <input
           ref={ref}
-          className={clsx('input-base', className, leftIcon && 'pl-9', rightIcon && 'pr-9')}
+          className={cn('input-base', className, leftIcon && 'pl-9', rightIcon && 'pr-9')}
           value={localValue}
           onChange={handleChange}
           {...props}
@@ -101,7 +101,7 @@ interface SelectInputProps extends ComponentProps<'select'> {
 export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(({ className, containerClassName, children, disabled, ...props }, ref) => {
   return (
     <InputWrapper rightIcon={ChevronDown} containerClassName={containerClassName} disabled={disabled}>
-      <select ref={ref} className={clsx('select-base', className)} disabled={disabled} {...props}>
+      <select ref={ref} className={cn('select-base', className)} disabled={disabled} {...props}>
         {children}
       </select>
     </InputWrapper>
@@ -115,7 +115,7 @@ interface TextareaInputProps extends TextareaAutosizeProps {
 export const TextareaInput = forwardRef<HTMLTextAreaElement, TextareaInputProps>(({ className, value, onChange, debounceMs = 0, ...props }, ref) => {
   const [localValue, handleChange] = useLocalValue(value, onChange, debounceMs);
 
-  return <TextareaAutosize ref={ref} className={clsx('input-base resize-none', className)} value={localValue} onChange={handleChange} {...props} />;
+  return <TextareaAutosize ref={ref} className={cn('input-base resize-none', className)} value={localValue} onChange={handleChange} {...props} />;
 });
 
 interface TagInputProps {
@@ -184,7 +184,7 @@ interface ButtonInputProps extends ComponentProps<'button'> {
 
 export const ButtonInput = forwardRef<HTMLButtonElement, ButtonInputProps>(({ className, variant = 'ghost', children, ...props }, ref) => {
   return (
-    <button ref={ref} className={clsx(BUTTON_VARIANT[variant], className)} {...props}>
+    <button ref={ref} className={cn(BUTTON_VARIANT[variant], className)} {...props}>
       {children}
     </button>
   );
@@ -205,9 +205,9 @@ export const SwitchInput: FC<SwitchInputProps> = ({ checked, onChange, disabled 
       aria-checked={checked}
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
-      className={clsx('input-switch', checked ? 'checked' : 'unchecked', disabled && 'opacity-50 cursor-not-allowed', className)}
+      className={cn('input-switch', checked ? 'checked' : 'unchecked', disabled && 'opacity-50 cursor-not-allowed', className)}
     >
-      <div className={clsx('input-switch-thumb', checked && 'checked')} />
+      <div className={cn('input-switch-thumb', checked && 'checked')} />
     </button>
   );
 };

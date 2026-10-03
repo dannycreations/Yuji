@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -34,7 +34,7 @@ export const DropdownItem: FC<DropdownItemProps> = ({
     <button
       type="button"
       disabled={disabled}
-      className={clsx('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', disabled && 'opacity-50 cursor-not-allowed', className)}
+      className={cn('dropdown-item', variant === 'danger' ? 'danger' : 'text-text-primary', disabled && 'opacity-50 cursor-not-allowed', className)}
       onMouseDown={(e) => {
         if (disabled) return;
         e.stopPropagation();
@@ -46,7 +46,7 @@ export const DropdownItem: FC<DropdownItemProps> = ({
         onClick?.();
       }}
     >
-      {IconComponent && <IconComponent size={16} className={clsx(variant !== 'danger' && 'text-text-tertiary', iconClassName)} />}
+      {IconComponent && <IconComponent size={16} className={cn(variant !== 'danger' && 'text-text-tertiary', iconClassName)} />}
       <div className="flex-1 min-w-0 text-left">
         <div className="font-medium truncate">{label}</div>
         {description && <div className="text-[11px] text-text-tertiary truncate leading-tight mt-0.5">{description}</div>}
@@ -145,7 +145,7 @@ export const Dropdown: FC<DropdownProps> = ({ isOpen, onClose, triggerRef, child
   const content = (
     <div
       ref={ref}
-      className={clsx('dropdown-menu fixed origin-top-left', className)}
+      className={cn('dropdown-menu fixed origin-top-left', className)}
       style={{
         top: coords ? `${coords.top}px` : '-9999px',
         left: coords ? `${coords.left}px` : '-9999px',

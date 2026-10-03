@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { Check, Cpu, Plus } from 'lucide-react';
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
@@ -37,18 +37,15 @@ export const PickerItem: FC<PickerItemProps> = ({
   const Component = onClick ? 'button' : 'div';
 
   return (
-    <Component
-      onClick={onClick}
-      className={clsx('model-picker-item group items-center', isActive && 'active', !isEnabled && 'opacity-60', className)}
-    >
+    <Component onClick={onClick} className={cn('model-picker-item group items-center', isActive && 'active', !isEnabled && 'opacity-60', className)}>
       {Icon && (
-        <div className={clsx('flex-shrink-0 mt-0.5', isEnabled ? iconColor || 'text-text-tertiary' : 'text-text-tertiary')}>
+        <div className={cn('flex-shrink-0 mt-0.5', isEnabled ? iconColor || 'text-text-tertiary' : 'text-text-tertiary')}>
           <Icon size={18} />
         </div>
       )}
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-2">
-          <span className={clsx('model-picker-item-title block truncate', !isEnabled && 'text-text-tertiary')}>{title}</span>
+          <span className={cn('model-picker-item-title block truncate', !isEnabled && 'text-text-tertiary')}>{title}</span>
         </div>
         {description && <div className="model-picker-item-description truncate">{description}</div>}
       </div>
@@ -71,7 +68,7 @@ export const ModePicker: FC<ModeItemProps> = ({ isOpen, triggerRef, onSelect, on
   const hasTools = availableTools.length > 0;
 
   return (
-    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={clsx('w-[200px]', className)} ignoreRef={ignoreRef}>
+    <Dropdown isOpen={isOpen} onClose={onClose} triggerRef={triggerRef} className={cn('w-[200px]', className)} ignoreRef={ignoreRef}>
       {MODE_LIST.map((mode) => {
         const isDisabled = mode.id === 'agent' && !hasTools;
         return (

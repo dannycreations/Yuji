@@ -1,4 +1,4 @@
-import { default as clsx } from 'clsx';
+import { cn } from 'cn';
 import { Effect } from 'effect';
 import {
   Archive,
@@ -104,7 +104,7 @@ export const DiscoverySection = <T,>({
       }
       headerActions={() => (
         <ButtonInput
-          className={clsx('badge-outline ml-2', refreshState === 'success' && '!text-emerald-500')}
+          className={cn('badge-outline ml-2', refreshState === 'success' && '!text-emerald-500')}
           onClick={handleRefresh}
           disabled={refreshState === 'loading'}
           title={refreshTitle}
@@ -112,7 +112,7 @@ export const DiscoverySection = <T,>({
           {refreshState === 'success' ? (
             <Check size={14} />
           ) : (
-            <RefreshCw size={14} className={clsx(refreshState === 'loading' && 'animate-spin-once')} />
+            <RefreshCw size={14} className={cn(refreshState === 'loading' && 'animate-spin-once')} />
           )}
           <span>{refreshState === 'success' ? 'Updated' : refreshLabel}</span>
         </ButtonInput>
@@ -123,7 +123,7 @@ export const DiscoverySection = <T,>({
 };
 
 export const SectionWrapper: FC<{ children: ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={clsx('settings-section-wrapper', className)}>{children}</div>
+  <div className={cn('settings-section-wrapper', className)}>{children}</div>
 );
 
 export const SettingItem: FC<{ label: string; description?: string; children: ReactNode; className?: string }> = ({
@@ -132,7 +132,7 @@ export const SettingItem: FC<{ label: string; description?: string; children: Re
   children,
   className,
 }) => (
-  <div className={clsx('panel-section flex-between', className)}>
+  <div className={cn('panel-section flex-between', className)}>
     <div className="flex-1 min-w-0">
       <div className="text-sm text-text-primary">{label}</div>
       {description && <div className="text-xs text-text-tertiary">{description}</div>}
@@ -142,7 +142,7 @@ export const SettingItem: FC<{ label: string; description?: string; children: Re
 );
 
 export const SettingField: FC<{ label: string; children: ReactNode; className?: string }> = ({ label, children, className }) => (
-  <div className={clsx('space-y-2', className)}>
+  <div className={cn('space-y-2', className)}>
     <label className="settings-label">{label}</label>
     {children}
   </div>
@@ -275,7 +275,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
       renderRow={(model) => {
         const isEnabled = !settings.disabledModels.includes(model.id);
         return (
-          <div key={model.id} className={clsx('settings-history-row', !isEnabled && 'opacity-60')}>
+          <div key={model.id} className={cn('settings-history-row', !isEnabled && 'opacity-60')}>
             <PickerItem
               title={getModelName(availableModels, model.id)}
               description={model.id}
@@ -333,7 +333,7 @@ export const ToolsSection: FC<SettingSectionProps & { availableTools: readonly T
       renderRow={(tool) => {
         const isEnabled = !settings.disabledTools.includes(tool.function.name);
         return (
-          <div key={tool.function.name} className={clsx('settings-history-row', !isEnabled && 'opacity-60')}>
+          <div key={tool.function.name} className={cn('settings-history-row', !isEnabled && 'opacity-60')}>
             <PickerItem
               title={tool.function.name}
               description={tool.function.description}
@@ -607,7 +607,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
         </>
       )}
       renderRow={(thread, _, selection) => (
-        <div key={thread.id} className={clsx('settings-history-row', selection?.checked && 'settings-history-row-active')}>
+        <div key={thread.id} className={cn('settings-history-row', selection?.checked && 'settings-history-row-active')}>
           {selection && (
             <div className="settings-history-checkbox-col">
               <Checkbox checked={selection.checked} onChange={selection.onChange} />
@@ -682,7 +682,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
         </>
       )}
       renderRow={(thread, _, selection) => (
-        <div key={thread.id} className={clsx('settings-history-row', selection?.checked && 'settings-history-row-active')}>
+        <div key={thread.id} className={cn('settings-history-row', selection?.checked && 'settings-history-row-active')}>
           {selection && (
             <div className="settings-history-checkbox-col">
               <Checkbox checked={selection.checked} onChange={selection.onChange} />

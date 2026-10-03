@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { X } from 'lucide-react';
 
 import type { FC } from 'react';
@@ -22,10 +22,10 @@ export const AttachmentGrid: FC<AttachmentGridProps> = ({
   if (attachments.length === 0) return null;
 
   return (
-    <div className={clsx('flex flex-wrap gap-2', className)}>
+    <div className={cn('flex flex-wrap gap-2', className)}>
       {attachments.map((att) => (
-        <div key={att.id} className={clsx('relative group', itemClassName)}>
-          <img src={att.url} alt={att.name} className={clsx('object-cover rounded-lg border border-separator', imgClassName)} />
+        <div key={att.id} className={cn('relative group', itemClassName)}>
+          <img src={att.url} alt={att.name} className={cn('object-cover rounded-lg border border-separator', imgClassName)} />
           {onRemove && (
             <button
               onClick={() => onRemove(att.id)}

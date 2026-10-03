@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import {
   ArrowUp,
   ArrowUpDown,
@@ -47,7 +47,7 @@ const sharedMarkdownComponents: Components = {
     }
 
     return (
-      <code className={clsx('code-inline', className)} {...props}>
+      <code className={cn('code-inline', className)} {...props}>
         {children}
       </code>
     );
@@ -180,9 +180,9 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
 
   return (
     <div className="group w-full" data-message-id={message.id}>
-      <div className={clsx('message-row', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
-        <div className={clsx('message-container', isUser ? 'user' : isTool ? 'tool' : 'assistant', readOnly && 'no-actions')}>
-          <div className={clsx('message-content-wrapper', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
+      <div className={cn('message-row', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
+        <div className={cn('message-container', isUser ? 'user' : isTool ? 'tool' : 'assistant', readOnly && 'no-actions')}>
+          <div className={cn('message-content-wrapper', isUser ? 'user' : isTool ? 'tool' : 'assistant')}>
             {!isEditing && <AttachmentGrid attachments={message.attachments || []} className="message-attachment-grid mb-2" />}
 
             {isEditing ? (
@@ -219,7 +219,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                     <ButtonInput
                       onClick={() => setIsSearchEnabled(!isSearchEnabled)}
                       title="Search"
-                      className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
+                      className={cn('p-1!', isSearchEnabled && 'text-primary!')}
                     >
                       <Globe size={18} />
                     </ButtonInput>
@@ -235,7 +235,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                 </div>
               </div>
             ) : (
-              <div className={clsx(isUser ? 'message-bubble-user' : isTool ? 'message-bubble-tool' : 'message-bubble-assistant')}>
+              <div className={cn(isUser ? 'message-bubble-user' : isTool ? 'message-bubble-tool' : 'message-bubble-assistant')}>
                 {isThinking && !message.content ? (
                   <div className="message-thinking-container">
                     <div className="message-thinking-dot" />
@@ -250,7 +250,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
           </div>
 
           {!isEditing && !readOnly && (
-            <div className={clsx('message-action-bar', isThinking && 'opacity-0 pointer-events-none')}>
+            <div className={cn('message-action-bar', isThinking && 'opacity-0 pointer-events-none')}>
               <div className="message-actions">
                 {siblingsList.length > 1 && (
                   <div className="message-branch-navigation">
@@ -306,7 +306,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
                           autoFocus
                         />
                         <button
-                          className={clsx(
+                          className={cn(
                             'regenerate-submit-btn',
                             customInstruction.trim() ? 'bg-primary text-background' : 'text-text-tertiary opacity-50',
                           )}

@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -13,7 +13,7 @@ export const ModalHeader: FC<{ readonly title: ReactNode }> = ({ title }) => (
 );
 
 export const ModalFooter: FC<{ readonly children: ReactNode; readonly className?: string }> = ({ children, className }) => (
-  <div className={clsx('modal-footer', className)}>{children}</div>
+  <div className={cn('modal-footer', className)}>{children}</div>
 );
 
 interface ModalProps {
@@ -41,8 +41,8 @@ export const Modal: FC<ModalProps> = ({ isOpen, onClose, children, className, co
   if (!isOpen) return null;
 
   return createPortal(
-    <div className={clsx('modal-overlay', className)}>
-      <div ref={containerRef} className={clsx('modal-container', containerClassName)}>
+    <div className={cn('modal-overlay', className)}>
+      <div ref={containerRef} className={cn('modal-container', containerClassName)}>
         {children}
       </div>
     </div>,

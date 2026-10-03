@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { AlertCircle, AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 import { useEffect } from 'react';
 
@@ -41,7 +41,7 @@ const ToastItem = ({ notification, onDismiss }: { notification: NotificationSche
   }, [notification.id, notification.timestamp]);
 
   return (
-    <div className={clsx('toast-container', variantClass)}>
+    <div className={cn('toast-container', variantClass)}>
       <div className="toast-icon-wrapper">
         <IconComponent size={18} />
       </div>

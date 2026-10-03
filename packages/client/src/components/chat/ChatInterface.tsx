@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { Bot } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
@@ -158,7 +158,7 @@ export const ChatInterface: FC = () => {
   return (
     <main className="main-layout">
       <div
-        className={clsx('chat-scroll-area', (!containerHeight || (!isReady && !isEmpty)) && 'opacity-0')}
+        className={cn('chat-scroll-area', (!containerHeight || (!isReady && !isEmpty)) && 'opacity-0')}
         ref={scrollAreaRef}
         onScroll={(e) => {
           const el = e.currentTarget;

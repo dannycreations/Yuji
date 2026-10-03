@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { Check, ChevronDown, ChevronUp, Copy, Download, Maximize } from 'lucide-react';
 import mermaid from 'mermaid-compact';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -37,7 +37,7 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
 
   return (
     <div className="code-block-container">
-      <div className={clsx('code-block-header', isCollapsed ? 'collapsed' : 'expanded')} onClick={() => setIsCollapsed(!isCollapsed)}>
+      <div className={cn('code-block-header', isCollapsed ? 'collapsed' : 'expanded')} onClick={() => setIsCollapsed(!isCollapsed)}>
         <div className="flex items-center gap-2">
           <div className="code-block-header-icon" title={isCollapsed ? 'Expand' : 'Collapse'}>
             {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
@@ -60,7 +60,7 @@ const BaseMessageBlock: FC<BaseMessageBlockProps> = ({ label, value, children, o
           )}
         </div>
       </div>
-      <div className={clsx('code-block-content', isCollapsed && 'hidden')}>{children}</div>
+      <div className={cn('code-block-content', isCollapsed && 'hidden')}>{children}</div>
     </div>
   );
 };
@@ -156,7 +156,7 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
         {error ? (
           <pre className="code-error">{code}</pre>
         ) : (
-          <div ref={containerRef} className={clsx('mermaid-container', !svg && 'opacity-0')} dangerouslySetInnerHTML={{ __html: svg }} />
+          <div ref={containerRef} className={cn('mermaid-container', !svg && 'opacity-0')} dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </BaseMessageBlock>
       {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={handleCloseFullscreen} />}

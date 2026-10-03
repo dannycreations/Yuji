@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { X } from 'lucide-react';
 
 import { ButtonInput } from '@yuji/client/components/shared/InputArea';
@@ -31,7 +31,7 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className={clsx('p-0 bg-background', className)}
+      className={cn('p-0 bg-background', className)}
       containerClassName="w-full h-full max-w-none rounded-none flex flex-col overflow-hidden"
     >
       <div className="fullscreen-modal-header" onMouseDown={(e) => e.stopPropagation()}>
@@ -47,7 +47,7 @@ export const FullscreenModal: FC<FullscreenModalProps> = ({
           </ButtonInput>
         </div>
       </div>
-      <div className={clsx('fullscreen-modal-body', bodyClassName)} onMouseDown={(e) => e.stopPropagation()}>
+      <div className={cn('fullscreen-modal-body', bodyClassName)} onMouseDown={(e) => e.stopPropagation()}>
         {children}
       </div>
     </Modal>

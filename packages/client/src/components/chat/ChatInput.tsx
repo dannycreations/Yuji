@@ -1,4 +1,4 @@
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { ArrowUp, ChevronUp, Globe, Square } from 'lucide-react';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -149,7 +149,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
             <ButtonInput
               onClick={() => setIsSearchEnabled(!isSearchEnabled)}
               title="Search"
-              className={clsx('p-1!', isSearchEnabled && 'text-primary!')}
+              className={cn('p-1!', isSearchEnabled && 'text-primary!')}
             >
               <Globe size={18} />
             </ButtonInput>
@@ -158,7 +158,7 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
           <button
             onClick={handleSubmit}
             disabled={!input.trim() && attachments.length === 0 && !isLoading}
-            className={clsx('chat-input-submit', isLoading || input.trim() || attachments.length > 0 ? 'active' : 'inactive')}
+            className={cn('chat-input-submit', isLoading || input.trim() || attachments.length > 0 ? 'active' : 'inactive')}
           >
             {isLoading ? <Square size={16} fill="currentColor" /> : <ArrowUp size={20} />}
           </button>

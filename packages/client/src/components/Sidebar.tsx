@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import clsx from 'clsx';
+import { cn } from 'cn';
 import { Archive, Bot, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pin, Settings, SquarePen, Trash2, User } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -107,7 +107,7 @@ export const Sidebar: FC = () => {
           </ButtonInput>
         </div>
       )}
-      <div className={clsx('sidebar-container', !isSidebarOpen && 'hidden')}>
+      <div className={cn('sidebar-container', !isSidebarOpen && 'hidden')}>
         <div className="sidebar-header relative">
           <ButtonInput onClick={toggleSidebar} className="z-chat-input h-9 w-9 p-0! flex-center" title="Close Sidebar">
             <PanelLeftClose size={20} />
@@ -147,7 +147,7 @@ export const Sidebar: FC = () => {
         </div>
 
         <div
-          className={clsx('sidebar-content scrollbar-autohide', isScrolling && 'scrolling')}
+          className={cn('sidebar-content scrollbar-autohide', isScrolling && 'scrolling')}
           ref={scrollContainerRef}
           onScroll={() => {
             setIsScrolling(true);
@@ -187,7 +187,7 @@ export const Sidebar: FC = () => {
                     key={virtualRow.key}
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
-                    className={clsx('sidebar-thread-item group', activeThreadId === thread.id && 'sidebar-thread-item-active')}
+                    className={cn('sidebar-thread-item group', activeThreadId === thread.id && 'sidebar-thread-item-active')}
                     onClick={() => setActiveThread(thread.id)}
                   >
                     <div className="sidebar-thread-title flex items-center gap-2">
@@ -201,16 +201,14 @@ export const Sidebar: FC = () => {
 
                     <div className="sidebar-thread-indicator-wrapper">
                       {backgroundThreadIds.includes(thread.id) && (
-                        <div
-                          className={clsx('flex items-center transition-opacity', menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0')}
-                        >
+                        <div className={cn('flex items-center transition-opacity', menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0')}>
                           <div className="sidebar-activity-indicator" />
                         </div>
                       )}
 
                       {!backgroundThreadIds.includes(thread.id) && pinnedThreadIds.includes(thread.id) && (
                         <div
-                          className={clsx(
+                          className={cn(
                             'flex items-center text-text-tertiary transition-opacity',
                             menuOpenId === thread.id ? 'opacity-0' : 'group-hover:opacity-0',
                           )}
@@ -220,7 +218,7 @@ export const Sidebar: FC = () => {
                       )}
                       <ButtonInput
                         ref={menuOpenId === thread.id ? menuTriggerRef : null}
-                        className={clsx('sidebar-thread-action-btn', menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
+                        className={cn('sidebar-thread-action-btn', menuOpenId === thread.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100')}
                         onClick={(e) => {
                           e.stopPropagation();
                           setMenuOpenId(menuOpenId === thread.id ? null : thread.id);
@@ -253,7 +251,7 @@ export const Sidebar: FC = () => {
           <Dropdown isOpen={true} triggerRef={menuTriggerRef} onClose={() => setMenuOpenId(null)}>
             <DropdownItem
               icon={Pin}
-              iconClassName={clsx(pinnedThreadIds.includes(menuOpenId) && 'rotate-45')}
+              iconClassName={cn(pinnedThreadIds.includes(menuOpenId) && 'rotate-45')}
               label={pinnedThreadIds.includes(menuOpenId) ? 'Unpin' : 'Pin'}
               onClick={() => {
                 setMenuOpenId(null);

@@ -10,8 +10,8 @@
     "dev": "bun --filter @yuji/client dev",
     "dev:server": "bun --filter @yuji/server dev",
     "build": "bun --filter @yuji/client build",
-    "check": "bun run format && bun -r check",
-    "test": "bun run check && bun -r test",
+    "check": "bun run format && bun --filter '*' check",
+    "test": "bun run check && bun test",
     "format": "prettier --write .",
     "update": "npm-check-updates -u -w",
     "prepare": "husky"
@@ -26,6 +26,7 @@
   ],
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+    "@types/bun": "^1.4.2",
     "husky": "^9.1.7",
     "npm-check-updates": "^23.1.0",
     "prettier": "^3.9.9"
