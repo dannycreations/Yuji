@@ -11,33 +11,23 @@ const parseBoldText = (text: string): (string | ReactNode)[] =>
 
 export const ConfirmModal: FC = () => {
   const confirm = useStore((s) => s.confirm);
-  const { title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', id, variant = 'danger', isOpen } = confirm;
+  const { title, message, confirmLabel = 'Confirm', id, variant = 'danger', isOpen } = confirm;
 
   const onCancel = useStoreAction((s) => s.update((prev) => ({ ...prev, confirm: { ...prev.confirm, isOpen: false } })));
   const onConfirm = useStoreAction((s) => (id ? s.executeConfirm(id) : Effect.void));
 
-  const handleCancel = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    onCancel();
-  };
-
-  const handleConfirm = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    onConfirm();
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={handleCancel} containerClassName="confirm-modal-container">
+    <Modal isOpen={isOpen} onClose={onCancel} containerClassName="confirm-modal-container">
       <div className="confirm-modal-content">
         <ModalHeader title={title} />
         <div className="confirm-modal-message">{parseBoldText(message)}</div>
       </div>
 
       <ModalFooter className="confirm-modal-actions">
-        <ButtonInput variant="secondary" onClick={handleCancel}>
-          {cancelLabel}
+        <ButtonInput variant="secondary" onClick={onCancel}>
+          Cancel
         </ButtonInput>
-        <ButtonInput variant={variant === 'info' ? 'primary' : variant} onClick={handleConfirm}>
+        <ButtonInput variant={variant} onClick={onConfirm}>
           {confirmLabel}
         </ButtonInput>
       </ModalFooter>

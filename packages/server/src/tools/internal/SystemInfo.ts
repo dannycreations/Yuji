@@ -5,7 +5,7 @@ import { defineTool } from '@yuji/server/helpers/ToolHelper';
 
 const SystemInfoSchema = Schema.Struct({});
 
-export interface SystemInfoResponse {
+interface SystemInfoResponse {
   readonly os: string;
   readonly shell: string[];
 }

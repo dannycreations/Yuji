@@ -25,7 +25,7 @@ interface LLMModel {
   readonly id: string;
 }
 
-export interface ToolCallDelta {
+interface ToolCallDelta {
   readonly index?: number;
   readonly id?: string;
   readonly function?: { readonly name?: string; readonly arguments?: string };

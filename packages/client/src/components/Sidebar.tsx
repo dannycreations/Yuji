@@ -79,22 +79,17 @@ export const Sidebar: FC = () => {
   });
 
   const virtualItems = virtualizer.getVirtualItems();
+  const lastRenderedIndex = virtualItems.length > 0 ? virtualItems[virtualItems.length - 1].index : -1;
 
   useEffect(() => {
-    const [lastItem] = [...virtualItems].reverse();
-
-    if (!lastItem) {
-      return;
-    }
-
-    const isLastItemVisible = lastItem.index >= flattenedThreads.length - 1;
+    const isLastItemVisible = lastRenderedIndex >= 0 && lastRenderedIndex === flattenedThreads.length - 1;
 
     if (!isLastItemVisible) {
       return;
     }
 
     loadMoreThreads();
-  }, [virtualItems, flattenedThreads.length, loadMoreThreads]);
+  }, [lastRenderedIndex, flattenedThreads.length, loadMoreThreads]);
 
   const menuThreadMetadata = menuOpenId ? threads[menuOpenId] : null;
 

@@ -190,7 +190,7 @@ export const ChatInterface: FC = () => {
           </div>
         ) : (
           <div className="message-list-container">
-            <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+            <div style={{ height: totalSize, position: 'relative' }}>
               <div
                 style={{
                   position: 'absolute',

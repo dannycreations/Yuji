@@ -15,7 +15,7 @@ import { SettingModal } from '@yuji/client/components/shared/modal/SettingModal'
 import { useStore, useStoreAction } from '@yuji/client/hooks/useStore';
 
 import type { FC } from 'react';
-import type { AppRuntimeState } from '@yuji/client/app/Schema';
+import type { GlobalSetting } from '@yuji/client/app/Schema';
 import type { SettingTabItem } from '@yuji/client/components/shared/modal/SettingModal';
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'tools' | 'instruction' | 'persona' | 'history' | 'archive';
@@ -39,10 +39,7 @@ export const GlobalSettingModal: FC = () => {
   const availableTools = useStore((s) => s.availableTools);
 
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
-  const updateSetting = useStoreAction(
-    (s, updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings'])) =>
-      s.updateSetting(updates),
-  );
+  const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
 
   const [activeTab, setActiveTab] = useState('general');
 

@@ -97,9 +97,7 @@ export const ChatMessageBubble: FC<ChatMessageBubbleProps> = memo(({ message, th
   const onBranch = useChatAction((c, tid: string, mid: string) => c.branchChat(tid, mid));
   const onSwitch = useChatAction((c, _tid: string, mid: string) => c.updateActiveThread((t) => ({ ...t, activeMessageId: findVersionLeaf(t, mid) })));
   const onDeleteMessage = useChatAction((c, tid: string, mid: string) => c.deleteMessage(tid, mid));
-  const onRegenerate = useChatAction((c, tid: string, mid: string, options?: { instruction?: string; search?: boolean }) =>
-    c.regenerateMessage(tid, mid, options),
-  );
+  const onRegenerate = useChatAction((c, tid: string, mid: string, options?: { instruction?: string }) => c.regenerateMessage(tid, mid, options));
   const onEditMessage = useChatAction(
     (c, tid: string, mid: string, content: string, options?: { attachments?: readonly Attachment[]; generateNext?: boolean; instruction?: string }) =>
       c.editMessage(tid, mid, content, options),

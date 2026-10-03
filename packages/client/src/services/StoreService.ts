@@ -1,27 +1,27 @@
 import { Context, Effect, Layer, Result, Stream, SubscriptionRef } from 'effect';
 
 import { DEFAULT_SETTINGS } from '@yuji/client/app/Constant';
-import { AppRuntimeState, AppStoreState, Thread, ThreadMetadata } from '@yuji/client/app/Schema';
+import { AppRuntimeState, AppStoreState, GlobalSetting, Thread, ThreadMetadata } from '@yuji/client/app/Schema';
 import { ensureValidMode } from '@yuji/client/helpers/ThreadHelper';
 import { StorageService } from '@yuji/client/services/StorageService';
 import { formatError, randomId } from '@yuji/client/utilities/CommonUtil';
 
 import type { ConfirmOptions } from '@yuji/client/app/Schema';
 
+type NotificationType = 'error' | 'warning' | 'info' | 'success';
+
 export interface StoreService {
   readonly state: SubscriptionRef.SubscriptionRef<AppRuntimeState>;
   readonly getSnapshot: () => AppRuntimeState;
   readonly update: (f: (state: AppRuntimeState) => AppRuntimeState) => Effect.Effect<void, never>;
   readonly setActiveThread: (threadOrId: Thread | string | null) => Effect.Effect<void, never>;
-  readonly updateSetting: (
-    updates: Partial<AppRuntimeState['settings']> | ((settings: AppRuntimeState['settings']) => AppRuntimeState['settings']),
-  ) => Effect.Effect<void, never>;
+  readonly updateSetting: (updates: Partial<GlobalSetting>) => Effect.Effect<void, never>;
   readonly toggle: (key: keyof Pick<AppRuntimeState, 'isSidebarOpen' | 'isSettingOpen'>) => Effect.Effect<void, never>;
   readonly togglePin: (threadId: string) => Effect.Effect<void, never>;
   readonly toggleArchive: (threadId: string) => Effect.Effect<void, Error>;
   readonly setConfirm: (options: ConfirmOptions) => Effect.Effect<void, never>;
   readonly executeConfirm: (id: string) => Effect.Effect<void, never>;
-  readonly notify: (type: 'error' | 'warning' | 'info' | 'success', message: string) => Effect.Effect<void, never>;
+  readonly notify: (type: NotificationType, message: string) => Effect.Effect<void, never>;
   readonly clearNotification: (id: string) => Effect.Effect<void, never>;
   readonly loadMessages: (threadId: string) => Effect.Effect<void, never>;
   readonly loadMoreThreads: () => Effect.Effect<void, never>;
@@ -36,37 +36,22 @@ export const StoreService = Context.Service<StoreService>('@services/StoreServic
 const MAX_NOTIFICATIONS = 5;
 
 const createNotification = (
-  type: 'error' | 'warning' | 'info' | 'success',
+  type: NotificationType,
   message: string,
   existing: AppRuntimeState['notifications'],
 ): AppRuntimeState['notifications'] => {
-  const first = existing[0];
+  const isSame = (n: AppRuntimeState['notifications'][number]) => n.type === type && n.message === message;
+  const head = existing[0];
 
   // Returning the existing array keeps the original id and timestamp, so an
   // identical notification does not restart its auto-dismiss timer.
-  const isDuplicate = existing.length > 0 && first.message === message && first.type === type;
-
-  if (isDuplicate) {
+  if (head && isSame(head)) {
     return existing;
   }
 
-  const next: AppRuntimeState['notifications'][number][] = [{ id: randomId(8), type, message, timestamp: Date.now() }];
+  const incoming: AppRuntimeState['notifications'][number] = { id: randomId(8), type, message, timestamp: Date.now() };
 
-  for (const n of existing) {
-    const isSame = n.message === message && n.type === type;
-
-    if (isSame) {
-      continue;
-    }
-
-    next.push(n);
-  }
-
-  if (next.length > MAX_NOTIFICATIONS) {
-    return next.slice(0, MAX_NOTIFICATIONS);
-  }
-
-  return next;
+  return [incoming, ...existing.filter((n) => !isSame(n))].slice(0, MAX_NOTIFICATIONS);
 };
 
 const INITIAL_STATE: AppRuntimeState = {
@@ -125,29 +110,14 @@ export const StoreServiceLive = Layer.effect(
 
       const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, withValidMode(h)]));
       const { activeThreadId, settings } = metadata;
+      const baseSettings = withValidMode({ ...DEFAULT_SETTINGS, ...settings });
 
-      if (!activeThreadId) {
-        return {
-          ...INITIAL_STATE,
-          ...metadata,
-          settings: withValidMode({
-            ...DEFAULT_SETTINGS,
-            ...settings,
-          }),
-          threads,
-        } as AppRuntimeState;
-      }
-
-      const activeThread = yield* storage.getThread(activeThreadId).pipe(Effect.catch(() => Effect.succeed(null)));
+      const activeThread = activeThreadId ? yield* storage.getThread(activeThreadId).pipe(Effect.catch(() => Effect.succeed(null))) : null;
 
       return {
         ...INITIAL_STATE,
         ...metadata,
-        settings: withValidMode({
-          ...DEFAULT_SETTINGS,
-          ...settings,
-          model: activeThread?.general.model || settings.model,
-        }),
+        settings: activeThread?.general.model ? { ...baseSettings, model: activeThread.general.model } : baseSettings,
         activeThread: activeThread ? withValidMode(activeThread) : null,
         threads,
       } as AppRuntimeState;
@@ -164,17 +134,8 @@ export const StoreServiceLive = Layer.effect(
       };
     };
 
-    // Keep cache fresh on changes and notify listeners immediately
-    yield* Effect.forkDetach(
-      SubscriptionRef.changes(state).pipe(
-        Stream.runForEach(() =>
-          Effect.sync(() => {
-            snapshotCache = null;
-            listeners.forEach((l) => l());
-          }),
-        ),
-      ),
-    );
+    // Notify listeners as soon as the state changes
+    yield* Effect.forkDetach(SubscriptionRef.changes(state).pipe(Stream.runForEach(() => Effect.sync(() => listeners.forEach((l) => l())))));
 
     // Metadata (Debounced & Differential)
     yield* Effect.forkDetach(
@@ -197,33 +158,22 @@ export const StoreServiceLive = Layer.effect(
       ),
     );
 
-    let snapshotCache: AppRuntimeState | null = null;
+    // Agent mode needs tools to run, so it is unavailable until some are discovered.
     const update = (f: (state: AppRuntimeState) => AppRuntimeState) =>
-      Effect.sync(() => {
-        snapshotCache = null;
-      }).pipe(
-        Effect.flatMap(() =>
-          SubscriptionRef.update(state, (s) => {
-            const next = f(s);
-            if (next.availableTools.length === 0 && next.settings.mode === 'agent') {
-              return {
-                ...next,
-                settings: { ...next.settings, mode: 'chat' as const },
-              };
-            }
-            return next;
-          }),
-        ),
-      );
+      SubscriptionRef.update(state, (s) => {
+        const next = f(s);
+        if (next.availableTools.length === 0 && next.settings.mode === 'agent') {
+          return {
+            ...next,
+            settings: { ...next.settings, mode: 'chat' as const },
+          };
+        }
+        return next;
+      });
 
-    const getSnapshot = () => {
-      if (snapshotCache) {
-        return snapshotCache;
-      }
-
-      snapshotCache = SubscriptionRef.get(state).pipe(Effect.runSync);
-      return snapshotCache;
-    };
+    // The ref returns the same object until it changes, which is what lets
+    // useSyncExternalStore compare snapshots by identity.
+    const getSnapshot = () => SubscriptionRef.get(state).pipe(Effect.runSync);
 
     return StoreService.of({
       state,
@@ -262,11 +212,7 @@ export const StoreServiceLive = Layer.effect(
             settings: { ...s.settings, model: thread?.general.model || s.settings.model },
           };
         }),
-      updateSetting: (updates) =>
-        update((s) => ({
-          ...s,
-          settings: typeof updates === 'function' ? updates(s.settings) : { ...s.settings, ...updates },
-        })),
+      updateSetting: (updates) => update((s) => ({ ...s, settings: { ...s.settings, ...updates } })),
       toggle: (key) => update((s) => ({ ...s, [key]: !s[key] })),
       togglePin: (id) =>
         update((s) => ({
@@ -329,6 +275,30 @@ export const StoreServiceLive = Layer.effect(
         })),
       loadMessages: (threadId) =>
         Effect.gen(function* () {
+          // A load must never shrink the message set on screen, because the
+          // live state can hold streaming content that has not reached disk.
+          const adoptLoadedThread = (thread: Thread) =>
+            update((s) => {
+              if (s.activeThreadId !== threadId) {
+                return s;
+              }
+
+              const liveMessages = s.activeThread?.id === threadId ? s.activeThread.messages : {};
+
+              if (Object.keys(liveMessages).length >= Object.keys(thread.messages).length) {
+                return s;
+              }
+
+              return {
+                ...s,
+                activeThread: withValidMode({ ...thread, messages: { ...thread.messages, ...liveMessages } }),
+                settings: {
+                  ...s.settings,
+                  model: thread.general.model || s.settings.model,
+                },
+              };
+            });
+
           const s = yield* SubscriptionRef.get(state);
           // If the thread is already active and being updated (e.g. streaming), do not reload from storage
           // to avoid overwriting the volatile live state with stale/partial data from disk.
@@ -342,64 +312,15 @@ export const StoreServiceLive = Layer.effect(
           const partialThread = yield* storage.getThread(threadId, { limit: 20, loadSiblings: true }).pipe(Effect.catch(() => Effect.succeed(null)));
 
           if (partialThread) {
-            yield* update((s) => {
-              if (s.activeThreadId !== threadId) {
-                return s;
-              }
-
-              const isMoreDataExisting =
-                s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length >= Object.keys(partialThread.messages).length;
-
-              // If we already have more data (maybe from a previous full load or streaming), don't downgrade
-              if (isMoreDataExisting) {
-                return s;
-              }
-
-              return {
-                ...s,
-                activeThread: withValidMode(partialThread),
-                settings: {
-                  ...s.settings,
-                  model: partialThread.general.model || s.settings.model,
-                },
-              };
-            });
+            yield* adoptLoadedThread(partialThread);
           }
 
           // PHASE 2: Background load of everything else to ensure full history availability
           yield* Effect.gen(function* () {
             const fullThread = yield* storage.getThread(threadId).pipe(Effect.catch(() => Effect.succeed(null)));
-
-            if (!fullThread) {
-              return;
+            if (fullThread) {
+              yield* adoptLoadedThread(fullThread);
             }
-
-            yield* update((s) => {
-              if (s.activeThreadId !== threadId) {
-                return s;
-              }
-
-              const isMoreDataExisting =
-                s.activeThread?.id === threadId && Object.keys(s.activeThread.messages).length > Object.keys(fullThread.messages).length;
-
-              // If the thread is already populated (e.g. by sendMessage), don't overwrite
-              if (isMoreDataExisting) {
-                return s;
-              }
-
-              // If streaming happened during load, preserve those new messages
-              const currentMessages = s.activeThread?.id === threadId ? s.activeThread.messages : {};
-              const mergedMessages = { ...fullThread.messages, ...currentMessages };
-
-              return {
-                ...s,
-                activeThread: withValidMode({ ...fullThread, messages: mergedMessages }),
-                settings: {
-                  ...s.settings,
-                  model: fullThread.general.model || s.settings.model,
-                },
-              };
-            });
           }).pipe(Effect.forkDetach);
         }).pipe(Effect.orDie),
       loadMoreThreads: () =>
@@ -410,10 +331,7 @@ export const StoreServiceLive = Layer.effect(
             return;
           }
 
-          const lastKey = threadList.reduce((acc, t) => {
-            const result = t.updatedAt < acc ? t.updatedAt : acc;
-            return result;
-          }, Infinity);
+          const lastKey = threadList.reduce((oldest, t) => Math.min(oldest, t.updatedAt), Infinity);
 
           const more = yield* storage.getThreadsMetadata({ lastKey, limit: 30 }).pipe(Effect.catch(() => Effect.succeed([])));
 

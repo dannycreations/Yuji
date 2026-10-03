@@ -7,7 +7,7 @@ import { useClickOutside } from '@yuji/client/hooks/useClickOutside';
 import type { LucideIcon } from 'lucide-react';
 import type { FC, ReactNode, RefObject } from 'react';
 
-export interface DropdownItemProps {
+interface DropdownItemProps {
   readonly icon?: LucideIcon;
   readonly iconClassName?: string;
   readonly label: string;

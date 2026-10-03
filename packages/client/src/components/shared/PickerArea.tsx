@@ -11,7 +11,7 @@ import { useStore } from '@yuji/client/hooks/useStore';
 import type { LucideIcon } from 'lucide-react';
 import type { ChangeEvent, ComponentProps, FC, ReactNode, RefObject } from 'react';
 
-export interface PickerItemProps {
+interface PickerItemProps {
   readonly title: ReactNode;
   readonly description?: ReactNode;
   readonly icon?: LucideIcon;

@@ -1,12 +1,11 @@
-import { DEFAULT_SYSTEM_PROMPT, MODE_LIST } from '@yuji/client/app/Constant';
-import { GlobalSetting, Model, Thread, ThreadMessage, ThreadMetadata } from '@yuji/client/app/Schema';
+import { DEFAULT_SYSTEM_PROMPT } from '@yuji/client/app/Constant';
+import { GlobalSetting, MODE_IDS, Model, Thread, ThreadMessage, ThreadMetadata } from '@yuji/client/app/Schema';
 import { getModelId } from '@yuji/client/helpers/ModelHelper';
 import { randomId, truncate } from '@yuji/client/utilities/CommonUtil';
 
-export const ensureValidMode = (mode: string | undefined | null): 'chat' | 'agent' => {
-  const isValid = MODE_LIST.some((m) => m.id === mode);
-  return isValid ? (mode as 'chat' | 'agent') : 'chat';
-};
+import type { Mode } from '@yuji/client/app/Schema';
+
+export const ensureValidMode = (mode: string | undefined | null): Mode => MODE_IDS.find((id) => id === mode) ?? 'chat';
 
 export const createInitialThread = (settings: GlobalSetting, availableModels: readonly Model[]): Thread => {
   const now = Date.now();
@@ -215,7 +214,7 @@ export const branchThreadPath = (
   };
 };
 
-export type FlattenedThreadItem =
+type FlattenedThreadItem =
   | {
       readonly type: 'label';
       readonly label: string;

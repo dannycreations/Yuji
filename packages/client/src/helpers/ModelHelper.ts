@@ -6,12 +6,9 @@ export const getFilteredModels = (
   availableModels: readonly Model[],
   disabledModels: readonly string[],
   search: string,
-  options: {
-    includeDisabled?: boolean;
-    sort?: boolean;
-  } = {},
+  options: { includeDisabled?: boolean } = {},
 ): Model[] => {
-  const { includeDisabled = false, sort = true } = options;
+  const { includeDisabled = false } = options;
   const query = search.trim().toLowerCase();
   const disabledSet = disabledModels.length > 0 ? new Set(disabledModels) : null;
 
@@ -28,7 +25,8 @@ export const getFilteredModels = (
     }
   }
 
-  if (sort && filtered.length > 1) {
+  if (filtered.length > 1) {
+    // Disabled models sort last when they are included at all.
     return filtered.sort((a, b) => {
       if (includeDisabled && disabledSet) {
         const aDisabled = disabledSet.has(a.id) ? 1 : 0;
@@ -36,10 +34,8 @@ export const getFilteredModels = (
         if (aDisabled !== bDisabled) return aDisabled - bDisabled;
       }
 
-      // Avoid overhead of localeCompare if possible
-      const an = a.name;
-      const bn = b.name;
-      return an < bn ? -1 : an > bn ? 1 : 0;
+      // Plain comparison, because locale collation is not worth the cost here.
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
     });
   }
 

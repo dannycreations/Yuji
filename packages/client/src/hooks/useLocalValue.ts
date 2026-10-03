@@ -20,14 +20,11 @@ export const useLocalValue = <T extends HTMLInputElement | HTMLTextAreaElement>(
 
     if (debounceMs > 0) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      const eventClone = {
-        ...e,
-        target: { ...e.target, value: newValue },
-        persist: () => {},
-      } as unknown as ChangeEvent<T>;
-      timeoutRef.current = setTimeout(() => {
-        onChange?.(eventClone);
-      }, debounceMs);
+
+      // The input is controlled, so the live event would report the newest
+      // value by the time the debounce fires. Pin the value at keystroke time.
+      const eventAtKeystroke = { ...e, target: { ...e.target, value: newValue } } as unknown as ChangeEvent<T>;
+      timeoutRef.current = setTimeout(() => onChange?.(eventAtKeystroke), debounceMs);
     } else {
       onChange?.(e);
     }

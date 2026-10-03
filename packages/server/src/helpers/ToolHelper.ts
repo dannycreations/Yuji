@@ -3,9 +3,9 @@ import { ChildProcessSpawner } from 'effect/process';
 
 import type { ToolDefinition } from '@yuji/client/app/Schema';
 
-export type ToolServices = FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner;
+type ToolServices = FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner;
 
-export interface ToolImplementation {
+interface ToolImplementation {
   readonly name: string;
   readonly definition: ToolDefinition;
   readonly execute: (args: unknown) => Effect.Effect<unknown, unknown, ToolServices>;
@@ -36,7 +36,7 @@ export const defineTool = <A>(
   };
 };
 
-export interface FileProcessingError {
+interface FileProcessingError {
   readonly path: string;
   readonly error: string;
 }

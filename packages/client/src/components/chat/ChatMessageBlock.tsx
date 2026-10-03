@@ -1,7 +1,7 @@
 import { cn } from 'cn';
 import { Check, ChevronDown, ChevronUp, Copy, Download, Maximize } from 'lucide-react';
 import mermaid from 'mermaid-compact';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -99,13 +99,13 @@ const CodeBlock: FC<CodeBlockProps> = memo(({ language, value }) => {
 });
 
 const mermaidCache = new Map<string, string>();
+const MAX_CACHED_DIAGRAMS = 100;
 
 const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   const theme = useStore((s) => s.settings.theme);
   const [svg, setSvg] = useState<string>(() => mermaidCache.get(`${theme}-${code}`) || '');
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const mermaidConfig = useMemo(() => MERMAID_CONFIG(theme), [theme]);
 
@@ -125,6 +125,10 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
 
         if (!isMounted) {
           return;
+        }
+
+        if (mermaidCache.size >= MAX_CACHED_DIAGRAMS) {
+          mermaidCache.clear();
         }
 
         mermaidCache.set(`${theme}-${code}`, renderedSvg);
@@ -156,7 +160,7 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
         {error ? (
           <pre className="code-error">{code}</pre>
         ) : (
-          <div ref={containerRef} className={cn('mermaid-container', !svg && 'opacity-0')} dangerouslySetInnerHTML={{ __html: svg }} />
+          <div className={cn('mermaid-container', !svg && 'opacity-0')} dangerouslySetInnerHTML={{ __html: svg }} />
         )}
       </BaseMessageBlock>
       {isFullscreen && <MermaidFullscreenModal svg={svg} onClose={handleCloseFullscreen} />}

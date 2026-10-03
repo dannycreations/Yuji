@@ -60,7 +60,7 @@ interface DiscoverySectionProps<T> {
   readonly renderRow: (item: T) => ReactNode;
 }
 
-export const DiscoverySection = <T,>({
+const DiscoverySection = <T,>({
   items,
   emptyIcon,
   emptyLabel,
@@ -150,7 +150,7 @@ export const SettingField: FC<{ label: string; children: ReactNode; className?: 
 
 interface SettingSectionProps {
   readonly settings: GlobalSetting;
-  readonly onChange: (updates: Partial<GlobalSetting> | ((s: GlobalSetting) => GlobalSetting)) => void;
+  readonly onChange: (updates: Partial<GlobalSetting>) => void;
 }
 
 export const GeneralSection: FC<SettingSectionProps> = ({ settings, onChange }) => {
@@ -251,7 +251,7 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
   );
 
   const filterItems = useCallback(
-    (items: readonly Model[], search: string) => getFilteredModels(items, settings.disabledModels, search, { includeDisabled: true, sort: true }),
+    (items: readonly Model[], search: string) => getFilteredModels(items, settings.disabledModels, search, { includeDisabled: true }),
     [settings.disabledModels],
   );
 
@@ -358,12 +358,12 @@ interface SettingTableProps<T> {
   readonly getId: (item: T) => string;
   readonly headerLabel?: ReactNode;
   readonly headerActions?: (selectedIds: Set<string>, resetSelection: () => void) => ReactNode;
-  readonly renderRow: (item: T, index: number, selectionProps?: { checked: boolean; onChange: () => void }) => ReactNode;
+  readonly renderRow: (item: T, selectionProps?: { checked: boolean; onChange: () => void }) => ReactNode;
   readonly hideCheckbox?: boolean;
   readonly children?: ReactNode;
 }
 
-export const SettingTable = <T,>({
+const SettingTable = <T,>({
   info,
   emptyIcon: EmptyIcon,
   emptyLabel,
@@ -450,19 +450,9 @@ export const SettingTable = <T,>({
 
         <div className="flex-1 overflow-y-auto overscroll-contain divide-y divide-separator">
           {currentItems.length > 0 ? (
-            currentItems.map((item, index) => {
-              const id = getId(item);
-              return renderRow(
-                item,
-                index,
-                hideCheckbox
-                  ? undefined
-                  : {
-                      checked: selectedIds.has(id),
-                      onChange: () => toggleSelectItem(id),
-                    },
-              );
-            })
+            currentItems.map((item) =>
+              renderRow(item, hideCheckbox ? undefined : { checked: selectedIds.has(getId(item)), onChange: () => toggleSelectItem(getId(item)) }),
+            )
           ) : (
             <div className="settings-table-empty">
               <EmptyIcon size={32} className="opacity-20" />
@@ -606,7 +596,7 @@ export const HistorySection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           </ButtonInput>
         </>
       )}
-      renderRow={(thread, _, selection) => (
+      renderRow={(thread, selection) => (
         <div key={thread.id} className={cn('settings-history-row', selection?.checked && 'settings-history-row-active')}>
           {selection && (
             <div className="settings-history-checkbox-col">
@@ -681,7 +671,7 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
           </ButtonInput>
         </>
       )}
-      renderRow={(thread, _, selection) => (
+      renderRow={(thread, selection) => (
         <div key={thread.id} className={cn('settings-history-row', selection?.checked && 'settings-history-row-active')}>
           {selection && (
             <div className="settings-history-checkbox-col">

@@ -22,7 +22,7 @@ export interface StorageService {
   readonly deleteThreads: (ids: Iterable<string>) => Effect.Effect<void, Error>;
 
   readonly getDescendantIds: (threadId: string, id: string) => Effect.Effect<ReadonlyArray<string>, Error>;
-  readonly getMessages: (threadId: string, options?: { lastKey?: IDBValidKey; limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>, Error>;
+  readonly getMessages: (threadId: string, options?: { limit?: number }) => Effect.Effect<ReadonlyArray<ThreadMessage>, Error>;
   readonly saveMessages: (threadId: string, messages: Iterable<ThreadMessage>) => Effect.Effect<void, Error>;
   readonly deleteMessages: (threadId: string, ids: Iterable<string>) => Effect.Effect<void, Error>;
   readonly deleteDatabase: () => Effect.Effect<void, Error>;
@@ -87,19 +87,13 @@ export const StorageServiceLive = Layer.effect(
           range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
         }
 
+        // When indexValue is given the range is bounded to it, so every cursor
+        // already belongs to the requested thread.
         const results: T[] = [];
         let cursor = yield* Effect.promise(() => source.openCursor(range, direction));
 
         while (cursor && results.length < limit) {
-          const val = cursor.value;
-
-          const isWrongThread = indexValue !== undefined && indexName?.includes('_') && val.threadId !== indexValue;
-
-          if (isWrongThread) {
-            break;
-          }
-
-          results.push(val);
+          results.push(cursor.value);
           cursor = yield* Effect.promise(() => cursor!.continue());
         }
         return results;
@@ -376,20 +370,16 @@ export const StorageServiceLive = Layer.effect(
       deleteDatabase: () =>
         Effect.callback<void>((resume) => {
           const request = indexedDB.deleteDatabase(DB_NAME);
+          // Resolution never arrives when another tab still holds the database open.
           const timeout = setTimeout(() => resume(Effect.void), 2000);
+          const settle = () => {
+            clearTimeout(timeout);
+            resume(Effect.void);
+          };
 
-          request.onsuccess = () => {
-            clearTimeout(timeout);
-            resume(Effect.void);
-          };
-          request.onerror = () => {
-            clearTimeout(timeout);
-            resume(Effect.void);
-          };
-          request.onblocked = () => {
-            clearTimeout(timeout);
-            resume(Effect.void);
-          };
+          request.onsuccess = settle;
+          request.onerror = settle;
+          request.onblocked = settle;
         }).pipe(Effect.tap(() => Effect.sync(() => window.location.reload()))),
     });
 

@@ -1,5 +1,10 @@
 import { Schema } from 'effect';
 
+export const MODE_IDS = ['chat', 'agent'] as const;
+export type Mode = (typeof MODE_IDS)[number];
+
+const ModeSchema = Schema.Literals(MODE_IDS);
+
 export const ToolDefinition = Schema.Struct({
   type: Schema.Literal('function'),
   function: Schema.Struct({
@@ -69,7 +74,7 @@ export const GlobalSetting = Schema.Struct({
   apiKey: Schema.String,
   baseUrl: Schema.String,
   model: Schema.String,
-  mode: Schema.Literals(['chat', 'agent']),
+  mode: ModeSchema,
   theme: Schema.Literals(['dark', 'light']),
   enterToSend: Schema.Boolean,
   expandCodeblock: Schema.Boolean,
@@ -97,7 +102,7 @@ export type ThreadSetting = Schema.Schema.Type<typeof ThreadSetting>;
 export const ThreadMetadata = Schema.Struct({
   id: Schema.String,
   title: Schema.String,
-  mode: Schema.Literals(['chat', 'agent']),
+  mode: ModeSchema,
   activeMessageId: Schema.optional(Schema.String),
   archived: Schema.optional(Schema.Boolean),
   createdAt: Schema.Number,
@@ -127,16 +132,15 @@ export const Thread = ThreadMetadata.pipe(
 );
 export type Thread = Schema.Schema.Type<typeof Thread>;
 
-export const ConfirmState = Schema.Struct({
+const ConfirmState = Schema.Struct({
   isOpen: Schema.Boolean,
   id: Schema.optional(Schema.String),
   title: Schema.String,
   message: Schema.String,
   confirmLabel: Schema.optional(Schema.String),
-  cancelLabel: Schema.optional(Schema.String),
-  variant: Schema.optional(Schema.Literals(['danger', 'warning', 'info'])),
+  variant: Schema.optional(Schema.Literals(['danger'])),
 });
-export type ConfirmState = Schema.Schema.Type<typeof ConfirmState>;
+type ConfirmState = Schema.Schema.Type<typeof ConfirmState>;
 export type ConfirmOptions = Omit<ConfirmState, 'isOpen' | 'id'> & { readonly onConfirm: () => void };
 
 export const Notification = Schema.Struct({

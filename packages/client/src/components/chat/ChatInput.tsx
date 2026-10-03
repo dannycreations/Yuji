@@ -22,6 +22,7 @@ interface ChatInputProps {
 
 export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initialInput }) => {
   const [input, setInput] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (initialInput) {
@@ -70,8 +71,6 @@ export const ChatInput: FC<ChatInputProps> = ({ onSend, onStop, isLoading, initi
   if (isOptimisticResolved) {
     setOptimisticModelId(null);
   }
-
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey && settings.enterToSend) {

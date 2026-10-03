@@ -160,26 +160,19 @@ export const ChatServiceLive = Layer.effect(
           return;
         }
 
-        if (options.metadataOnly) {
+        // Both a metadata-only edit and a streaming message update leave the
+        // message set to its own writer, so each persists just the header.
+        if (options.metadataOnly || options.skipUpdateTimestamp) {
           return yield* storage.patchThread(threadId, {
             title: finalThread.title,
             mode: finalThread.mode,
-            updatedAt: finalThread.updatedAt,
             activeMessageId: finalThread.activeMessageId,
             archived: finalThread.archived,
+            ...(options.skipUpdateTimestamp ? {} : { updatedAt: finalThread.updatedAt }),
           });
         }
 
-        if (!options.skipUpdateTimestamp) {
-          return yield* storage.saveThread(finalThread);
-        }
-
-        return yield* storage.patchThread(threadId, {
-          title: finalThread.title,
-          mode: finalThread.mode,
-          activeMessageId: finalThread.activeMessageId,
-          archived: finalThread.archived,
-        });
+        return yield* storage.saveThread(finalThread);
       });
 
     const stop = (threadId?: string) =>
@@ -343,9 +336,7 @@ export const ChatServiceLive = Layer.effect(
 
             const model = thread.general.model || settings.model;
             const activeTools =
-              threadHeader.mode === 'agent'
-                ? state.availableTools.filter((t) => t.function && !settings.disabledTools.includes(t.function.name))
-                : undefined;
+              threadHeader.mode === 'agent' ? state.availableTools.filter((t) => !settings.disabledTools.includes(t.function.name)) : undefined;
 
             const stream = yield* llm.streamCompletion(
               currentPath,
@@ -493,15 +484,11 @@ export const ChatServiceLive = Layer.effect(
 
             let lastToolMsgId = id;
             for (const res of finalResults) {
+              const body = 'error' in res ? `Error: ${res.error}` : typeof res.result === 'string' ? res.result : JSON.stringify(res.result);
               const toolMessage: ThreadMessage = {
                 id: randomId(),
                 role: 'tool',
-                content:
-                  'error' in res
-                    ? `Error: ${res.error}`
-                    : typeof (res as { result: unknown }).result === 'string'
-                      ? (res as { result: string }).result
-                      : JSON.stringify((res as { result: unknown }).result),
+                content: body,
                 timestamp: Date.now(),
                 parentId: lastToolMsgId,
                 toolCallId: res.id,
@@ -825,14 +812,16 @@ export const ChatServiceLive = Layer.effect(
           continue;
         }
 
-        const messages = thread.messages ? Object.values(thread.messages).sort((a, b) => b.timestamp - a.timestamp) : [];
+        const messages = Object.values(thread.messages).sort((a, b) => b.timestamp - a.timestamp);
         const lastMessage = messages[0];
         const lastUserMessage = messages.find((m) => m.role === 'user');
 
         if (lastMessage?.role === 'assistant' && !lastMessage.isError) {
           yield* chat.deleteMessage(threadId, lastMessage.id);
           const path = lastUserMessage ? getMessagePath(thread, lastUserMessage.id) : [];
-          if (path.length > 0) yield* generate(threadId, path);
+          if (path.length > 0) {
+            yield* generate(threadId, path);
+          }
         } else if (lastMessage?.role === 'user') {
           yield* generate(threadId, getMessagePath(thread, lastMessage.id));
         } else {
