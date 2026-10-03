@@ -39,7 +39,13 @@ const runReported = <Success, Error, Requirements extends YujiEnv>(errorPrefix: 
 export const useStore = <T>(selector: (state: AppRuntimeState) => T, isEqual: (a: T, b: T) => boolean = Object.is): T => {
   const store = useStoreService();
 
-  const getSnapshot = useCallback(() => selector(store.getSnapshot()), [store, selector]);
+  // Call sites pass inline arrow selectors, so the selector identity changes every
+  // render. Reading it through a stable callback keeps getSnapshot and subscribe
+  // referentially stable, which stops useSyncExternalStore from resubscribing on
+  // every render while still always reading the latest selector.
+  const stableSelector = useStableCallback(selector);
+
+  const getSnapshot = useCallback(() => stableSelector(store.getSnapshot()), [store, stableSelector]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {

@@ -3,13 +3,11 @@ import { ChildProcessSpawner } from 'effect/process';
 
 import type { ToolDefinition } from '@yuji/client/app/Schema';
 
-/** Services a tool implementation may require. `Scope` is supplied by {@link defineTool}. */
 export type ToolServices = FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner;
 
-export interface ToolImplementation<A = unknown> {
+export interface ToolImplementation {
   readonly name: string;
   readonly definition: ToolDefinition;
-  readonly schema: Schema.ConstraintDecoder<A>;
   readonly execute: (args: unknown) => Effect.Effect<unknown, unknown, ToolServices>;
 }
 
@@ -18,7 +16,7 @@ export const defineTool = <A>(
   description: string,
   schema: Schema.ConstraintDecoder<A>,
   execute: (args: A) => Effect.Effect<unknown, unknown, Scope.Scope | ToolServices>,
-): ToolImplementation<A> => {
+): ToolImplementation => {
   const parameters = Schema.toJsonSchemaDocument(schema);
   return {
     name,
@@ -30,7 +28,6 @@ export const defineTool = <A>(
         parameters,
       },
     },
-    schema,
     execute: (args: unknown) =>
       Effect.gen(function* () {
         const decoded = yield* Schema.decodeUnknownEffect(schema)(args);

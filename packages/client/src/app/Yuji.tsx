@@ -97,8 +97,8 @@ export const YujiApp = () => {
   const [store, setStore] = useState<StoreService | null>(null);
 
   useEffect(() => {
-    // Layer.effect builds StoreService only after hydration finished, so the
-    // service existing already implies state.isHydrated.
+    // Layer.effect builds StoreService only after hydration finished, so
+    // awaiting the service is what gates the app on a loaded database.
     const fiber = YujiRuntime.runFork(
       Effect.gen(function* () {
         setStore(yield* StoreService);

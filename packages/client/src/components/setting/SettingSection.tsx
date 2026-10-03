@@ -241,7 +241,6 @@ export const ModelsSection: FC<SettingSectionProps & { availableModels: readonly
             ({
               id: m.id,
               name: m.id,
-              icon: 'Cpu',
               color: 'text-text-tertiary',
             }) satisfies Model,
         );
@@ -395,10 +394,6 @@ export const SettingTable = <T,>({
   const currentItems = useMemo(() => items.slice(currentPage * size, (currentPage + 1) * size), [items, currentPage, size]);
 
   const toggleSelectAll = () => {
-    if (!getId) {
-      return;
-    }
-
     const allSelected = currentItems.length > 0 && currentItems.every((item) => selectedIds.has(getId(item)));
 
     if (allSelected) {

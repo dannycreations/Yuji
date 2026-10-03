@@ -25,7 +25,7 @@
     "clsx": "^2.1.1",
     "effect": "^4.0.0",
     "idb": "^8.0.3",
-    "lucide-react": "^1.50.0",
+    "lucide-react": "^1.51.0",
     "mermaid-compact": "^0.0.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/react-syntax-highlighter": "^15.5.13",

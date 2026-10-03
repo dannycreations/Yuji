@@ -42,7 +42,6 @@ export type ToolExecuteResponse = Schema.Schema.Type<typeof ToolExecuteResponse>
 export const Model = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
-  icon: Schema.String,
   color: Schema.String,
 });
 export type Model = Schema.Schema.Type<typeof Model>;
@@ -164,7 +163,6 @@ export const AppRuntimeState = AppStoreState.pipe(
     activeThread: Schema.NullOr(Thread),
     isSidebarOpen: Schema.Boolean,
     isSettingOpen: Schema.Boolean,
-    isHydrated: Schema.Boolean,
     confirm: ConfirmState,
     notifications: Schema.Array(Notification),
     initializationError: Schema.optional(Schema.String),

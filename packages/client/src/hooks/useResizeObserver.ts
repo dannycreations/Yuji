@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { RefObject } from 'react';
 
-export const useResizeObserver = (ref: RefObject<HTMLElement | null>) => {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+export const useResizeObserver = (ref: RefObject<HTMLElement | null>): number => {
+  const [height, setHeight] = useState(0);
   const frameId = useRef<number | null>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) {
-      setDimensions({ width: 0, height: 0 });
+      setHeight(0);
       return;
     }
 
@@ -19,10 +19,7 @@ export const useResizeObserver = (ref: RefObject<HTMLElement | null>) => {
       frameId.current = requestAnimationFrame(() => {
         const entry = entries[0];
         if (entry) {
-          setDimensions({
-            width: entry.contentRect.width,
-            height: entry.contentRect.height,
-          });
+          setHeight(entry.contentRect.height);
         }
         frameId.current = null;
       });
@@ -37,5 +34,5 @@ export const useResizeObserver = (ref: RefObject<HTMLElement | null>) => {
     };
   }, [ref]);
 
-  return dimensions;
+  return height;
 };

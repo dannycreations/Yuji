@@ -6,17 +6,50 @@ import { FullscreenModal } from '@yuji/client/components/shared/modal/Fullscreen
 
 import type { FC } from 'react';
 
+const MIN_SCALE = 0.1;
+const MAX_SCALE = 10;
+
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+interface ZoomState {
+  readonly scale: number;
+  readonly position: Point;
+}
+
+const IDENTITY_ZOOM: ZoomState = { scale: 1, position: { x: 0, y: 0 } };
+
+export const zoomAtAnchor = (current: ZoomState, factor: number, anchor: Point): ZoomState => {
+  const scale = Math.min(Math.max(current.scale * factor, MIN_SCALE), MAX_SCALE);
+  if (scale === current.scale) {
+    return current;
+  }
+
+  const ratio = scale / current.scale;
+
+  return {
+    scale,
+    position: {
+      x: anchor.x - (anchor.x - current.position.x) * ratio,
+      y: anchor.y - (anchor.y - current.position.y) * ratio,
+    },
+  };
+};
+
 interface MermaidFullscreenModalProps {
   readonly svg: string;
   readonly onClose: () => void;
 }
 
 export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, onClose }) => {
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<ZoomState>(IDENTITY_ZOOM);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState<Point>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const applyZoom = (factor: number, anchor: Point) => setZoom((current) => zoomAtAnchor(current, factor, anchor));
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
@@ -24,44 +57,23 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.min(Math.max(scale * delta, 0.1), 10);
-
-    if (newScale === scale) return;
-
-    const ratio = newScale / scale;
-    const newX = mouseX - (mouseX - position.x) * ratio;
-    const newY = mouseY - (mouseY - position.y) * ratio;
-
-    setScale(newScale);
-    setPosition({ x: newX, y: newY });
+    applyZoom(e.deltaY > 0 ? 0.9 : 1.1, { x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     setIsDragging(true);
-    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    setDragStart({ x: e.clientX - zoom.position.x, y: e.clientY - zoom.position.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setPosition({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    });
+    setZoom((current) => ({ ...current, position: { x: e.clientX - dragStart.x, y: e.clientY - dragStart.y } }));
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
-  };
-
-  const resetZoom = () => {
-    setScale(1);
-    setPosition({ x: 0, y: 0 });
   };
 
   const handleZoom = (factor: number) => {
@@ -69,18 +81,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
     if (!container) return;
 
     const rect = container.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const newScale = Math.min(Math.max(scale * factor, 0.1), 10);
-    if (newScale === scale) return;
-
-    const ratio = newScale / scale;
-    const newX = centerX - (centerX - position.x) * ratio;
-    const newY = centerY - (centerY - position.y) * ratio;
-
-    setScale(newScale);
-    setPosition({ x: newX, y: newY });
+    applyZoom(factor, { x: rect.width / 2, y: rect.height / 2 });
   };
 
   return (
@@ -90,7 +91,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
       title="Diagram Preview"
       headerActions={
         <>
-          <ButtonInput onClick={resetZoom} title="Reset Zoom">
+          <ButtonInput onClick={() => setZoom(IDENTITY_ZOOM)} title="Reset Zoom">
             <RefreshCw size={18} />
           </ButtonInput>
           <ButtonInput onClick={() => handleZoom(1.2)} title="Zoom In">
@@ -115,7 +116,7 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
         <div
           className="mermaid-fullscreen-container flex-center absolute inset-0 transition-transform duration-75 ease-out"
           style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            transform: `translate(${zoom.position.x}px, ${zoom.position.y}px) scale(${zoom.scale})`,
             transformOrigin: '0 0',
           }}
           dangerouslySetInnerHTML={{ __html: svg }}

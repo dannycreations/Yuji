@@ -2,15 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useStoreAction } from '@yuji/client/hooks/useStore';
 
-export const useCopy = (timeout = 2000): [boolean, (text: string) => void] => {
+const COPIED_RESET_MS = 2000;
+
+export const useCopy = (): [boolean, (text: string) => void] => {
   const [copied, setCopied] = useState(false);
   const notify = useStoreAction((s, type: 'error' | 'warning' | 'info' | 'success', message: string) => s.notify(type, message));
 
   useEffect(() => {
     if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), timeout);
+    const timer = setTimeout(() => setCopied(false), COPIED_RESET_MS);
     return () => clearTimeout(timer);
-  }, [copied, timeout]);
+  }, [copied]);
 
   const copy = useCallback(
     (text: string) => {

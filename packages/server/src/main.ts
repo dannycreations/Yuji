@@ -7,14 +7,14 @@ import { ToolExecuteRequest } from '@yuji/client/app/Schema';
 import { authMiddleware } from '@yuji/server/helpers/ServerHelper';
 import { EXTERNAL_TOOL_LIST, TOOL_LIST } from '@yuji/server/tools/index';
 
-import type { ToolDefinition, ToolExecuteResponse } from '@yuji/client/app/Schema';
+import type { ToolExecuteResponse } from '@yuji/client/app/Schema';
 
 const ToolsRoute = HttpRouter.add(
   'GET',
   '/tools',
   Effect.gen(function* () {
     const toolDefinitions = Object.values(EXTERNAL_TOOL_LIST).map((t) => t.definition);
-    return yield* HttpServerResponse.json(toolDefinitions as ToolDefinition[]);
+    return yield* HttpServerResponse.json(toolDefinitions);
   }),
 );
 
@@ -22,8 +22,7 @@ const ExecuteToolsRoute = HttpRouter.add(
   'POST',
   '/tools/execute',
   Effect.gen(function* () {
-    const request = yield* HttpServerRequest.HttpServerRequest;
-    const calls = yield* request.json.pipe(Effect.flatMap(Schema.decodeUnknownEffect(ToolExecuteRequest)));
+    const calls = yield* HttpServerRequest.schemaBodyJson(ToolExecuteRequest);
 
     const results = yield* Effect.all(
       calls.map((item) =>

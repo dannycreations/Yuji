@@ -33,17 +33,21 @@ export interface StoreService {
 
 export const StoreService = Context.Service<StoreService>('@services/StoreService');
 
+const MAX_NOTIFICATIONS = 5;
+
 const createNotification = (
   type: 'error' | 'warning' | 'info' | 'success',
   message: string,
-  existing: readonly AppRuntimeState['notifications'][number][],
+  existing: AppRuntimeState['notifications'],
 ): AppRuntimeState['notifications'] => {
   const first = existing[0];
 
+  // Returning the existing array keeps the original id and timestamp, so an
+  // identical notification does not restart its auto-dismiss timer.
   const isDuplicate = existing.length > 0 && first.message === message && first.type === type;
 
   if (isDuplicate) {
-    return existing as AppRuntimeState['notifications'];
+    return existing;
   }
 
   const next: AppRuntimeState['notifications'][number][] = [{ id: randomId(8), type, message, timestamp: Date.now() }];
@@ -58,8 +62,8 @@ const createNotification = (
     next.push(n);
   }
 
-  if (next.length > 5) {
-    return next.slice(0, 5);
+  if (next.length > MAX_NOTIFICATIONS) {
+    return next.slice(0, MAX_NOTIFICATIONS);
   }
 
   return next;
@@ -74,7 +78,6 @@ const INITIAL_STATE: AppRuntimeState = {
   availableTools: [],
   isSidebarOpen: typeof window !== 'undefined' ? window.innerWidth > 768 : true,
   isSettingOpen: false,
-  isHydrated: false,
   confirm: {
     isOpen: false,
     title: '',
@@ -111,17 +114,13 @@ export const StoreServiceLive = Layer.effect(
         yield* Effect.logError('Database initialization failed:', err);
         return {
           ...INITIAL_STATE,
-          isHydrated: true,
           initializationError: err,
         } as AppRuntimeState;
       }
 
       const { metadata, threadHeaders } = result.success;
       if (!metadata) {
-        return {
-          ...INITIAL_STATE,
-          isHydrated: true,
-        } as AppRuntimeState;
+        return INITIAL_STATE;
       }
 
       const threads = Object.fromEntries(threadHeaders.map((h) => [h.id, withValidMode(h)]));
@@ -136,7 +135,6 @@ export const StoreServiceLive = Layer.effect(
             ...settings,
           }),
           threads,
-          isHydrated: true,
         } as AppRuntimeState;
       }
 
@@ -152,7 +150,6 @@ export const StoreServiceLive = Layer.effect(
         }),
         activeThread: activeThread ? withValidMode(activeThread) : null,
         threads,
-        isHydrated: true,
       } as AppRuntimeState;
     });
 

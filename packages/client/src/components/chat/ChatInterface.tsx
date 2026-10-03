@@ -57,7 +57,7 @@ export const ChatInterface: FC = () => {
   const loadMessages = useStoreAction((s, id: string) => s.loadMessages(id));
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const { height: containerHeight } = useResizeObserver(scrollAreaRef);
+  const containerHeight = useResizeObserver(scrollAreaRef);
 
   const visibleMessages = useMemo(() => (activeThread ? getVisibleMessages(activeThread) : []), [activeThread]);
 
