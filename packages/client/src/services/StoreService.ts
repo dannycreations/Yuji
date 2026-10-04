@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Result, Stream, SubscriptionRef } from 'effect'
 
 import { DEFAULT_SETTINGS } from '@yuji/client/app/Constant';
 import { AppRuntimeState, AppStoreState, GlobalSetting, Thread, ThreadMetadata } from '@yuji/client/app/Schema';
-import { ensureValidMode } from '@yuji/client/helpers/ThreadHelper';
+import { ensureAgentCapableMode, ensureValidMode } from '@yuji/client/helpers/ThreadHelper';
 import { StorageService } from '@yuji/client/services/StorageService';
 import { formatError, randomId } from '@yuji/client/utilities/CommonUtil';
 
@@ -162,13 +162,8 @@ export const StoreServiceLive = Layer.effect(
     const update = (f: (state: AppRuntimeState) => AppRuntimeState) =>
       SubscriptionRef.update(state, (s) => {
         const next = f(s);
-        if (next.availableTools.length === 0 && next.settings.mode === 'agent') {
-          return {
-            ...next,
-            settings: { ...next.settings, mode: 'chat' as const },
-          };
-        }
-        return next;
+        const mode = ensureAgentCapableMode(next.settings.mode, next.availableTools);
+        return mode === next.settings.mode ? next : { ...next, settings: { ...next.settings, mode } };
       });
 
     // The ref returns the same object until it changes, which is what lets

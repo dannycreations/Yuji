@@ -2,8 +2,14 @@ import { Context, Effect, Fiber, Layer, Schema, Stream, SubscriptionRef } from '
 
 import { MessageNotFoundError, ThreadNotFoundError } from '@yuji/client/app/Error';
 import { Attachment, Thread, ThreadMessage, ThreadMetadata } from '@yuji/client/app/Schema';
-import { branchThreadPath, createInitialThread, generateThreadTitle, getMessagePath } from '@yuji/client/helpers/ThreadHelper';
-import { LLMProvider, synthesizeSystemPrompt } from '@yuji/client/providers/LLMProvider';
+import {
+  branchThreadPath,
+  createInitialThread,
+  ensureAgentCapableMode,
+  generateThreadTitle,
+  getMessagePath,
+} from '@yuji/client/helpers/ThreadHelper';
+import { accumulateToolCallDeltas, LLMProvider, synthesizeSystemPrompt } from '@yuji/client/providers/LLMProvider';
 import { StorageService } from '@yuji/client/services/StorageService';
 import { StoreService } from '@yuji/client/services/StoreService';
 import { ToolService } from '@yuji/client/services/ToolService';
@@ -80,20 +86,12 @@ export const ChatServiceLive = Layer.effect(
         const now = Date.now();
         const s = yield* SubscriptionRef.get(store.state);
 
-        const getBaseThread = () => {
-          const isActive = s.activeThreadId === threadId && s.activeThread?.id === threadId;
-          if (isActive) {
-            return Effect.succeed(s.activeThread);
-          }
-
-          if (options.metadataOnly) {
-            return storage.getThreadMetadata(threadId);
-          }
-
-          return storage.getThread(threadId);
-        };
-
-        const thread = yield* getBaseThread();
+        const isActive = s.activeThreadId === threadId && s.activeThread?.id === threadId;
+        const thread = yield* isActive
+          ? Effect.succeed(s.activeThread)
+          : options.metadataOnly
+            ? storage.getThreadMetadata(threadId)
+            : storage.getThread(threadId);
 
         if (!thread) {
           return yield* Effect.fail(new ThreadNotFoundError({ threadId }));
@@ -178,13 +176,9 @@ export const ChatServiceLive = Layer.effect(
     const stop = (threadId?: string) =>
       Effect.gen(function* () {
         if (!threadId) {
-          const allFibers = Array.from(fibers.values());
+          const running = Array.from(fibers.values());
           fibers.clear();
-          const interruptAll = Effect.all(allFibers.map(Fiber.interrupt), {
-            concurrency: 'unbounded',
-            discard: true,
-          });
-          return yield* interruptAll;
+          return yield* Effect.all(running.map(Fiber.interrupt), { concurrency: 'unbounded', discard: true });
         }
 
         const fiber = fibers.get(threadId);
@@ -362,40 +356,7 @@ export const ChatServiceLive = Layer.effect(
             yield* Stream.runForEach(stream, (event) =>
               Effect.gen(function* () {
                 if (event._tag === 'ToolCallDeltas') {
-                  for (const d of event.deltas) {
-                    if (d.index === undefined) {
-                      continue;
-                    }
-
-                    const idx = d.index;
-                    const current = toolCallsAccumulator[idx];
-
-                    if (!current) {
-                      toolCallsAccumulator[idx] = {
-                        id: d.id ?? '',
-                        type: 'function',
-                        function: {
-                          name: d.function?.name ?? '',
-                          arguments: d.function?.arguments ?? '',
-                        },
-                      };
-
-                      continue;
-                    }
-
-                    const nextName = current.function.name + (d.function?.name ?? '');
-                    const nextArguments = current.function.arguments + (d.function?.arguments ?? '');
-
-                    toolCallsAccumulator[idx] = {
-                      ...current,
-                      id: d.id ?? current.id,
-                      function: {
-                        ...current.function,
-                        name: nextName,
-                        arguments: nextArguments,
-                      },
-                    };
-                  }
+                  toolCallsAccumulator = accumulateToolCallDeltas(toolCallsAccumulator, event.deltas);
                   return;
                 }
 
@@ -571,11 +532,7 @@ export const ChatServiceLive = Layer.effect(
         Effect.gen(function* () {
           const { activeThread } = yield* SubscriptionRef.get(store.state);
 
-          if (!activeThread) {
-            return;
-          }
-
-          if (activeThread.id !== threadId) {
+          if (activeThread?.id !== threadId) {
             return;
           }
 
@@ -603,11 +560,7 @@ export const ChatServiceLive = Layer.effect(
       editMessage: (threadId, messageId, content, options) =>
         Effect.gen(function* () {
           const { activeThread } = yield* SubscriptionRef.get(store.state);
-          if (!activeThread) {
-            return;
-          }
-
-          if (activeThread.id !== threadId) {
+          if (activeThread?.id !== threadId) {
             return;
           }
 
@@ -641,8 +594,7 @@ export const ChatServiceLive = Layer.effect(
       createThread: (mode) =>
         Effect.gen(function* () {
           const { settings, availableModels, availableTools } = yield* SubscriptionRef.get(store.state);
-          const targetMode = mode ?? settings.mode;
-          const finalMode = targetMode === 'agent' && availableTools.length === 0 ? 'chat' : targetMode;
+          const finalMode = ensureAgentCapableMode(mode ?? settings.mode, availableTools);
 
           const newThread = createInitialThread({ ...settings, mode: finalMode }, availableModels);
           const metadata = yield* Schema.decodeEffect(ThreadMetadata)(newThread).pipe(Effect.orDie);
@@ -660,18 +612,12 @@ export const ChatServiceLive = Layer.effect(
       deleteThreads: (input) =>
         Effect.gen(function* () {
           const ids = typeof input === 'string' ? [input] : Array.from(input);
-          const len = ids.length;
 
-          if (len === 0) {
+          if (ids.length === 0) {
             return;
           }
 
-          const stopAll = Effect.all(ids.map(stop), {
-            concurrency: 'unbounded',
-            discard: true,
-          });
-
-          yield* stopAll;
+          yield* Effect.all(ids.map(stop), { concurrency: 'unbounded', discard: true });
 
           const idSet = new Set(ids);
           yield* store.update((state) => {

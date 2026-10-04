@@ -88,7 +88,7 @@ export const GlobalSetting = Schema.Struct({
 });
 export type GlobalSetting = Schema.Schema.Type<typeof GlobalSetting>;
 
-export const ThreadSetting = Schema.Struct({
+const ThreadSetting = Schema.Struct({
   general: Schema.Struct({
     model: Schema.optional(Schema.String),
     overrideInstruction: Schema.optional(Schema.Boolean),
@@ -97,7 +97,6 @@ export const ThreadSetting = Schema.Struct({
   instruction: Instruction,
   personalisation: Personalisation,
 });
-export type ThreadSetting = Schema.Schema.Type<typeof ThreadSetting>;
 
 export const ThreadMetadata = Schema.Struct({
   id: Schema.String,

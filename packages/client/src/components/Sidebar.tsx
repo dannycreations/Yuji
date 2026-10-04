@@ -18,8 +18,7 @@ import type { ConfirmOptions } from '@yuji/client/app/Schema';
 
 export const Sidebar: FC = () => {
   const threads = useStore((s) => s.threads, shallowEqual);
-  const settings = useStore((s) => s.settings, shallowEqual);
-  const userName = settings.personalisation.userName;
+  const userName = useStore((s) => s.settings.personalisation.userName);
   const activeThreadId = useStore((s) => s.activeThreadId);
   const pinnedThreadIds = useStore((s) => s.pinnedThreadIds, shallowEqual);
   const isSidebarOpen = useStore((s) => s.isSidebarOpen);

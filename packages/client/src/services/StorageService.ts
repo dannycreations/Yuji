@@ -60,6 +60,7 @@ export const StorageServiceLive = Layer.effect(
   Effect.gen(function* () {
     const getDB = yield* connectDB;
 
+    // Walks an index backwards, so callers see the newest entries first.
     const paginate = <T>(
       storeName: string,
       options: {
@@ -67,30 +68,25 @@ export const StorageServiceLive = Layer.effect(
         limit?: number;
         indexName?: string;
         indexValue?: IDBValidKey;
-        direction?: IDBCursorDirection;
       },
     ) =>
       Effect.gen(function* () {
         const db = yield* getDB;
-        const { lastKey, limit = 20, indexName, indexValue, direction = 'prev' } = options;
+        const { lastKey, limit = 20, indexName, indexValue } = options;
         const tx = db.transaction(storeName, 'readonly');
         const source = indexName ? tx.store.index(indexName) : tx.store;
 
-        let range: IDBKeyRange | null = null;
-        if (indexValue !== undefined && lastKey === undefined) {
-          range = IDBKeyRange.bound([indexValue, 0], [indexValue, Number.MAX_SAFE_INTEGER]);
-        } else if (indexValue !== undefined && direction === 'prev') {
-          range = IDBKeyRange.bound([indexValue, 0], [indexValue, lastKey], false, true);
-        } else if (indexValue !== undefined) {
-          range = IDBKeyRange.bound([indexValue, lastKey], [indexValue, Number.MAX_SAFE_INTEGER], true, false);
-        } else if (lastKey !== undefined) {
-          range = direction === 'prev' ? IDBKeyRange.upperBound(lastKey, true) : IDBKeyRange.lowerBound(lastKey, true);
-        }
-
         // When indexValue is given the range is bounded to it, so every cursor
         // already belongs to the requested thread.
+        let range: IDBKeyRange | null = null;
+        if (indexValue !== undefined) {
+          range = IDBKeyRange.bound([indexValue, 0], [indexValue, Number.MAX_SAFE_INTEGER]);
+        } else if (lastKey !== undefined) {
+          range = IDBKeyRange.upperBound(lastKey, true);
+        }
+
         const results: T[] = [];
-        let cursor = yield* Effect.promise(() => source.openCursor(range, direction));
+        let cursor = yield* Effect.promise(() => source.openCursor(range, 'prev'));
 
         while (cursor && results.length < limit) {
           results.push(cursor.value);
@@ -122,7 +118,6 @@ export const StorageServiceLive = Layer.effect(
           limit: options?.limit ?? 50,
           lastKey: options?.lastKey,
           indexName: 'updatedAt',
-          direction: 'prev',
         }),
 
       searchThreads: (query, options) =>
@@ -176,12 +171,8 @@ export const StorageServiceLive = Layer.effect(
 
           const activeId = thread.activeMessageId;
 
-          // Ensure the active path and their siblings are present if a limit was applied
-          if (!options?.limit) {
-            return { ...thread, messages: messagesRecord } as Thread;
-          }
-
-          if (!activeId) {
+          // Without a limit every message is already loaded, so nothing is missing
+          if (!options?.limit || !activeId) {
             return { ...thread, messages: messagesRecord } as Thread;
           }
 
@@ -207,32 +198,29 @@ export const StorageServiceLive = Layer.effect(
             currentId = msg.parentId;
           }
 
-          if (!options.loadSiblings) {
-            return { ...thread, messages: messagesRecord } as Thread;
-          }
-
-          // Load siblings of every message in the active path
-          // This ensures version navigation works even in large threads with lazy loading
-          for (const mid of pathIds) {
-            const msg = messagesRecord[mid];
-            if (!msg?.parentId) {
-              continue;
-            }
-
-            const siblingsKeys = (yield* Effect.promise(() => db.getAllKeysFromIndex(STORES.MESSAGES, 'threadId_parentId', [id, msg.parentId!]))) as [
-              string,
-              string,
-            ][];
-
-            for (const skey of siblingsKeys) {
-              const sid = skey[1];
-              if (messagesRecord[sid]) {
+          if (options.loadSiblings) {
+            // Load siblings of every message in the active path
+            // This ensures version navigation works even in large threads with lazy loading
+            for (const mid of pathIds) {
+              const msg = messagesRecord[mid];
+              if (!msg?.parentId) {
                 continue;
               }
 
-              const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, skey))) as ThreadMessage | undefined;
-              if (smsg) {
-                messagesRecord[sid] = smsg;
+              const siblingsKeys = (yield* Effect.promise(() =>
+                db.getAllKeysFromIndex(STORES.MESSAGES, 'threadId_parentId', [id, msg.parentId!]),
+              )) as [string, string][];
+
+              for (const skey of siblingsKeys) {
+                const sid = skey[1];
+                if (messagesRecord[sid]) {
+                  continue;
+                }
+
+                const smsg = (yield* Effect.promise(() => db.get(STORES.MESSAGES, skey))) as ThreadMessage | undefined;
+                if (smsg) {
+                  messagesRecord[sid] = smsg;
+                }
               }
             }
           }
@@ -299,7 +287,6 @@ export const StorageServiceLive = Layer.effect(
             ...options,
             indexName: 'threadId_timestamp',
             indexValue: threadId,
-            direction: 'prev',
           });
         }),
 

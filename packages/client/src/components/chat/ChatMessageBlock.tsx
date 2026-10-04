@@ -1,7 +1,7 @@
 import { cn } from 'cn';
 import { Check, ChevronDown, ChevronUp, Copy, Download, Maximize } from 'lucide-react';
 import mermaid from 'mermaid-compact';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -107,8 +107,6 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const mermaidConfig = useMemo(() => MERMAID_CONFIG(theme), [theme]);
-
   useEffect(() => {
     const cached = mermaidCache.get(`${theme}-${code}`);
     if (cached) {
@@ -119,7 +117,7 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
     let isMounted = true;
     const render = async () => {
       try {
-        mermaid.initialize(mermaidConfig);
+        mermaid.initialize(MERMAID_CONFIG(theme));
         const id = `mermaid-${randomId(8)}`;
         const { svg: renderedSvg } = await mermaid.render(id, code);
 
@@ -149,7 +147,7 @@ const MermaidBlock: FC<{ code: string }> = memo(({ code }) => {
     return () => {
       isMounted = false;
     };
-  }, [code, theme, mermaidConfig]);
+  }, [code, theme]);
 
   const handleFullscreen = useCallback(() => setIsFullscreen(true), []);
   const handleCloseFullscreen = useCallback(() => setIsFullscreen(false), []);

@@ -112,8 +112,6 @@ export const OpenAIProviderLive = Layer.effect(
           model: config.model,
           messages: createApiMessages(messages, systemPrompt),
           temperature: config.temperature,
-          max_tokens: config.maxTokens,
-          top_p: config.topP,
           stream: true,
           tools: config.tools,
         };

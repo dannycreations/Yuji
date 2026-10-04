@@ -7,6 +7,9 @@ import type { Mode } from '@yuji/client/app/Schema';
 
 export const ensureValidMode = (mode: string | undefined | null): Mode => MODE_IDS.find((id) => id === mode) ?? 'chat';
 
+export const ensureAgentCapableMode = (mode: Mode, availableTools: ReadonlyArray<unknown>): Mode =>
+  mode === 'agent' && availableTools.length === 0 ? 'chat' : mode;
+
 export const createInitialThread = (settings: GlobalSetting, availableModels: readonly Model[]): Thread => {
   const now = Date.now();
   const { personalisation } = settings;

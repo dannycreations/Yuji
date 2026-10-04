@@ -3,7 +3,7 @@ import { Context, Effect, Stream } from 'effect';
 import { DEFAULT_GUIDE_PROMPT } from '@yuji/client/app/Constant';
 import { LLMProviderError } from '@yuji/client/app/Error';
 
-import type { GlobalSetting, Thread, ThreadMessage, ToolDefinition } from '@yuji/client/app/Schema';
+import type { GlobalSetting, Thread, ThreadMessage, ToolCall, ToolDefinition } from '@yuji/client/app/Schema';
 
 export const synthesizeSystemPrompt = (settings: GlobalSetting, thread: Thread): string => {
   const instruction = thread.general.overrideInstruction ? thread.instruction.systemPrompt : settings.instruction.systemPrompt;
@@ -25,7 +25,7 @@ interface LLMModel {
   readonly id: string;
 }
 
-interface ToolCallDelta {
+export interface ToolCallDelta {
   readonly index?: number;
   readonly id?: string;
   readonly function?: { readonly name?: string; readonly arguments?: string };
@@ -33,6 +33,37 @@ interface ToolCallDelta {
 
 export type LLMStreamEvent =
   { readonly _tag: 'Text'; readonly content: string } | { readonly _tag: 'ToolCallDeltas'; readonly deltas: ReadonlyArray<ToolCallDelta> };
+
+export const accumulateToolCallDeltas = (calls: ToolCall[], deltas: ReadonlyArray<ToolCallDelta>): ToolCall[] => {
+  for (const delta of deltas) {
+    if (delta.index === undefined) {
+      continue;
+    }
+
+    const current = calls[delta.index];
+
+    if (!current) {
+      calls[delta.index] = {
+        id: delta.id ?? '',
+        type: 'function',
+        function: { name: delta.function?.name ?? '', arguments: delta.function?.arguments ?? '' },
+      };
+
+      continue;
+    }
+
+    calls[delta.index] = {
+      ...current,
+      id: delta.id ?? current.id,
+      function: {
+        name: current.function.name + (delta.function?.name ?? ''),
+        arguments: current.function.arguments + (delta.function?.arguments ?? ''),
+      },
+    };
+  }
+
+  return calls;
+};
 
 export interface LLMProvider {
   readonly fetchModels: (settings: GlobalSetting) => Effect.Effect<{ readonly data: readonly LLMModel[] }, LLMProviderError>;
@@ -42,8 +73,6 @@ export interface LLMProvider {
     config: {
       readonly model: string;
       readonly temperature: number;
-      readonly maxTokens?: number;
-      readonly topP?: number;
       readonly tools?: ReadonlyArray<ToolDefinition>;
     },
     systemPrompt: string,
