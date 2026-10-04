@@ -217,6 +217,8 @@ export const branchThreadPath = (
   };
 };
 
+type ThreadSummary = ThreadMetadata | Thread;
+
 type FlattenedThreadItem =
   | {
       readonly type: 'label';
@@ -224,11 +226,11 @@ type FlattenedThreadItem =
     }
   | {
       readonly type: 'thread';
-      readonly thread: ThreadMetadata | Thread;
+      readonly thread: ThreadSummary;
     };
 
 export const getFlattenedThreads = (
-  threadsList: ReadonlyArray<ThreadMetadata | Thread>,
+  threadsList: ReadonlyArray<ThreadSummary>,
   searchQuery: string,
   pinnedThreadIds: ReadonlyArray<string> = [],
 ): FlattenedThreadItem[] => {
@@ -238,14 +240,11 @@ export const getFlattenedThreads = (
   const last7DaysStart = todayStart - 518400000;
   const pinnedSet = pinnedThreadIds.length > 0 ? new Set(pinnedThreadIds) : null;
 
-  const labels = ['Pinned', 'Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days'];
-  const groups = labels.reduce(
-    (acc, label) => {
-      acc[label] = [];
-      return acc;
-    },
-    {} as Record<string, (ThreadMetadata | Thread)[]>,
-  );
+  const pinned: ThreadSummary[] = [];
+  const today: ThreadSummary[] = [];
+  const yesterday: ThreadSummary[] = [];
+  const last7Days: ThreadSummary[] = [];
+  const last30Days: ThreadSummary[] = [];
 
   for (const thread of threadsList) {
     if (thread.archived) {
@@ -258,34 +257,39 @@ export const getFlattenedThreads = (
     }
 
     if (pinnedSet?.has(thread.id)) {
-      groups['Pinned'].push(thread);
+      pinned.push(thread);
       continue;
     }
 
     const ts = thread.updatedAt;
 
     if (ts >= todayStart) {
-      groups['Today'].push(thread);
+      today.push(thread);
       continue;
     }
 
     if (ts >= yesterdayStart) {
-      groups['Yesterday'].push(thread);
+      yesterday.push(thread);
       continue;
     }
 
     if (ts >= last7DaysStart) {
-      groups['Last 7 Days'].push(thread);
+      last7Days.push(thread);
       continue;
     }
 
-    groups['Last 30 Days'].push(thread);
+    last30Days.push(thread);
   }
 
   const result: FlattenedThreadItem[] = [];
 
-  for (const label of labels) {
-    const group = groups[label];
+  for (const [label, group] of [
+    ['Pinned', pinned],
+    ['Today', today],
+    ['Yesterday', yesterday],
+    ['Last 7 Days', last7Days],
+    ['Last 30 Days', last30Days],
+  ] as const) {
     if (group.length === 0) {
       continue;
     }

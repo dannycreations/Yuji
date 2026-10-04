@@ -25,21 +25,17 @@ export const getFilteredModels = (
     }
   }
 
-  if (filtered.length > 1) {
-    // Disabled models sort last when they are included at all.
-    return filtered.sort((a, b) => {
-      if (includeDisabled && disabledSet) {
-        const aDisabled = disabledSet.has(a.id) ? 1 : 0;
-        const bDisabled = disabledSet.has(b.id) ? 1 : 0;
-        if (aDisabled !== bDisabled) return aDisabled - bDisabled;
-      }
+  return filtered.sort((a, b) => {
+    if (includeDisabled && disabledSet) {
+      // Disabled models sort last when they are included at all.
+      const aDisabled = disabledSet.has(a.id) ? 1 : 0;
+      const bDisabled = disabledSet.has(b.id) ? 1 : 0;
+      if (aDisabled !== bDisabled) return aDisabled - bDisabled;
+    }
 
-      // Plain comparison, because locale collation is not worth the cost here.
-      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-    });
-  }
-
-  return filtered;
+    // Plain comparison, because locale collation is not worth the cost here.
+    return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+  });
 };
 
 export const getModelId = (settings: GlobalSetting, availableModels: readonly Model[]): string => {

@@ -5,25 +5,25 @@ import { ButtonInput } from '@yuji/client/components/shared/InputArea';
 import { Modal, ModalHeader } from '@yuji/client/components/shared/modal/Modal';
 
 import type { LucideIcon } from 'lucide-react';
-import type { FC, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
-export interface SettingTabItem {
-  readonly id: string;
+export interface SettingTabItem<T extends string = string> {
+  readonly id: T;
   readonly label: string;
   readonly icon: LucideIcon;
 }
 
-interface SettingModalProps {
+interface SettingModalProps<T extends string> {
   readonly isOpen?: boolean;
-  readonly tabs: SettingTabItem[];
-  readonly activeTab: string;
-  readonly onTabChange: (id: string) => void;
+  readonly tabs: ReadonlyArray<SettingTabItem<T>>;
+  readonly activeTab: T;
+  readonly onTabChange: (id: T) => void;
   readonly onClose: () => void;
   readonly children: ReactNode;
 }
 
-export const SettingModal: FC<SettingModalProps> = ({ isOpen = true, tabs, activeTab, onTabChange, onClose, children }) => {
-  const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label || '';
+export const SettingModal = <T extends string>({ isOpen = true, tabs, activeTab, onTabChange, onClose, children }: SettingModalProps<T>) => {
+  const activeTabLabel = tabs.find((t) => t.id === activeTab)?.label ?? '';
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} containerClassName="settings-modal-container">

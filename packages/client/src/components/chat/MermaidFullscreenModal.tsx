@@ -86,7 +86,6 @@ export const MermaidFullscreenModal: FC<MermaidFullscreenModalProps> = ({ svg, o
 
   return (
     <FullscreenModal
-      isOpen={true}
       onClose={onClose}
       title="Diagram Preview"
       headerActions={

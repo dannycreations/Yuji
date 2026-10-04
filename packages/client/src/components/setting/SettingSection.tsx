@@ -697,7 +697,6 @@ export const ArchiveSection: FC<{ threads: Record<string, ThreadMetadata> }> = (
     >
       {previewThread && (
         <FullscreenModal
-          isOpen={!!previewThread}
           onClose={() => setPreviewThread(null)}
           title={previewThread.title}
           subtitle={`${timeAgo(previewThread.updatedAt)} • ${previewMessages.length} messages`}
@@ -787,26 +786,25 @@ export const PersonalisationSection: FC<PersonalisationSectionProps> = ({ person
   </div>
 );
 
-interface OverrideSectionProps<T> {
+interface OverrideSectionProps {
   readonly description: string;
   readonly checked: boolean;
-  readonly onChange: (checked: boolean) => void;
-  readonly children: (f: { onChange: (updates: Partial<T>) => void }) => ReactNode;
-  readonly onDataChange: (updates: Partial<T>) => void;
+  readonly onEnable: () => void;
+  readonly children: ReactNode;
 }
 
-export const OverrideSection = <T,>({ description, checked, onChange, children, onDataChange }: OverrideSectionProps<T>) => {
+export const OverrideSection: FC<OverrideSectionProps> = ({ description, checked, onEnable, children }) => {
   if (!checked) {
     return (
       <div className="override-empty-state">
         <Lock size={24} className="mb-2 opacity-50" />
         <p className="text-sm">{description}</p>
-        <ButtonInput onClick={() => onChange(true)} className="override-enable-btn">
+        <ButtonInput onClick={onEnable} className="override-enable-btn">
           Enable Override
         </ButtonInput>
       </div>
     );
   }
 
-  return <div className="space-y-3">{children({ onChange: onDataChange })}</div>;
+  return <div className="space-y-3">{children}</div>;
 };

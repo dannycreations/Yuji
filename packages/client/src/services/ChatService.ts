@@ -698,10 +698,6 @@ export const ChatServiceLive = Layer.effect(
             };
           });
 
-          if (idsToDelete.length === 0) {
-            return;
-          }
-
           yield* storage.deleteMessages(threadId, idsToDelete);
           if (updatedParent) {
             yield* storage.saveMessages(threadId, [updatedParent]);

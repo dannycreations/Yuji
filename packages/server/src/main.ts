@@ -35,11 +35,10 @@ const ExecuteToolsRoute = HttpRouter.add(
             };
           }
 
-          const result = yield* tool.execute(item.arguments).pipe(
-            Effect.catch((e) => Effect.succeed({ error: String(e) })),
-            Effect.map((res) => ({ id: item.id, result: res })),
+          return yield* tool.execute(item.arguments).pipe(
+            Effect.map((result) => ({ id: item.id, result })),
+            Effect.catch((e) => Effect.succeed({ id: item.id, error: String(e) })),
           );
-          return result;
         }),
       ),
     );

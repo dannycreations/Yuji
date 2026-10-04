@@ -7,7 +7,6 @@ import { Modal } from '@yuji/client/components/shared/modal/Modal';
 import type { FC, ReactNode } from 'react';
 
 interface FullscreenModalProps {
-  readonly isOpen: boolean;
   readonly onClose: () => void;
   readonly title?: ReactNode;
   readonly subtitle?: ReactNode;
@@ -17,19 +16,10 @@ interface FullscreenModalProps {
   readonly bodyClassName?: string;
 }
 
-export const FullscreenModal: FC<FullscreenModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  children,
-  headerActions,
-  className,
-  bodyClassName,
-}) => {
+export const FullscreenModal: FC<FullscreenModalProps> = ({ onClose, title, subtitle, children, headerActions, className, bodyClassName }) => {
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
       className={cn('p-0 bg-background', className)}
       containerClassName="w-full h-full max-w-none rounded-none flex flex-col overflow-hidden"

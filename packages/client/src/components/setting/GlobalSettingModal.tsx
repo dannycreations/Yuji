@@ -20,7 +20,7 @@ import type { SettingTabItem } from '@yuji/client/components/shared/modal/Settin
 
 type GlobalSettingTab = 'general' | 'connection' | 'models' | 'tools' | 'instruction' | 'persona' | 'history' | 'archive';
 
-const GLOBAL_SETTING_TABS: SettingTabItem[] = [
+const GLOBAL_SETTING_TABS: ReadonlyArray<SettingTabItem<GlobalSettingTab>> = [
   { icon: Settings, id: 'general', label: 'General' },
   { icon: Link, id: 'connection', label: 'Connection' },
   { icon: Cpu, id: 'models', label: 'Models' },
@@ -41,10 +41,10 @@ export const GlobalSettingModal: FC = () => {
   const toggleSetting = useStoreAction((s) => s.toggle('isSettingOpen'));
   const updateSetting = useStoreAction((s, updates: Partial<GlobalSetting>) => s.updateSetting(updates));
 
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState<GlobalSettingTab>('general');
 
   const renderContent = () => {
-    switch (activeTab as GlobalSettingTab) {
+    switch (activeTab) {
       case 'general':
         return <GeneralSection settings={settings} onChange={updateSetting} />;
       case 'connection':

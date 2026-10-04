@@ -14,7 +14,7 @@ import { SettingModal } from '@yuji/client/components/shared/modal/SettingModal'
 import { useChatAction, useStore, useStoreAction } from '@yuji/client/hooks/useStore';
 
 import type { FC } from 'react';
-import type { Thread } from '@yuji/client/app/Schema';
+import type { Instruction, Personalisation, Thread } from '@yuji/client/app/Schema';
 import type { SettingTabItem } from '@yuji/client/components/shared/modal/SettingModal';
 
 interface ThreadSettingModalProps {
@@ -22,7 +22,9 @@ interface ThreadSettingModalProps {
   readonly onClose: () => void;
 }
 
-const THREAD_SETTING_TABS: SettingTabItem[] = [
+type ThreadSettingTab = 'general' | 'instruction' | 'persona';
+
+const THREAD_SETTING_TABS: ReadonlyArray<SettingTabItem<ThreadSettingTab>> = [
   { icon: Settings, id: 'general', label: 'General' },
   { icon: Terminal, id: 'instruction', label: 'Instruction' },
   { icon: User, id: 'persona', label: 'Personalization' },
@@ -48,7 +50,7 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
     [onUpdateThread],
   );
 
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState<ThreadSettingTab>('general');
 
   useEffect(() => {
     if (activeThread?.id === threadId) {
@@ -64,6 +66,11 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
   const patchThread = (f: (s: Thread) => Thread, metadataOnly = false) => updateTargetThread(threadId, (s) => f(s), metadataOnly);
 
   const handleGeneral = (updates: Partial<Thread['general']>) => patchThread((s) => ({ ...s, general: { ...s.general, ...updates } }));
+
+  const patchInstruction = (updates: Partial<Instruction>) => patchThread((s) => ({ ...s, instruction: { ...s.instruction, ...updates } }));
+
+  const patchPersonalisation = (updates: Partial<Personalisation>) =>
+    patchThread((s) => ({ ...s, personalisation: { ...s.personalisation, ...updates } }));
 
   const handleModeChange = (mode: 'chat' | 'agent') => patchThread((s) => ({ ...s, mode }), true);
 
@@ -111,16 +118,13 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
             <OverrideSection
               description="Instruction is following global settings."
               checked={!!thread.general.overrideInstruction}
-              onChange={(checked) => handleGeneral({ overrideInstruction: checked })}
-              onDataChange={(instruction) => patchThread((s) => ({ ...s, instruction: { ...s.instruction, ...instruction } }))}
+              onEnable={() => handleGeneral({ overrideInstruction: true })}
             >
-              {({ onChange }) => (
-                <InstructionSection
-                  instruction={thread.instruction}
-                  onChange={onChange}
-                  footer="This will completely replace the global system prompt."
-                />
-              )}
+              <InstructionSection
+                instruction={thread.instruction}
+                onChange={patchInstruction}
+                footer="This will completely replace the global system prompt."
+              />
             </OverrideSection>
           </SectionWrapper>
         );
@@ -131,16 +135,12 @@ export const ThreadSettingModal: FC<ThreadSettingModalProps> = ({ threadId, onCl
             <OverrideSection
               description="Personalization is following global settings."
               checked={!!thread.general.overridePersonalisation}
-              onChange={(checked) => handleGeneral({ overridePersonalisation: checked })}
-              onDataChange={(personalisation) => patchThread((s) => ({ ...s, personalisation: { ...s.personalisation, ...personalisation } }))}
+              onEnable={() => handleGeneral({ overridePersonalisation: true })}
             >
-              {({ onChange }) => <PersonalisationSection personalisation={thread.personalisation} onChange={onChange} />}
+              <PersonalisationSection personalisation={thread.personalisation} onChange={patchPersonalisation} />
             </OverrideSection>
           </SectionWrapper>
         );
-
-      default:
-        return null;
     }
   };
 

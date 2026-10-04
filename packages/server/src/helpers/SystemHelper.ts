@@ -27,45 +27,35 @@ export const getAvailableShells = (): Effect.Effect<string[], never, FileSystem.
     const platform = os.platform();
     const shells: string[] = [];
 
+    const exists = (candidate: string) => fs.exists(candidate).pipe(Effect.catch(() => Effect.succeed(false)));
+
     if (platform === 'win32') {
       const systemRoot = process.env['SystemRoot'] || 'C:\\Windows';
-      const cmdPath = path.join(systemRoot, 'System32', 'cmd.exe');
-      const powershellPath = path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-      const pwshPath = path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe');
+      const candidates = [
+        path.join(systemRoot, 'System32', 'cmd.exe'),
+        path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+        path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'PowerShell', '7', 'pwsh.exe'),
+      ];
 
-      const cmdExists = yield* fs.exists(cmdPath).pipe(Effect.catch(() => Effect.succeed(false)));
-      if (cmdExists) {
-        shells.push(cmdPath);
-      }
-
-      const powershellExists = yield* fs.exists(powershellPath).pipe(Effect.catch(() => Effect.succeed(false)));
-      if (powershellExists) {
-        shells.push(powershellPath);
-      }
-
-      const pwshExists = yield* fs.exists(pwshPath).pipe(Effect.catch(() => Effect.succeed(false)));
-      if (pwshExists) {
-        shells.push(pwshPath);
+      for (const shell of candidates) {
+        if (yield* exists(shell)) {
+          shells.push(shell);
+        }
       }
     } else {
-      const commonShells = ['/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/bash', '/usr/bin/zsh'];
-      for (const shell of commonShells) {
-        if (yield* fs.exists(shell).pipe(Effect.catch(() => Effect.succeed(false)))) {
+      const candidates = ['/bin/bash', '/bin/zsh', '/bin/sh', '/usr/bin/bash', '/usr/bin/zsh'];
+      for (const shell of candidates) {
+        if (yield* exists(shell)) {
           shells.push(shell);
         }
       }
 
-      if (yield* fs.exists('/etc/shells').pipe(Effect.catch(() => Effect.succeed(false)))) {
+      if (yield* exists('/etc/shells')) {
         const content = yield* fs.readFileString('/etc/shells', 'utf8').pipe(Effect.orElseSucceed(() => ''));
         const lines = content.split('\n');
         for (const line of lines) {
           const trimmed = line.trim();
-          if (
-            trimmed &&
-            !trimmed.startsWith('#') &&
-            !shells.includes(trimmed) &&
-            (yield* fs.exists(trimmed).pipe(Effect.catch(() => Effect.succeed(false))))
-          ) {
+          if (trimmed && !trimmed.startsWith('#') && !shells.includes(trimmed) && (yield* exists(trimmed))) {
             shells.push(trimmed);
           }
         }

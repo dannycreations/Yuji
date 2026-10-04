@@ -100,7 +100,7 @@ export const StoreServiceLive = Layer.effect(
         return {
           ...INITIAL_STATE,
           initializationError: err,
-        } as AppRuntimeState;
+        };
       }
 
       const { metadata, threadHeaders } = result.success;
@@ -120,7 +120,7 @@ export const StoreServiceLive = Layer.effect(
         settings: activeThread?.general.model ? { ...baseSettings, model: activeThread.general.model } : baseSettings,
         activeThread: activeThread ? withValidMode(activeThread) : null,
         threads,
-      } as AppRuntimeState;
+      };
     });
 
     const initialState = yield* loadState;

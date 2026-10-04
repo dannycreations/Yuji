@@ -5,19 +5,12 @@ import { defineTool } from '@yuji/server/helpers/ToolHelper';
 
 const SystemInfoSchema = Schema.Struct({});
 
-interface SystemInfoResponse {
-  readonly os: string;
-  readonly shell: string[];
-}
-
 export const SystemInfo = defineTool(
   'system_info',
   'Get information about the operating system and terminal shell environment.',
   SystemInfoSchema,
   () =>
     Effect.gen(function* () {
-      const os = getFriendlyOSName();
-      const shell = yield* getAvailableShells();
-      return { os, shell } as SystemInfoResponse;
+      return { os: getFriendlyOSName(), shell: yield* getAvailableShells() };
     }).pipe(Effect.catch((error) => Effect.succeed({ error: String(error) }))),
 );
